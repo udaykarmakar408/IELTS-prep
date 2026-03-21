@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #020c1b;
+  --color-bg-1: #071428;
+  --color-bg-2: #0c1d3a;
+  --color-bg-3: #112244;
+  --color-border: #1a2f52;
+  --color-border-2: #243d66;
+  --color-blue-primary: #2563eb;
+  --color-blue-secondary: #3b82f6;
+  --color-blue-dim: #1e3a5f;
+  --color-violet-accent: #7c3aed;
+  --color-pink-accent: #db2777;
+  --color-green-accent: #059669;
+  --color-amber-accent: #d97706;
+  --color-red-accent: #dc2626;
+  --color-text-primary: #e2e8f0;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #64748b;
+  --color-text-dark: #334155;
+
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
+  --font-jakarta: var(--font-jakarta);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-bg text-text-primary font-jakarta;
+    font-size: 15px;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-bg-1/80 backdrop-blur-md border border-white/5 rounded-2xl p-4 transition-all duration-300 shadow-lg hover:shadow-blue-primary/10 hover:border-blue-primary/30;
+  }
+  .card-blue {
+    background: linear-gradient(135deg, rgba(12, 30, 61, 0.9), rgba(7, 20, 40, 0.9));
+    @apply border border-blue-dim/50 backdrop-blur-lg;
+  }
+  .btn {
+    @apply px-5 py-3 rounded-xl font-bold text-sm transition-all duration-300 inline-flex items-center justify-center gap-2 relative overflow-hidden active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply bg-blue-primary text-white shadow-[0_4px_14px_rgba(37,99,235,0.3)] hover:bg-blue-secondary hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(37,99,235,0.4)] active:translate-y-0 active:shadow-none;
+  }
+  .btn-ghost {
+    @apply bg-white/5 border border-white/10 text-text-secondary hover:bg-white/10 hover:border-blue-primary/50 hover:text-blue-secondary hover:-translate-y-0.5 active:translate-y-0;
+  }
+  .glass-sidebar {
+    @apply bg-bg-1/90 backdrop-blur-xl border-r border-white/5;
+  }
+  .glass-nav {
+    @apply bg-bg-1/80 backdrop-blur-md border-t border-white/5;
+  }
+  .tag {
+    @apply inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider;
+  }
+  .tag-blue { @apply bg-blue-dim text-blue-secondary; }
+  .tag-green { @apply bg-[#052e16] text-[#34d399]; }
+  .tag-amber { @apply bg-[#431407] text-[#fbbf24]; }
+  .tag-violet { @apply bg-[#2e1065] text-[#a78bfa]; }
+  .tag-pink { @apply bg-[#500724] text-[#f472b6]; }
+  .tag-gray { @apply bg-bg-3 text-text-muted; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.bar-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s linear infinite;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-bg-1;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-border rounded-full;
+}

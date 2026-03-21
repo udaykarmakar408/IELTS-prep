@@ -1,0 +1,16 @@
+{
+  "tables": {
+    "user_progress": {
+      "columns": {
+        "id": "uuid primary key references auth.users",
+        "progress_data": "jsonb not null",
+        "updated_at": "timestamp with time zone default now()",
+        "created_at": "timestamp with time zone default now()"
+      },
+      "policies": {
+        "Users can view their own progress": "id = auth.uid()",
+        "Users can update their own progress": "id = auth.uid()"
+      }
+    }
+  }
+}
