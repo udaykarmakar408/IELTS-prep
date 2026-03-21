@@ -80,6 +80,7 @@ export default function Listening() {
     setIsGeneratingAudio(true);
     setAudioError(null);
     try {
+      if (!text) throw new Error("No script provided for audio generation");
       const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY! });
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
@@ -96,7 +97,7 @@ export default function Listening() {
 
       const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
       if (base64Audio) {
-        const blob = await fetch(`data:audio/mp3;base64,${base64Audio}`).then(res => res.blob());
+        const blob = await fetch(`data:audio/wav;base64,${base64Audio}`).then(res => res.blob());
         const url = URL.createObjectURL(blob);
         setAudioUrl(url);
       } else {
