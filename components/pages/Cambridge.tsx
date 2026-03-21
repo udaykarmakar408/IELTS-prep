@@ -86,7 +86,7 @@ export default function Cambridge() {
     }
   };
 
-  if (activeSkill === "Writing") {
+  if (activeSkill === "Writing" && activeBook && activeTest) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -143,7 +143,7 @@ export default function Cambridge() {
     );
   }
 
-  if (activeTest) {
+  if (activeTest && activeBook) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">

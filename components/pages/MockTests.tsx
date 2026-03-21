@@ -122,7 +122,11 @@ export default function MockTests() {
   }, [activeTest, answer, progress, isSubmitting, testTask]);
 
   useEffect(() => {
-    setProgress(getProgress());
+    const load = async () => {
+      const p = await getProgress();
+      setProgress(p);
+    };
+    load();
   }, []);
 
   useEffect(() => {

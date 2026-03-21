@@ -44,7 +44,7 @@ export default function Home() {
 
   // If user hasn't set their name, show setup
   if (progress?.name === "Learner" && progress.studyDays.length === 0) {
-    return <Setup onComplete={() => setProgress(getProgress())} />;
+    return <Setup onComplete={async () => setProgress(await getProgress())} />;
   }
 
   const renderPage = () => {
@@ -69,7 +69,7 @@ export default function Home() {
       case "drills": return <Drills />;
       case "timer": return <StudyTimer />;
       case "errorlog": return <ErrorLog />;
-      case "settings": return <Settings onUpdate={() => setProgress(getProgress())} />;
+      case "settings": return <Settings onUpdate={async () => setProgress(await getProgress())} />;
       default: return <Dashboard setActivePage={setActivePage} />;
     }
   };

@@ -191,7 +191,10 @@ export default function Vocabulary() {
             <p className="text-text-secondary leading-relaxed max-w-xl">Never done or known before; something that has no previous example or parallel in history.</p>
           </div>
           <button 
-            onClick={() => setSelectedWord(VOCAB_DATA.find(v => v.w === "unprecedented"))}
+            onClick={() => {
+              const word = VOCAB_DATA.find(v => v.w === "unprecedented");
+              if (word) setSelectedWord(word);
+            }}
             className="btn btn-primary bg-violet-accent hover:bg-violet-accent/80 shadow-violet-accent/20"
           >
             Learn More <ChevronRight size={18} />

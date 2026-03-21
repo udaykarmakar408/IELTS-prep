@@ -50,7 +50,11 @@ export default function DailyQuiz() {
   const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
-    setProgress(getProgress());
+    const load = async () => {
+      const p = await getProgress();
+      setProgress(p);
+    };
+    load();
   }, []);
 
   const startQuiz = () => {

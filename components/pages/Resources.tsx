@@ -64,7 +64,11 @@ const RESOURCE_CATEGORIES = [
   }
 ];
 
-export default function Resources() {
+interface ResourcesProps {
+  setActivePage: (page: string) => void;
+}
+
+export default function Resources({ setActivePage }: ResourcesProps) {
   return (
     <div className="space-y-8">
       <div className="card-blue p-8 md:p-10 relative overflow-hidden">
