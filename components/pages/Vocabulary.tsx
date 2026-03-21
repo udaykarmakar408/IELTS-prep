@@ -28,6 +28,9 @@ export default function Vocabulary() {
   const [selectedWord, setSelectedWord] = useState<Word | null>(null);
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [newWord, setNewWord] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
   useEffect(() => {
     const load = async () => {
@@ -69,8 +72,6 @@ export default function Vocabulary() {
     setProgress(updated);
     saveProgress(updated);
   };
-
-  const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
   const categories = ["All", ...Array.from(new Set(VOCAB_DATA.map(w => w.category).filter(Boolean)))];
 
@@ -114,11 +115,6 @@ export default function Vocabulary() {
   };
 
   if (!progress) return null;
-
-  const filteredVocab = VOCAB_DATA.filter(v => 
-    v.w.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    v.def.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   return (
     <div className="space-y-8 pb-20">
