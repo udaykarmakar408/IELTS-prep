@@ -27,11 +27,13 @@ export interface UserProgress {
   courseXP: number;
   errorLog: { cat: string; error: string; correction: string; note: string; date: string; resolved: boolean }[];
   writingHistory: { task: string; text: string; feedback: string; band: number | null; words: number; date: string }[];
+  grammarHistory: { sentence: string; analysis: string; date: string }[];
   studyMinutes: number;
   dailyGoalMin: number;
   knownWords: string[];
   studyLog: Record<string, number>;
   examDate: string | null;
+  dailyBriefing: { date: string; content: string } | null;
 }
 
 const STORAGE_KEY = "ielts_pro_v1";
@@ -58,40 +60,58 @@ export const defaultProgress: UserProgress = {
   courseXP: 0,
   errorLog: [],
   writingHistory: [],
+  grammarHistory: [],
   studyMinutes: 0,
   dailyGoalMin: 60,
   knownWords: [],
   studyLog: {},
   examDate: null,
+  dailyBriefing: null,
 };
 
 import { supabase } from "./supabase";
+
+function mergeProgress(data: any): UserProgress {
+  const merged = { ...defaultProgress, ...data };
+  
+  // Ensure nested objects and arrays are correctly initialized
+  merged.bands = { ...defaultProgress.bands, ...(data?.bands || {}) };
+  merged.studyLog = { ...defaultProgress.studyLog, ...(data?.studyLog || {}) };
+  
+  // Ensure arrays are initialized
+  const arrayFields: (keyof UserProgress)[] = [
+    'studyDays', 'bandHistory', 'quizHistory', 'mockHistory', 
+    'completedLessons', 'badges', 'chatHistory', 'errorLog', 
+    'writingHistory', 'grammarHistory', 'knownWords'
+  ];
+  
+  arrayFields.forEach(field => {
+    if (!Array.isArray(merged[field])) {
+      (merged as any)[field] = [...(defaultProgress[field] as any[])];
+    }
+  });
+
+  return merged;
+}
 
 export async function getProgress(): Promise<UserProgress> {
   if (typeof window === "undefined") return defaultProgress;
   
   // Try Supabase first
-  const { data: { user } } = await supabase.auth.getUser();
-  if (user) {
-    const { data, error } = await supabase
-      .from('user_progress')
-      .select('progress_data')
-      .eq('id', user.id)
-      .single();
-    if (data && !error) {
-      const merged = { ...defaultProgress, ...data.progress_data };
-      // Ensure nested objects and arrays are not null/undefined
-      if (!merged.bands) merged.bands = defaultProgress.bands;
-      if (!merged.studyLog) merged.studyLog = defaultProgress.studyLog;
-      if (!merged.mockHistory) merged.mockHistory = defaultProgress.mockHistory;
-      if (!merged.bandHistory) merged.bandHistory = defaultProgress.bandHistory;
-      if (!merged.quizHistory) merged.quizHistory = defaultProgress.quizHistory;
-      if (!merged.errorLog) merged.errorLog = defaultProgress.errorLog;
-      if (!merged.writingHistory) merged.writingHistory = defaultProgress.writingHistory;
-      if (!merged.knownWords) merged.knownWords = defaultProgress.knownWords;
-      if (!merged.studyDays) merged.studyDays = defaultProgress.studyDays;
-      return merged;
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data, error } = await supabase
+        .from('user_progress')
+        .select('progress_data')
+        .eq('id', user.id)
+        .single();
+      if (data && !error) {
+        return mergeProgress(data.progress_data);
+      }
     }
+  } catch (e) {
+    console.error("Supabase fetch error:", e);
   }
 
   // Fallback to local storage
@@ -99,18 +119,7 @@ export async function getProgress(): Promise<UserProgress> {
   if (!stored) return defaultProgress;
   try {
     const parsed = JSON.parse(stored);
-    const merged = { ...defaultProgress, ...parsed };
-    // Ensure nested objects and arrays are not null/undefined
-    if (!merged.bands) merged.bands = defaultProgress.bands;
-    if (!merged.studyLog) merged.studyLog = defaultProgress.studyLog;
-    if (!merged.mockHistory) merged.mockHistory = defaultProgress.mockHistory;
-    if (!merged.bandHistory) merged.bandHistory = defaultProgress.bandHistory;
-    if (!merged.quizHistory) merged.quizHistory = defaultProgress.quizHistory;
-    if (!merged.errorLog) merged.errorLog = defaultProgress.errorLog;
-    if (!merged.writingHistory) merged.writingHistory = defaultProgress.writingHistory;
-    if (!merged.knownWords) merged.knownWords = defaultProgress.knownWords;
-    if (!merged.studyDays) merged.studyDays = defaultProgress.studyDays;
-    return merged;
+    return mergeProgress(parsed);
   } catch (e) {
     return defaultProgress;
   }

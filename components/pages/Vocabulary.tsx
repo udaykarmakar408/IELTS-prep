@@ -30,8 +30,31 @@ export default function Vocabulary() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [newWord, setNewWord] = useState("");
   const [isAdding, setIsAdding] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [isTesting, setIsTesting] = useState(false);
+  const [testSentence, setTestSentence] = useState("");
+  const [testFeedback, setTestFeedback] = useState<string | null>(null);
 
+  const checkSentence = async () => {
+    if (!testSentence.trim() || !selectedWord) return;
+    setIsTesting(true);
+    setTestFeedback(null);
+    const systemPrompt = `You are an IELTS vocabulary expert. Evaluate the student's use of the word "${selectedWord.w}" in their sentence.
+    Provide:
+    1. Correctness: Is the word used correctly (grammar, meaning, collocation)?
+    2. IELTS Suitability: Is the context appropriate for an IELTS Writing or Speaking task?
+    3. Improvement: How to make the sentence more "Band 7.5+"?
+    Use markdown for formatting.`;
+
+    try {
+      const result = await callGemini(`Word: ${selectedWord.w}\nSentence: ${testSentence}`, systemPrompt);
+      setTestFeedback(result);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsTesting(false);
+    }
+  };
   useEffect(() => {
     const load = async () => {
       const p = await getProgress();
@@ -252,7 +275,7 @@ export default function Vocabulary() {
                     <h3 className="font-serif text-3xl font-black text-text-primary uppercase tracking-tighter">{selectedWord.w}</h3>
                     <span className="text-sm text-text-muted italic">{selectedWord.pos}</span>
                   </div>
-                  <button onClick={() => { setSelectedWord(null); setAiAnalysis(null); }} className="p-2 hover:bg-bg-2 rounded-full transition-colors">
+                  <button onClick={() => { setSelectedWord(null); setAiAnalysis(null); setTestFeedback(null); setTestSentence(""); }} className="p-2 hover:bg-bg-2 rounded-full transition-colors">
                     <X size={20} className="text-text-muted" />
                   </button>
                 </div>
@@ -291,7 +314,34 @@ export default function Vocabulary() {
                       <ReactMarkdown>{aiAnalysis}</ReactMarkdown>
                     </div>
                   </div>
-                ) : null}
+                ) : (
+                  <div className="pt-4 border-t border-border-2">
+                    <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-3">Practice Using It</div>
+                    <div className="space-y-3">
+                      <textarea
+                        value={testSentence}
+                        onChange={(e) => setTestSentence(e.target.value)}
+                        placeholder={`Write a sentence using "${selectedWord.w}"...`}
+                        className="w-full bg-bg-2 border border-border-2 rounded-xl p-3 text-sm text-text-primary focus:border-blue-primary outline-none min-h-[80px] resize-none"
+                      />
+                      <button
+                        onClick={checkSentence}
+                        disabled={!testSentence.trim() || isTesting}
+                        className="btn btn-primary w-full py-3 text-xs"
+                      >
+                        {isTesting ? <Loader2 size={16} className="animate-spin" /> : "Check My Sentence"}
+                      </button>
+                      {testFeedback && (
+                        <div className="card bg-bg-3 border-border-2 p-4 text-left">
+                          <div className="text-[10px] font-bold text-blue-secondary uppercase tracking-widest mb-2">Feedback</div>
+                          <div className="prose prose-invert prose-sm max-w-none markdown-body">
+                            <ReactMarkdown>{testFeedback}</ReactMarkdown>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex gap-3 pt-2">
                   <button 

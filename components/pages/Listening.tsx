@@ -14,12 +14,14 @@ import {
   FileText,
   PenTool,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Sparkles
 } from "lucide-react";
 import { getProgress, saveProgress, UserProgress } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { GoogleGenAI, Modality } from "@google/genai";
 import { pcmToWav } from "@/lib/audio";
+import ReactMarkdown from "react-markdown";
 
 const LISTENING_SECTIONS = [
   {
@@ -280,11 +282,35 @@ export default function Listening() {
   const [playbackProgress, setPlaybackProgress] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
   const [showResults, setShowResults] = useState(false);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
-  const [audioError, setAudioError] = useState<string | null>(null);
-  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const [highlightedVocab, setHighlightedVocab] = useState<string[]>([]);
+  const [isHighlighting, setIsHighlighting] = useState(false);
 
+  const highlightVocab = async () => {
+    if (!activeSection) return;
+    setIsHighlighting(true);
+    const systemPrompt = `You are an IELTS vocabulary expert. Extract 5-8 high-level (Band 7.0+) vocabulary words or phrases from the following transcript.
+    Return ONLY a JSON array of strings.
+    Example: ["ubiquitous", "bioaccumulation", "mitigate"]`;
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY! });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: [{ parts: [{ text: activeSection.script }] }],
+        config: { systemInstruction: systemPrompt, responseMimeType: "application/json" }
+      });
+      const result = JSON.parse(response.text || "[]");
+      setHighlightedVocab(result);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsHighlighting(false);
+    }
+  };
   useEffect(() => {
     const load = async () => {
       const p = await getProgress();
@@ -392,11 +418,37 @@ export default function Listening() {
     setIsPlaying(!isPlaying);
   };
 
-  const handleCheck = () => {
+  const handleCheck = async () => {
     setShowResults(true);
+    setIsAnalyzing(true);
+    
     if (progress) {
       const updated = { ...progress, studyMinutes: (progress.studyMinutes || 0) + 15 };
       saveProgress(updated);
+    }
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY! });
+      const prompt = `You are an IELTS Listening tutor. A student has completed a listening task.
+      Task Title: ${activeSection.title}
+      Transcript: ${activeSection.script}
+      Questions and Correct Answers: ${JSON.stringify(activeSection.questions)}
+      Student's Answers: ${JSON.stringify(userAnswers)}
+      
+      Provide constructive feedback. Analyze their mistakes if any. Explain why the correct answers are correct based on the transcript. Give tips for improving listening skills for this type of task (${activeSection.type}).
+      Use markdown for formatting. Keep it concise but helpful.`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: [{ parts: [{ text: prompt }] }],
+      });
+
+      setFeedback(response.text || "No feedback generated.");
+    } catch (error) {
+      console.error("Feedback generation error:", error);
+      setFeedback("Could not generate AI feedback at this time.");
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -504,14 +556,67 @@ export default function Listening() {
         {!showResults ? (
           <button onClick={handleCheck} className="btn btn-primary w-full py-4">Check Answers</button>
         ) : (
-          <div className="space-y-3">
-            <button onClick={() => setShowResults(false)} className="btn btn-ghost w-full py-4">Try Again</button>
-            <div className="card bg-bg-2 border-border-2">
-              <div className="flex items-center gap-2 text-text-muted font-bold text-[10px] uppercase tracking-widest mb-3">
-                <FileText size={14} /> Transcript
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="card bg-bg-2 border-border-2">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2 text-text-muted font-bold text-[10px] uppercase tracking-widest">
+                    <FileText size={14} /> Transcript
+                  </div>
+                  <button 
+                    onClick={highlightVocab}
+                    disabled={isHighlighting}
+                    className="text-[9px] font-bold text-blue-secondary uppercase tracking-widest flex items-center gap-1 hover:underline disabled:opacity-50"
+                  >
+                    {isHighlighting ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />} Highlight Vocab
+                  </button>
+                </div>
+                <div className="space-y-4">
+                  <p className="text-xs text-text-secondary leading-relaxed italic whitespace-pre-wrap h-[200px] overflow-y-auto custom-scrollbar pr-2">
+                    {activeSection.script}
+                  </p>
+                  {highlightedVocab.length > 0 && (
+                    <div className="pt-3 border-t border-border-2">
+                      <div className="text-[9px] font-bold text-text-muted uppercase tracking-widest mb-2">Key Vocabulary</div>
+                      <div className="flex flex-wrap gap-2">
+                        {highlightedVocab.map((word, i) => (
+                          <span key={i} className="px-2 py-1 bg-blue-dim/20 border border-blue-primary/20 rounded-lg text-[10px] text-blue-secondary font-medium">
+                            {word}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-              <p className="text-xs text-text-secondary leading-relaxed italic whitespace-pre-wrap">{activeSection.script}</p>
+
+              <div className="card bg-blue-dim/10 border-blue-primary/20">
+                <div className="flex items-center gap-2 text-blue-secondary font-bold text-[10px] uppercase tracking-widest mb-3">
+                  <Sparkles size={14} /> AI Tutor Feedback
+                </div>
+                <div className="prose prose-invert prose-sm max-w-none markdown-body h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                  {isAnalyzing ? (
+                    <div className="flex flex-col items-center justify-center h-full gap-3 text-text-muted">
+                      <Loader2 size={24} className="animate-spin" />
+                      <div className="text-[10px] font-bold uppercase tracking-widest">Analyzing your performance...</div>
+                    </div>
+                  ) : (
+                    <ReactMarkdown>{feedback}</ReactMarkdown>
+                  )}
+                </div>
+              </div>
             </div>
+
+            <button 
+              onClick={() => {
+                setShowResults(false);
+                setFeedback(null);
+                setUserAnswers({});
+              }} 
+              className="btn btn-ghost w-full py-4"
+            >
+              Try Another Section
+            </button>
           </div>
         )}
       </div>
