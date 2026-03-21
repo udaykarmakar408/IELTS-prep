@@ -339,21 +339,21 @@ export default function Reading() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div className="card bg-bg-2 border-border-2 h-[600px] overflow-y-auto custom-scrollbar">
-              <h3 className="font-serif font-bold text-xl mb-4 sticky top-0 bg-bg-2 py-2 border-b border-border-2">{activePassage.title}</h3>
-              <div className="prose prose-invert prose-sm max-w-none text-text-secondary leading-relaxed whitespace-pre-wrap">
-                {activePassage.text}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full overflow-hidden">
+            <div className="space-y-4 flex flex-col h-[40vh] lg:h-full">
+              <div className="card bg-bg-2 border-border-2 flex-1 overflow-y-auto custom-scrollbar p-6">
+                <h3 className="font-serif font-bold text-xl mb-4 sticky top-0 bg-bg-2 py-2 border-b border-border-2">{activePassage.title}</h3>
+                <div className="prose prose-invert prose-sm max-w-none text-text-secondary leading-relaxed whitespace-pre-wrap">
+                  {activePassage.text}
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="space-y-4">
-            <div className="font-bold text-sm flex items-center gap-2 px-1">
-              <PenTool size={16} className="text-blue-secondary" /> Reading Questions
-            </div>
-            <div className="space-y-4 h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-4 flex flex-col h-[50vh] lg:h-full">
+              <div className="font-bold text-sm flex items-center gap-2 px-1 shrink-0">
+                <PenTool size={16} className="text-blue-secondary" /> Reading Questions
+              </div>
+              <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
               {activePassage.questions.map((q: any, i: number) => (
                 <div key={i} className="card border-border">
                   <div className="text-xs font-bold text-text-primary mb-3">{i + 1}. {q.q}</div>

@@ -159,22 +159,22 @@ export default function Vocabulary() {
       </div>
 
       {/* Daily Word Card */}
-      <div className="card bg-gradient-to-br from-violet-accent/20 to-bg-1 border-violet-accent/30 p-6">
+      <div className="card bg-gradient-to-br from-violet-accent/20 to-bg-1 border-violet-accent/30 p-5 md:p-6">
         <div className="flex items-center gap-2 text-violet-accent font-bold text-xs uppercase tracking-widest mb-4">
           <Sparkles size={14} /> Word of the Day
         </div>
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6">
           <div>
-            <h3 className="font-serif text-4xl font-black text-text-primary uppercase tracking-tighter mb-1">UNPRECEDENTED</h3>
-            <p className="text-sm text-text-muted italic mb-4">adjective · Band 8+</p>
-            <p className="text-text-secondary leading-relaxed max-w-xl">Never done or known before; something that has no previous example or parallel in history.</p>
+            <h3 className="font-serif text-3xl md:text-4xl font-black text-text-primary uppercase tracking-tighter mb-1">UNPRECEDENTED</h3>
+            <p className="text-xs md:text-sm text-text-muted italic mb-3 md:mb-4">adjective · Band 8+</p>
+            <p className="text-xs md:text-sm text-text-secondary leading-relaxed max-w-xl">Never done or known before; something that has no previous example or parallel in history.</p>
           </div>
           <button 
             onClick={() => {
               const word = VOCAB_DATA.find(v => v.w === "unprecedented");
               if (word) setSelectedWord(word);
             }}
-            className="btn btn-primary bg-violet-accent hover:bg-violet-accent/80 shadow-violet-accent/20"
+            className="btn btn-primary bg-violet-accent hover:bg-violet-accent/80 shadow-violet-accent/20 w-full md:w-auto text-xs md:text-sm"
           >
             Learn More <ChevronRight size={18} />
           </button>

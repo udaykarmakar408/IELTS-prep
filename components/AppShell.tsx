@@ -23,7 +23,8 @@ import {
   X,
   ChevronRight,
   Flame,
-  Star
+  Star,
+  Sparkles
 } from "lucide-react";
 import { Logo, LogoText } from "@/components/Logo";
 import { UserProgress, getProgress, saveProgress, updateStreak } from "@/lib/store";
@@ -78,7 +79,7 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
         { id: "listening", label: "Listening", icon: Headphones },
         { id: "reading", label: "Reading", icon: BookOpen },
         { id: "writing", label: "Writing", icon: PenTool },
-        { id: "speaking", label: "Speaking Lab", icon: Mic },
+        { id: "speaking", label: "Speaking", icon: Mic },
       ]
     },
     {
@@ -100,6 +101,7 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
     {
       label: "More",
       items: [
+        { id: "speaking-lab", label: "Speaking Lab", icon: Sparkles },
         { id: "lizhub", label: "Liz Hub", icon: Star },
         { id: "roadmap", label: "Roadmap", icon: Calendar },
         { id: "resources", label: "Resources", icon: BookOpen },
@@ -116,7 +118,7 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-bg overflow-hidden">
       {/* Mobile Header */}
-      <header className="md:hidden fixed top-0 left-0 right-0 h-16 glass-nav border-b border-white/5 flex items-center px-4 gap-3 z-50">
+      <header className="md:hidden fixed top-0 left-0 right-0 h-16 glass-nav border-b border-white/5 flex items-center px-4 gap-3 z-[60]">
         <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => setActivePage("dashboard")}>
           <Logo className="w-10 h-10" />
           <LogoText />
@@ -231,8 +233,8 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
         </div>
 
         {/* Mobile Bottom Nav */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 h-20 glass-nav flex items-center justify-around px-2 z-50 pb-4">
-          {allNavItems.slice(0, 5).map((item) => (
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 h-20 glass-nav flex items-center justify-around px-2 z-50 pb-4 border-t border-white/5">
+          {navCategories[0].items.concat(navCategories[1].items.slice(0, 1)).map((item) => (
             <button
               key={item.id}
               onClick={() => setActivePage(item.id)}
@@ -258,7 +260,10 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
           ))}
           <button
             onClick={() => setIsDrawerOpen(true)}
-            className="flex flex-col items-center justify-center gap-1.5 py-2 px-3 rounded-2xl text-text-muted active:bg-white/5"
+            className={cn(
+              "flex flex-col items-center justify-center gap-1.5 py-2 px-3 rounded-2xl transition-all duration-300",
+              isDrawerOpen ? "bg-blue-primary/10 text-blue-secondary" : "text-text-muted"
+            )}
           >
             <Menu size={22} />
             <span className="text-[9px] font-black uppercase tracking-widest">More</span>
@@ -274,42 +279,59 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setIsDrawerOpen(false)}
-                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] md:hidden"
+                className="fixed inset-0 bg-black/80 backdrop-blur-md z-[100] md:hidden"
               />
               <motion.div
                 initial={{ y: "100%" }}
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
-                transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                className="fixed bottom-0 left-0 right-0 bg-bg-1 border-t border-border-2 rounded-t-3xl z-[70] p-4 pb-8 md:hidden"
+                transition={{ type: "spring", damping: 30, stiffness: 300 }}
+                className="fixed bottom-0 left-0 right-0 bg-bg-1 border-t border-white/10 rounded-t-[2.5rem] z-[110] flex flex-col max-h-[85vh] md:hidden shadow-2xl"
               >
-                <div className="w-12 h-1.5 bg-border-2 rounded-full mx-auto mb-6" />
-                <div className="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-4 px-2">All Modules</div>
-                <div className="grid grid-cols-4 gap-2">
-                  {allNavItems.map((item) => (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        setActivePage(item.id);
-                        setIsDrawerOpen(false);
-                      }}
-                      className={cn(
-                        "flex flex-col items-center justify-center gap-2 p-3 rounded-2xl transition-colors",
-                        activePage === item.id ? "bg-blue-dim" : "bg-transparent active:bg-bg-3"
-                      )}
+                <div className="p-4 flex flex-col items-center">
+                  <div className="w-12 h-1.5 bg-white/10 rounded-full mb-6" />
+                  <div className="w-full flex items-center justify-between mb-6 px-2">
+                    <div className="text-sm font-black text-text-primary uppercase tracking-widest">All Modules</div>
+                    <button 
+                      onClick={() => setIsDrawerOpen(false)}
+                      className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:text-text-primary"
                     >
-                      <item.icon 
-                        size={24} 
-                        className={activePage === item.id ? "text-blue-secondary" : "text-text-muted"} 
-                      />
-                      <span className={cn(
-                        "text-[10px] font-bold text-center leading-tight",
-                        activePage === item.id ? "text-blue-secondary" : "text-text-muted"
-                      )}>
-                        {item.label}
-                      </span>
+                      <X size={18} />
                     </button>
-                  ))}
+                  </div>
+                  
+                  <div className="w-full overflow-y-auto custom-scrollbar pb-12">
+                    <div className="grid grid-cols-3 gap-3 px-2">
+                      {allNavItems.map((item) => (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            setActivePage(item.id);
+                            setIsDrawerOpen(false);
+                          }}
+                          className={cn(
+                            "flex flex-col items-center justify-center gap-3 p-4 rounded-3xl transition-all duration-300 border",
+                            activePage === item.id 
+                              ? "bg-blue-primary/10 border-blue-primary/30 text-blue-secondary shadow-lg shadow-blue-primary/5" 
+                              : "bg-white/5 border-transparent active:bg-white/10 text-text-muted"
+                          )}
+                        >
+                          <div className={cn(
+                            "w-12 h-12 rounded-2xl flex items-center justify-center transition-transform duration-300",
+                            activePage === item.id ? "bg-blue-primary text-white scale-110" : "bg-bg-2 text-text-muted"
+                          )}>
+                            <item.icon size={24} />
+                          </div>
+                          <span className={cn(
+                            "text-[10px] font-black text-center leading-tight uppercase tracking-widest",
+                            activePage === item.id ? "text-blue-secondary" : "text-text-muted"
+                          )}>
+                            {item.label}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             </>

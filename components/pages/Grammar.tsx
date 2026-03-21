@@ -81,24 +81,24 @@ export default function Grammar() {
       </div>
 
       {/* Grammar Lab - New Section */}
-      <div className="card bg-gradient-to-br from-blue-primary/10 to-bg-1 border-blue-primary/20 p-6">
-        <div className="flex items-center gap-2 text-blue-secondary font-bold text-xs uppercase tracking-widest mb-4">
+      <div className="card bg-gradient-to-br from-blue-primary/10 to-bg-1 border-blue-primary/20 p-5 md:p-6">
+        <div className="flex items-center gap-2 text-blue-secondary font-bold text-xs uppercase tracking-widest mb-3 md:mb-4">
           <Sparkles size={14} /> Grammar Lab (AI Checker)
         </div>
-        <p className="text-xs text-text-secondary mb-4 leading-relaxed">
+        <p className="text-[11px] md:text-xs text-text-secondary mb-4 leading-relaxed">
           Paste a sentence from your essay or speaking practice. Aria will analyze it and suggest high-band improvements.
         </p>
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           <textarea
             value={userSentence}
             onChange={(e) => setUserSentence(e.target.value)}
             placeholder="e.g., Technology have many benefits for the people."
-            className="w-full bg-bg-1 border border-border-2 rounded-2xl p-4 text-sm text-text-primary focus:border-blue-primary outline-none min-h-[100px] resize-none font-serif"
+            className="w-full bg-bg-1 border border-border-2 rounded-2xl p-3 md:p-4 text-sm text-text-primary focus:border-blue-primary outline-none min-h-[100px] resize-none font-serif"
           />
           <button
             onClick={checkGrammar}
             disabled={!userSentence.trim() || isChecking}
-            className="btn btn-primary w-full py-3.5 disabled:opacity-50"
+            className="btn btn-primary w-full py-3 md:py-3.5 disabled:opacity-50 text-xs md:text-sm"
           >
             {isChecking ? <><Loader2 size={18} className="animate-spin" /> Analyzing...</> : "Check Grammar & Upgrade"}
           </button>

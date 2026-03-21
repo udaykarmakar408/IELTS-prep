@@ -406,24 +406,24 @@ export default function Speaking() {
 
   if (simulationMode !== "none") {
     return (
-      <div className="flex flex-col h-[calc(100vh-180px)]">
-        <div className="flex items-center justify-between mb-4">
-          <button onClick={() => setSimulationMode("none")} className="flex items-center gap-2 text-text-muted hover:text-text-primary transition-colors">
+      <div className="flex flex-col h-[calc(100dvh-140px)] md:h-[calc(100vh-180px)]">
+        <div className="flex items-center justify-between mb-2 md:mb-4">
+          <button onClick={() => setSimulationMode("none")} className="flex items-center gap-2 text-text-muted hover:text-text-primary transition-colors text-xs md:text-sm">
             <ArrowLeft size={16} /> Quit Session
           </button>
-          <div className="text-[10px] font-bold text-blue-secondary uppercase tracking-widest">
+          <div className="text-[9px] md:text-[10px] font-bold text-blue-secondary uppercase tracking-widest">
             IELTS Speaking {simulationMode.toUpperCase()}
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-4 p-4 bg-bg-2 rounded-2xl border border-border-2 mb-4 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto space-y-3 md:space-y-4 p-3 md:p-4 bg-bg-2 rounded-2xl border border-border-2 mb-3 md:mb-4 custom-scrollbar">
           {messages.map((m, i) => (
             <div key={i} className={cn(
-              "flex flex-col max-w-[85%]",
+              "flex flex-col max-w-[90%] md:max-w-[85%]",
               m.role === "user" ? "ml-auto items-end" : "items-start"
             )}>
               <div className={cn(
-                "px-4 py-3 rounded-2xl text-sm leading-relaxed",
+                "px-3 md:px-4 py-2 md:py-3 rounded-2xl text-xs md:text-sm leading-relaxed",
                 m.role === "user" ? "bg-blue-primary text-white rounded-tr-none" : "bg-bg border border-border-2 text-text-secondary rounded-tl-none"
               )}>
                 {m.text}
@@ -431,7 +431,7 @@ export default function Speaking() {
             </div>
           ))}
           {isTyping && (
-            <div className="flex items-center gap-2 text-text-muted text-xs animate-pulse">
+            <div className="flex items-center gap-2 text-text-muted text-[10px] md:text-xs animate-pulse">
               <div className="w-1.5 h-1.5 rounded-full bg-blue-secondary" />
               <div className="w-1.5 h-1.5 rounded-full bg-blue-secondary" />
               <div className="w-1.5 h-1.5 rounded-full bg-blue-secondary" />
@@ -440,19 +440,21 @@ export default function Speaking() {
           )}
         </div>
 
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={userInput}
-            onChange={(e) => setUserInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-            placeholder="Type your response..."
-            className="flex-1 bg-bg border border-border-2 rounded-xl px-4 py-3 text-sm text-text-primary focus:border-blue-primary outline-none transition-colors"
-          />
-          <button onClick={handleSendMessage} disabled={isTyping} className="btn btn-primary px-6">
-            Send
-          </button>
-          <button onClick={endSimulation} className="btn btn-ghost px-4 text-xs">
+        <div className="flex flex-col sm:flex-row gap-2 pb-2 md:pb-0">
+          <div className="flex gap-2 flex-1">
+            <input
+              type="text"
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+              placeholder="Type your response..."
+              className="flex-1 bg-bg border border-border-2 rounded-xl px-3 md:px-4 py-2 md:py-3 text-sm text-text-primary focus:border-blue-primary outline-none transition-colors"
+            />
+            <button onClick={handleSendMessage} disabled={isTyping} className="btn btn-primary px-4 md:px-6">
+              Send
+            </button>
+          </div>
+          <button onClick={endSimulation} className="btn btn-ghost px-4 text-[10px] md:text-xs h-10 md:h-auto">
             End & Grade
           </button>
         </div>

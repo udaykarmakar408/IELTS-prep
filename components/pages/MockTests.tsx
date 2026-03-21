@@ -265,11 +265,11 @@ export default function MockTests() {
         </header>
 
         {/* Main Test Area */}
-        <main className="flex-1 overflow-hidden flex flex-col">
+        <main className="flex-1 overflow-hidden flex flex-col relative">
           {!feedback ? (
             <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
               {/* Left Pane: Task/Passage */}
-              <div className="w-full md:w-1/2 border-b md:border-b-0 md:border-r border-gray-200 bg-white overflow-y-auto p-4 md:p-8 custom-scrollbar h-1/2 md:h-full">
+              <div className="w-full md:w-1/2 border-b md:border-b-0 md:border-r border-gray-200 bg-white overflow-y-auto p-4 md:p-8 custom-scrollbar h-[40vh] md:h-full">
                 {isGeneratingTask ? (
                   <div className="h-full flex flex-col items-center justify-center space-y-4">
                     <Loader2 size={40} className="animate-spin text-blue-primary" />
@@ -356,7 +356,7 @@ export default function MockTests() {
               </div>
 
               {/* Right Pane: Input */}
-              <div className="w-full md:w-1/2 bg-[#F4F7F9] overflow-y-auto p-4 md:p-8 custom-scrollbar h-1/2 md:h-full">
+              <div className="w-full md:w-1/2 bg-[#F4F7F9] overflow-y-auto p-4 md:p-8 custom-scrollbar h-[60vh] md:h-full">
                 <div className="max-w-2xl mx-auto h-full flex flex-col">
                   {testTask && !isGeneratingTask && (
                     <>

@@ -71,15 +71,15 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
   return (
     <div className="space-y-6">
       {/* Hero Card */}
-      <div className="card-blue overflow-hidden relative p-8 md:p-10">
+      <div className="card-blue overflow-hidden relative p-6 md:p-10">
         <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-          <Logo className="w-48 h-48" />
+          <Logo className="w-32 h-32 md:w-48 md:h-48" />
         </div>
-        <div className="flex flex-col md:flex-row justify-between gap-8 relative z-10">
-          <div className="space-y-6">
+        <div className="flex flex-col md:flex-row justify-between gap-6 md:gap-8 relative z-10">
+          <div className="space-y-4 md:space-y-6">
             <div>
               <div className="text-[10px] text-blue-secondary font-black uppercase tracking-[0.2em] mb-2">Personalized Learning</div>
-              <h3 className="font-serif text-4xl md:text-5xl font-black text-text-primary leading-tight tracking-tight">
+              <h3 className="font-serif text-3xl md:text-5xl font-black text-text-primary leading-tight tracking-tight">
                 Hello, <span className="text-blue-secondary">{progress.name}</span>
               </h3>
             </div>
@@ -88,27 +88,27 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
                 ? `You're on a ${progress.streak}-day winning streak! Your consistency is the key to mastering the IELTS.` 
                 : "Your journey to Band 8.0 starts with a single step. Let's practice today."}
             </p>
-            <div className="flex gap-4">
-              <button onClick={() => setActivePage("course")} className="btn btn-primary">Continue Learning</button>
-              <button onClick={startRandomPractice} className="btn btn-ghost border-blue-secondary/30 text-blue-secondary hover:bg-blue-secondary hover:text-white">Quick Practice</button>
+            <div className="flex flex-wrap gap-3 md:gap-4">
+              <button onClick={() => setActivePage("course")} className="btn btn-primary px-4 py-2 text-sm md:text-base">Continue Learning</button>
+              <button onClick={startRandomPractice} className="btn btn-ghost border-blue-secondary/30 text-blue-secondary hover:bg-blue-secondary hover:text-white px-4 py-2 text-sm md:text-base">Quick Practice</button>
             </div>
           </div>
           
-          <div className="flex flex-col items-center md:items-end justify-center bg-white/5 backdrop-blur-md rounded-3xl p-6 border border-white/10">
-            <div className="text-[10px] text-text-muted font-black uppercase tracking-widest mb-2">Predicted Band</div>
-            <div className="font-serif text-7xl md:text-8xl font-black text-blue-secondary leading-none tracking-tighter">
+          <div className="flex flex-col items-center md:items-end justify-center bg-white/5 backdrop-blur-md rounded-3xl p-4 md:p-6 border border-white/10">
+            <div className="text-[10px] text-text-muted font-black uppercase tracking-widest mb-1 md:mb-2">Predicted Band</div>
+            <div className="font-serif text-6xl md:text-8xl font-black text-blue-secondary leading-none tracking-tighter">
               {avgBand === "0.0" ? "—" : avgBand}
             </div>
-            <div className="text-xs text-text-muted mt-4 font-bold uppercase tracking-widest">Target: <span className="text-text-primary">{progress.target}</span></div>
+            <div className="text-[10px] md:text-xs text-text-muted mt-2 md:mt-4 font-bold uppercase tracking-widest">Target: <span className="text-text-primary">{progress.target}</span></div>
           </div>
         </div>
 
-        <div className="mt-8 space-y-2">
+        <div className="mt-6 md:mt-8 space-y-2">
           <div className="flex justify-between items-end text-xs">
             <span className="text-text-muted font-medium">Overall course progress</span>
             <span className="text-blue-secondary font-bold">{progressPct}%</span>
           </div>
-          <div className="h-2.5 bg-bg-3 rounded-full overflow-hidden">
+          <div className="h-2 bg-bg-3 rounded-full overflow-hidden">
             <motion.div 
               initial={{ width: 0 }}
               animate={{ width: `${progressPct}%` }}
@@ -120,7 +120,7 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-6">
         {[
           { id: "tutor", label: "Ask Aria", icon: Bot, color: "text-violet-accent", bg: "bg-violet-accent/10", desc: "24/7 AI Support" },
           { id: "tests", label: "Mock Test", icon: FileText, color: "text-blue-secondary", bg: "bg-blue-secondary/10", desc: "Full Simulation" },

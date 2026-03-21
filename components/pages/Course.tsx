@@ -244,16 +244,16 @@ export default function Course() {
           <ArrowLeft size={16} /> Back to Course
         </button>
         
-        <div className="card border-blue-primary/30 bg-gradient-to-br from-bg-1 to-bg-2">
-          <div className="flex justify-between items-start mb-6">
+        <div className="card border-blue-primary/30 bg-gradient-to-br from-bg-1 to-bg-2 p-4 md:p-8">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
             <div>
-              <div className="text-xs font-bold text-blue-secondary uppercase tracking-widest mb-1">{activeLesson.type}</div>
-              <h2 className="text-2xl font-serif font-bold">{activeLesson.title}</h2>
+              <div className="text-[10px] font-bold text-blue-secondary uppercase tracking-widest mb-1">{activeLesson.type}</div>
+              <h2 className="text-xl md:text-2xl font-serif font-bold">{activeLesson.title}</h2>
             </div>
-            <div className="bg-blue-dim text-blue-secondary px-3 py-1 rounded-lg text-xs font-bold">+{activeLesson.xp} XP</div>
+            <div className="bg-blue-dim text-blue-secondary px-3 py-1 rounded-lg text-[10px] md:text-xs font-bold shrink-0">+{activeLesson.xp} XP</div>
           </div>
 
-          <div className="prose prose-invert max-w-none space-y-4 text-text-secondary leading-relaxed">
+          <div className="prose prose-invert prose-sm md:prose-base max-w-none space-y-4 text-text-secondary leading-relaxed">
             {isGenerating ? (
               <div className="flex flex-col items-center justify-center py-20 space-y-4">
                 <Loader2 size={40} className="animate-spin text-blue-secondary" />

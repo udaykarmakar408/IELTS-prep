@@ -413,38 +413,38 @@ export default function Listening() {
           <ArrowLeft size={16} /> Back to Sections
         </button>
 
-        <div className="card bg-gradient-to-br from-blue-dim/20 to-bg-1 border-blue-dim/30">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-12 h-12 rounded-full bg-blue-primary flex items-center justify-center text-white shadow-lg shadow-blue-primary/20">
+        <div className="card bg-gradient-to-br from-blue-dim/20 to-bg-1 border-blue-dim/30 p-5 md:p-6">
+          <div className="flex items-center gap-3 md:gap-4 mb-4 md:mb-6">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-primary flex items-center justify-center text-white shadow-lg shadow-blue-primary/20">
               <Volume2 size={24} />
             </div>
             <div>
-              <h3 className="font-serif font-bold text-lg">{activeSection.title}</h3>
-              <div className="text-xs text-text-muted font-medium uppercase tracking-wider">{activeSection.type} · {activeSection.difficulty}</div>
+              <h3 className="font-serif font-bold text-base md:text-lg leading-tight">{activeSection.title}</h3>
+              <div className="text-[9px] md:text-xs text-text-muted font-medium uppercase tracking-wider">{activeSection.type} · {activeSection.difficulty}</div>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="h-1.5 bg-bg-3 rounded-full overflow-hidden">
+          <div className="space-y-3 md:space-y-4">
+            <div className="h-1 md:h-1.5 bg-bg-3 rounded-full overflow-hidden">
               <motion.div animate={{ width: `${playbackProgress}%` }} className="h-full bg-blue-primary" />
             </div>
             
             {audioUrl && <audio ref={audioRef} src={audioUrl} className="hidden" />}
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-4">
               <button 
                 onClick={handlePlay} 
                 disabled={isGeneratingAudio || !!audioError}
-                className="w-12 h-12 rounded-full bg-blue-primary text-white flex items-center justify-center hover:bg-blue-secondary transition-colors disabled:opacity-50"
+                className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-primary text-white flex items-center justify-center hover:bg-blue-secondary transition-colors disabled:opacity-50 flex-shrink-0"
               >
-                {isGeneratingAudio ? <Loader2 size={20} className="animate-spin" /> : isPlaying ? <Pause size={20} /> : <Play size={20} className="ml-1" />}
+                {isGeneratingAudio ? <Loader2 size={20} className="animate-spin" /> : isPlaying ? <Pause size={20} /> : <Play size={20} className="ml-0.5 md:ml-1" />}
               </button>
               
-              <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest">
+              <div className="text-[9px] md:text-[10px] font-bold text-text-muted uppercase tracking-widest text-center flex-1">
                 {isGeneratingAudio ? "Generating Audio..." : audioError ? "Audio Error" : isPlaying ? "🔊 Playing Audio..." : playbackProgress >= 100 ? "✅ Audio Complete" : "Ready to Play"}
               </div>
 
-              <button onClick={resetAudio} className="p-2 text-text-muted hover:text-text-primary transition-colors">
+              <button onClick={resetAudio} className="p-2 text-text-muted hover:text-text-primary transition-colors flex-shrink-0">
                 <RotateCcw size={18} />
               </button>
             </div>

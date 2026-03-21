@@ -577,9 +577,9 @@ export default function Writing() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div className="card bg-bg-2 border-border-2">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full overflow-hidden">
+          <div className="space-y-4 flex flex-col h-[30vh] lg:h-full">
+            <div className="card bg-bg-2 border-border-2 flex-1 overflow-y-auto custom-scrollbar p-6">
               <div className="flex items-center justify-between mb-4">
                 <span className="tag tag-blue">{activeTask.type}</span>
                 <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Min. {activeTask.wordCount} Words</span>
@@ -607,9 +607,9 @@ export default function Writing() {
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="card border-border-2 p-0 overflow-hidden">
-              <div className="bg-bg-3 px-4 py-2 border-b border-border-2 flex items-center justify-between">
+          <div className="space-y-4 flex flex-col h-[50vh] lg:h-full">
+            <div className="card border-border-2 p-0 overflow-hidden flex flex-col flex-1">
+              <div className="bg-bg-3 px-4 py-2 border-b border-border-2 flex items-center justify-between shrink-0">
                 <div className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Writing Area</div>
                 <div className={cn(
                   "text-[10px] font-bold uppercase tracking-widest",
@@ -623,7 +623,7 @@ export default function Writing() {
                 onChange={(e) => setUserText(e.target.value)}
                 placeholder="Start writing your response here..."
                 disabled={isAnalyzing || !!feedback}
-                className="w-full h-[400px] bg-bg-1 p-6 text-sm outline-none resize-none leading-relaxed custom-scrollbar"
+                className="w-full flex-1 bg-bg-1 p-6 text-sm outline-none resize-none leading-relaxed custom-scrollbar"
               />
             </div>
 
