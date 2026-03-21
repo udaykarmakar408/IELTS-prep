@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import Image from "next/image";
 import { 
   FileText, 
   PenTool, 
@@ -14,7 +15,13 @@ import {
   CheckCircle,
   Loader2,
   AlertCircle,
-  Trophy
+  Trophy,
+  Flag,
+  Settings,
+  HelpCircle,
+  Volume2,
+  Play,
+  Pause
 } from "lucide-react";
 import { getProgress, saveProgress, UserProgress } from "@/lib/store";
 import { callGemini } from "@/lib/gemini";
@@ -78,8 +85,10 @@ const TESTS = [
   { id: "wt2-1", label: "Writing Task 2 (Opinion Essay)", skill: "writing", mins: 40, icon: PenTool, color: "text-violet-accent", desc: "Some people think that it is best to work for the same organization for one's whole life. Others think that it is better to change jobs frequently. Discuss both views and give your opinion." },
   { id: "wt2-2", label: "Writing Task 2 (Problem/Solution)", skill: "writing", mins: 40, icon: PenTool, color: "text-violet-accent", desc: "In many countries, the amount of crime is increasing. What are the main causes of this and what solutions can you suggest?" },
   { id: "speaking", label: "Speaking Full Simulation", skill: "speaking", mins: 15, icon: Mic, color: "text-pink-accent", desc: "Complete Parts 1, 2 & 3 with an AI examiner." },
-  { id: "reading", label: "Reading Section 1", skill: "reading", mins: 20, icon: BookOpen, color: "text-green-accent", desc: "Academic reading passage with 13-14 questions." },
-  { id: "listening", label: "Listening Section 1", skill: "listening", mins: 10, icon: Headphones, color: "text-amber-accent", desc: "Form completion in a social context." },
+  { id: "reading-1", label: "Reading: Section 1", skill: "reading", mins: 20, icon: BookOpen, color: "text-green-accent", desc: "Academic reading passage: 'The History of Glass'. Includes True/False/Not Given and Note Completion questions." },
+  { id: "reading-2", label: "Reading: Section 2", skill: "reading", mins: 20, icon: BookOpen, color: "text-green-accent", desc: "Academic reading passage: 'The Impact of Digital Technology on Education'. Includes Matching Headings and Multiple Choice." },
+  { id: "listening-1", label: "Listening: Section 1", skill: "listening", mins: 10, icon: Headphones, color: "text-amber-accent", desc: "A conversation between a customer and a travel agent about booking a holiday. Form completion." },
+  { id: "listening-2", label: "Listening: Section 2", skill: "listening", mins: 10, icon: Headphones, color: "text-amber-accent", desc: "A talk by a museum guide about the history of a local landmark. Map labeling." },
   { id: "full", label: "Full Mock Test (Beta)", skill: "all", mins: 165, icon: Trophy, color: "text-blue-primary", desc: "Simulate the entire IELTS exam (L, R, W) in one sitting." },
 ];
 
@@ -93,6 +102,19 @@ export default function MockTests() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [estimatedBand, setEstimatedBand] = useState<number | null>(null);
+  const [isReviewing, setIsReviewing] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audioProgress, setAudioProgress] = useState(0);
+  const [currentQuestion, setCurrentQuestion] = useState(1);
+  const [reviewedQuestions, setReviewedQuestions] = useState<number[]>([]);
+
+  const toggleReview = () => {
+    setReviewedQuestions(prev => 
+      prev.includes(currentQuestion) 
+        ? prev.filter(q => q !== currentQuestion) 
+        : [...prev, currentQuestion]
+    );
+  };
 
   const generateTask = async (test: any) => {
     setActiveTest(test);
@@ -198,91 +220,261 @@ export default function MockTests() {
   if (!progress) return null;
 
   if (activeTest) {
-    const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
+    const formatTime = (s: number) => {
+      const m = Math.floor(s / 60);
+      const sec = s % 60;
+      return `${m}:${sec.toString().padStart(2, "0")}`;
+    };
 
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <button onClick={() => { setActiveTest(null); setTestTask(null); }} className="flex items-center gap-2 text-text-muted hover:text-text-primary transition-colors mb-4">
-            <ArrowLeft size={16} /> Abandon Test
-          </button>
-          {testTask && !feedback && (
-            <div className={cn("flex items-center gap-2 font-mono text-xl font-bold", timeLeft < 300 ? "text-red-accent" : "text-green-accent")}>
-              <Clock size={20} /> {formatTime(timeLeft)}
+      <div className="fixed inset-0 bg-[#F4F7F9] z-[200] flex flex-col text-[#333]">
+        {/* IELTS Official Style Header */}
+        <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-primary rounded flex items-center justify-center text-white font-black text-xs">I</div>
+              <span className="font-bold text-sm tracking-tight text-gray-800 uppercase">IELTS Academic</span>
             </div>
-          )}
-        </div>
+            <div className="h-6 w-px bg-gray-200" />
+            <div className="flex flex-col">
+              <span className="text-[10px] uppercase font-bold text-gray-400 leading-none mb-1">Candidate</span>
+              <span className="text-xs font-bold text-gray-700 leading-none">{progress.name || "Guest User"}</span>
+            </div>
+          </div>
 
-        {!feedback ? (
-          <div className="space-y-6">
-            <div className="card border-blue-primary/30 bg-bg-2">
-              <div className="text-xs font-bold text-blue-secondary uppercase tracking-widest mb-2">Current Task</div>
-              <h3 className="text-xl font-serif font-bold mb-4">{activeTest.label}</h3>
-              {isGeneratingTask ? (
-                <div className="flex flex-col items-center justify-center py-10 space-y-4">
-                  <Loader2 size={32} className="animate-spin text-blue-secondary" />
-                  <p className="text-xs font-bold text-text-muted animate-pulse uppercase tracking-widest">Aria is preparing your test task...</p>
-                </div>
-              ) : testTask ? (
-                <div className="space-y-4">
-                  <div className="prose prose-invert prose-sm max-w-none text-text-secondary leading-relaxed" dangerouslySetInnerHTML={{ __html: testTask.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }} />
-                  {activeTest.chartData && (
-                    <ChartDisplay type={activeTest.chartType} data={activeTest.chartData} />
+          <div className="flex items-center gap-8">
+            {testTask && !feedback && (
+              <div className={cn(
+                "flex items-center gap-3 px-4 py-1.5 rounded-lg border-2 font-mono text-lg font-black transition-colors",
+                timeLeft < 300 ? "border-red-500 text-red-600 bg-red-50" : "border-gray-200 text-gray-700 bg-gray-50"
+              )}>
+                <Clock size={18} /> {formatTime(timeLeft)}
+              </div>
+            )}
+            <div className="flex items-center gap-3">
+              <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors"><Settings size={18} /></button>
+              <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors"><HelpCircle size={18} /></button>
+              <button 
+                onClick={() => { setActiveTest(null); setTestTask(null); setFeedback(null); }}
+                className="ml-4 px-4 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold rounded uppercase tracking-wider transition-colors"
+              >
+                Exit Test
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Main Test Area */}
+        <main className="flex-1 overflow-hidden flex flex-col">
+          {!feedback ? (
+            <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+              {/* Left Pane: Task/Passage */}
+              <div className="w-full md:w-1/2 border-b md:border-b-0 md:border-r border-gray-200 bg-white overflow-y-auto p-4 md:p-8 custom-scrollbar h-1/2 md:h-full">
+                {isGeneratingTask ? (
+                  <div className="h-full flex flex-col items-center justify-center space-y-4">
+                    <Loader2 size={40} className="animate-spin text-blue-primary" />
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Loading Test Content...</p>
+                  </div>
+                ) : (
+                  <div className="max-w-2xl mx-auto space-y-8">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-2xl font-serif font-bold text-gray-800">{activeTest.label}</h2>
+                      <button 
+                        onClick={toggleReview}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest transition-colors",
+                          reviewedQuestions.includes(currentQuestion) ? "bg-amber-100 text-amber-700 border border-amber-200" : "bg-gray-100 text-gray-500 border border-gray-200"
+                        )}
+                      >
+                        <Flag size={12} fill={reviewedQuestions.includes(currentQuestion) ? "currentColor" : "none"} /> Review
+                      </button>
+                    </div>
+
+                    {activeTest.skill === 'listening' && (
+                      <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 mb-8">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-primary/10 rounded-full flex items-center justify-center text-blue-primary">
+                              <Volume2 size={20} />
+                            </div>
+                            <div>
+                              <div className="text-xs font-bold text-gray-800">Audio Recording</div>
+                              <div className="text-[10px] text-gray-400 uppercase font-bold">Section 1 of 4</div>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => setIsPlaying(!isPlaying)}
+                            className="w-12 h-12 bg-blue-primary hover:bg-blue-primary/90 text-white rounded-full flex items-center justify-center shadow-lg transition-all active:scale-95"
+                          >
+                            {isPlaying ? <Pause size={20} /> : <Play size={20} className="ml-1" />}
+                          </button>
+                        </div>
+                        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                          <motion.div 
+                            className="h-full bg-blue-primary"
+                            initial={{ width: 0 }}
+                            animate={{ width: isPlaying ? "100%" : "0%" }}
+                            transition={{ duration: 600, ease: "linear" }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {activeTest.skill === 'speaking' && (
+                      <div className="aspect-video bg-gray-900 rounded-2xl overflow-hidden relative mb-8 group">
+                        <Image 
+                          src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=800" 
+                          alt="AI Examiner" 
+                          fill
+                          className="object-cover opacity-80"
+                          referrerPolicy="no-referrer"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                        <div className="absolute bottom-6 left-6 flex items-center gap-3">
+                          <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                          <span className="text-white font-bold text-xs uppercase tracking-widest">Aria (Examiner) - Live</span>
+                        </div>
+                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white">
+                            <Mic size={32} />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed font-serif">
+                      <div dangerouslySetInnerHTML={{ __html: (testTask || activeTest.desc).replace(/\*\*(.*?)\*\*/g, '<strong class="text-gray-800">$1</strong>').replace(/\n/g, '<br/>') }} />
+                    </div>
+
+                    {activeTest.chartData && (
+                      <div className="mt-8 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                        <ChartDisplay type={activeTest.chartType} data={activeTest.chartData} />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Right Pane: Input */}
+              <div className="w-full md:w-1/2 bg-[#F4F7F9] overflow-y-auto p-4 md:p-8 custom-scrollbar h-1/2 md:h-full">
+                <div className="max-w-2xl mx-auto h-full flex flex-col">
+                  {testTask && !isGeneratingTask && (
+                    <>
+                      <div className="flex-1 relative mb-6">
+                        <textarea
+                          value={answer}
+                          onChange={(e) => setAnswer(e.target.value)}
+                          placeholder="Type your response here..."
+                          className="w-full h-full bg-white border border-gray-200 rounded-xl p-8 text-gray-800 focus:ring-2 focus:ring-blue-primary/20 focus:border-blue-primary outline-none resize-none font-serif leading-relaxed text-lg shadow-sm"
+                        />
+                        <div className="absolute bottom-6 right-6 flex items-center gap-4">
+                          <div className="px-3 py-1 bg-gray-100 rounded text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                            Word Count: {answer.trim() ? answer.trim().split(/\s+/).length : 0}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={handleSubmit}
+                          disabled={!answer.trim() || isSubmitting}
+                          className="flex-1 bg-blue-primary hover:bg-blue-primary/90 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-primary/20 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3"
+                        >
+                          {isSubmitting ? <><Loader2 size={20} className="animate-spin" /> Finalizing Submission...</> : "Finish Section"}
+                        </button>
+                      </div>
+                    </>
                   )}
                 </div>
-              ) : (
-                <p className="text-sm text-text-secondary leading-relaxed">{activeTest.desc}. Write your response below. Aim for the required word count and maintain academic tone.</p>
-              )}
+              </div>
             </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto bg-white p-12 custom-scrollbar">
+              <div className="max-w-3xl mx-auto space-y-12">
+                <div className="text-center space-y-4">
+                  <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center text-white mx-auto shadow-xl shadow-green-500/20">
+                    <CheckCircle size={40} />
+                  </div>
+                  <h2 className="text-4xl font-serif font-bold text-gray-800">Test Completed</h2>
+                  <p className="text-gray-500">Your performance has been evaluated by our AI Examiner.</p>
+                  
+                  {estimatedBand && (
+                    <div className="inline-flex flex-col items-center p-6 bg-blue-50 border border-blue-100 rounded-3xl mt-4">
+                      <span className="text-[10px] font-bold text-blue-600 uppercase tracking-[0.2em] mb-2">Estimated Overall Band</span>
+                      <span className="text-6xl font-black text-blue-primary leading-none">{estimatedBand}</span>
+                    </div>
+                  )}
+                </div>
 
-            {testTask && !isGeneratingTask && (
-              <>
-                <div className="relative">
-                  <textarea
-                    value={answer}
-                    onChange={(e) => setAnswer(e.target.value)}
-                    placeholder="Type your response here..."
-                    className="w-full bg-bg-1 border border-border-2 rounded-2xl p-5 text-text-primary focus:border-blue-primary outline-none min-h-[300px] resize-none font-serif leading-relaxed text-base"
-                  />
-                  <div className="absolute bottom-4 right-4 text-[10px] font-bold text-text-muted uppercase tracking-widest">
-                    Words: {answer.trim() ? answer.trim().split(/\s+/).length : 0}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-6">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                      <FileText size={14} /> Performance Analysis
+                    </h4>
+                    <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed bg-gray-50 p-6 rounded-2xl border border-gray-100" dangerouslySetInnerHTML={{ __html: feedback.replace(/\*\*(.*?)\*\*/g, '<strong class="text-gray-800">$1</strong>').replace(/\n/g, '<br/>') }} />
+                  </div>
+                  <div className="space-y-6">
+                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                      <Trophy size={14} /> Next Steps
+                    </h4>
+                    <div className="space-y-4">
+                      <div className="p-5 bg-white border border-gray-200 rounded-2xl shadow-sm">
+                        <div className="font-bold text-gray-800 mb-1">Review Mistakes</div>
+                        <p className="text-xs text-gray-500">Go through the detailed feedback to understand your grammatical errors.</p>
+                      </div>
+                      <div className="p-5 bg-white border border-gray-200 rounded-2xl shadow-sm">
+                        <div className="font-bold text-gray-800 mb-1">Practice Vocabulary</div>
+                        <p className="text-xs text-gray-500">Use the Vocabulary Builder to learn academic words used in your feedback.</p>
+                      </div>
+                      <button onClick={() => { setActiveTest(null); setFeedback(null); }} className="w-full py-4 bg-gray-800 hover:bg-gray-900 text-white font-bold rounded-xl transition-all">
+                        Return to Dashboard
+                      </button>
+                    </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+        </main>
 
-                <button
-                  onClick={handleSubmit}
-                  disabled={!answer.trim() || isSubmitting}
-                  className="btn btn-primary w-full py-4 disabled:opacity-50"
+        {/* CDI Style Navigation Bar */}
+        {!feedback && (
+          <footer className="bg-white border-t border-gray-200 px-4 md:px-6 py-3 flex items-center justify-between overflow-x-auto">
+            <div className="flex items-center gap-1 md:gap-2">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                <button 
+                  key={n}
+                  onClick={() => setCurrentQuestion(n)}
+                  className={cn(
+                    "w-7 h-7 md:w-8 md:h-8 rounded text-[9px] md:text-[10px] font-bold transition-all relative flex-shrink-0",
+                    currentQuestion === n ? "bg-blue-primary text-white shadow-md shadow-blue-primary/20" : "bg-gray-100 text-gray-400 hover:bg-gray-200",
+                    reviewedQuestions.includes(n) && "border-2 border-amber-400"
+                  )}
                 >
-                  {isSubmitting ? <><Loader2 size={20} className="animate-spin" /> Analyzing Response...</> : "Submit for AI Feedback"}
+                  {n}
+                  {reviewedQuestions.includes(n) && (
+                    <div className="absolute -top-1 -right-1 w-2 h-2 bg-amber-400 rounded-full" />
+                  )}
                 </button>
-              </>
-            )}
-          </div>
-        ) : (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-            <div className="card bg-gradient-to-br from-green-accent/20 to-bg-1 border-green-accent/30 text-center py-8">
-              <div className="w-16 h-16 bg-green-accent rounded-full flex items-center justify-center text-white mx-auto mb-4 shadow-lg shadow-green-accent/20">
-                <CheckCircle size={32} />
-              </div>
-              <h3 className="text-2xl font-serif font-bold mb-2">Test Submitted!</h3>
-              {estimatedBand && (
-                <div className="inline-flex items-center gap-2 bg-bg-2 px-4 py-2 rounded-full border border-border mt-2">
-                  <span className="text-sm font-bold text-text-muted uppercase tracking-wider">Estimated Band</span>
-                  <span className="text-2xl font-black text-blue-secondary">{estimatedBand}</span>
-                </div>
-              )}
+              ))}
+              <div className="w-6 h-8 flex items-center justify-center text-gray-300">...</div>
+              <button className="w-8 h-8 bg-gray-100 text-gray-400 rounded text-[10px] font-bold hover:bg-gray-200 flex-shrink-0">40</button>
             </div>
-
-            <div className="card bg-bg-2 border-border-2">
-              <div className="flex items-center gap-2 text-blue-secondary font-bold text-xs uppercase tracking-widest mb-6">
-                <FileText size={14} /> AI Examiner Feedback
-              </div>
-              <div className="prose prose-invert prose-sm max-w-none text-text-secondary leading-relaxed space-y-4" dangerouslySetInnerHTML={{ __html: feedback.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }} />
+            <div className="flex items-center gap-2 md:gap-4 ml-4">
+              <button 
+                onClick={() => setCurrentQuestion(prev => Math.max(1, prev - 1))}
+                className="px-3 md:px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-[9px] md:text-[10px] font-bold rounded uppercase tracking-wider transition-colors"
+              >
+                Prev
+              </button>
+              <button 
+                onClick={() => setCurrentQuestion(prev => Math.min(40, prev + 1))}
+                className="px-3 md:px-6 py-2 bg-blue-primary hover:bg-blue-primary/90 text-white text-[9px] md:text-[10px] font-bold rounded uppercase tracking-wider shadow-lg shadow-blue-primary/20 transition-all"
+              >
+                Next
+              </button>
             </div>
-
-            <button onClick={() => setActiveTest(null)} className="btn btn-ghost w-full py-4">Back to Mock Tests</button>
-          </motion.div>
+          </footer>
         )}
       </div>
     );

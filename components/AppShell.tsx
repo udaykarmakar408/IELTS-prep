@@ -55,6 +55,14 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
     }
   }, [progress]);
 
+  useEffect(() => {
+    const handleNavigation = (e: any) => {
+      if (e.detail) setActivePage(e.detail);
+    };
+    window.addEventListener('navigate-to-page', handleNavigation);
+    return () => window.removeEventListener('navigate-to-page', handleNavigation);
+  }, [setActivePage]);
+
   const navCategories = [
     {
       label: "Main",

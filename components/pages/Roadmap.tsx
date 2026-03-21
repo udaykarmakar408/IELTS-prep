@@ -27,6 +27,7 @@ const ROADMAP_PHASES = [
     icon: Rocket,
     color: "text-blue-secondary",
     bg: "bg-blue-secondary/10",
+    courseLevel: "L1",
     tasks: [
       "IELTS format overview & scoring system",
       "Vocabulary: 10 new words/day",
@@ -40,6 +41,7 @@ const ROADMAP_PHASES = [
     icon: Target,
     color: "text-violet-accent",
     bg: "bg-violet-accent/10",
+    courseLevel: "L2",
     tasks: [
       "Reading: all 14 question types",
       "Writing Task 1: charts, graphs",
@@ -53,6 +55,7 @@ const ROADMAP_PHASES = [
     icon: Flag,
     color: "text-pink-accent",
     bg: "bg-pink-accent/10",
+    courseLevel: "L7",
     tasks: [
       "Timed full reading sections",
       "Full writing tasks under exam conditions",
@@ -66,6 +69,7 @@ const ROADMAP_PHASES = [
     icon: Trophy,
     color: "text-green-accent",
     bg: "bg-green-accent/10",
+    courseLevel: "L7",
     tasks: [
       "2-3 full mock tests per week",
       "Targeted weak-area drilling",
@@ -124,6 +128,13 @@ export default function Roadmap() {
     const updated = { ...progress, roadmapDay: val };
     setProgress(updated);
     saveProgress(updated);
+  };
+
+  const navigateToCourse = (levelId: string) => {
+    // In a real app, this would use a router or state management to switch pages
+    // For this app, we'll assume the parent component handles setActivePage
+    // We can use a custom event or just tell the user to go to the Course tab
+    window.dispatchEvent(new CustomEvent('navigate-to-page', { detail: 'course' }));
   };
 
   if (!progress) return null;
@@ -290,6 +301,14 @@ export default function Roadmap() {
                     {isCompleted && <CheckCircle2 size={16} className="text-green-accent" />}
                   </div>
                   <div className="text-[10px] text-text-muted font-bold uppercase tracking-wider">{p.week}</div>
+                </div>
+                <div className="ml-auto">
+                  <button 
+                    onClick={() => navigateToCourse(p.courseLevel)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-[10px] font-black text-blue-secondary uppercase tracking-widest transition-all"
+                  >
+                    Go to Course <ChevronRight size={12} />
+                  </button>
                 </div>
               </div>
 
