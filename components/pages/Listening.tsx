@@ -301,9 +301,10 @@ export default function Listening() {
       const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY! });
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text: `Read this IELTS listening script clearly: ${text}` }] }],
+        contents: [{ parts: [{ text: `Read the following IELTS listening script in its entirety, clearly and at a natural pace. Ensure you read every single word from start to finish without stopping early: ${text}` }] }],
         config: {
           responseModalities: [Modality.AUDIO],
+          maxOutputTokens: 4096, // Increased to ensure longer scripts are not cut off
           speechConfig: {
             voiceConfig: {
               prebuiltVoiceConfig: { voiceName: 'Kore' },
@@ -317,14 +318,19 @@ export default function Listening() {
         // Gemini TTS returns raw PCM 16-bit mono at 24kHz
         const binaryString = atob(base64Audio);
         const len = binaryString.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i++) {
+        // Ensure even length for 16-bit samples to avoid Int16Array alignment issues
+        const evenLen = len % 2 === 0 ? len : len - 1;
+        const bytes = new Uint8Array(evenLen);
+        for (let i = 0; i < evenLen; i++) {
           bytes[i] = binaryString.charCodeAt(i);
         }
         const pcmData = new Int16Array(bytes.buffer);
         const wavBlob = pcmToWav(pcmData, 24000);
         const url = URL.createObjectURL(wavBlob);
-        setAudioUrl(url);
+        setAudioUrl(prev => {
+          if (prev) URL.revokeObjectURL(prev);
+          return url;
+        });
       } else {
         throw new Error("Failed to generate audio data");
       }
@@ -343,12 +349,20 @@ export default function Listening() {
   }, [activeSection, audioUrl, isGeneratingAudio, generateAudio]);
 
   useEffect(() => {
+    return () => {
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+    };
+  }, [audioUrl]);
+
+  useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     const updateProgress = () => {
-      const pct = (audio.currentTime / audio.duration) * 100;
-      setPlaybackProgress(pct);
+      if (audio.duration) {
+        const pct = (audio.currentTime / audio.duration) * 100;
+        setPlaybackProgress(pct);
+      }
     };
 
     const handleEnded = () => {

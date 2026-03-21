@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Book, 
@@ -171,9 +171,10 @@ export default function Cambridge() {
       const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY! });
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text: `Read this IELTS listening script clearly: ${text}` }] }],
+        contents: [{ parts: [{ text: `Read the following IELTS listening script in its entirety, clearly and at a natural pace. Ensure you read every single word from start to finish without stopping early: ${text}` }] }],
         config: {
           responseModalities: [Modality.AUDIO],
+          maxOutputTokens: 4096, // Increased to ensure longer scripts are not cut off
           speechConfig: {
             voiceConfig: {
               prebuiltVoiceConfig: { voiceName: 'Kore' },
@@ -186,14 +187,19 @@ export default function Cambridge() {
       if (base64Audio) {
         const binaryString = atob(base64Audio);
         const len = binaryString.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i++) {
+        // Ensure even length for 16-bit samples
+        const evenLen = len % 2 === 0 ? len : len - 1;
+        const bytes = new Uint8Array(evenLen);
+        for (let i = 0; i < evenLen; i++) {
           bytes[i] = binaryString.charCodeAt(i);
         }
         const pcmData = new Int16Array(bytes.buffer);
         const wavBlob = pcmToWav(pcmData, 24000);
         const url = URL.createObjectURL(wavBlob);
-        setAudioUrl(url);
+        setAudioUrl(prev => {
+          if (prev) URL.revokeObjectURL(prev);
+          return url;
+        });
       } else {
         throw new Error("Failed to generate audio data");
       }
@@ -228,6 +234,12 @@ export default function Cambridge() {
       setIsAnalyzing(false);
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
+    };
+  }, [audioUrl]);
 
   const renderListening = () => {
     const data = TEST_DATA[activeTest?.id || ""]?.listening;
