@@ -20,32 +20,7 @@ import { callGemini } from "@/lib/gemini";
 import ReactMarkdown from "react-markdown";
 import { Loader2 } from "lucide-react";
 
-interface Word {
-  w: string;
-  pos: string;
-  def: string;
-  ex: string;
-  band: string;
-}
-
-const VOCAB_DATA: Word[] = [
-  { w: "analyse", pos: "v", def: "to examine in detail", ex: "Researchers analysed the data collected over five years.", band: "6+" },
-  { w: "approach", pos: "n/v", def: "a method of dealing with something", ex: "A new approach to tackling climate change has been proposed.", band: "6+" },
-  { w: "assess", pos: "v", def: "to evaluate or judge", ex: "It is difficult to assess the long-term impact of such policies.", band: "6+" },
-  { w: "concept", pos: "n", def: "an abstract idea", ex: "The concept of sustainability has gained global attention.", band: "6+" },
-  { w: "constitute", pos: "v", def: "to form or make up", ex: "Women constitute 52% of the university population.", band: "7+" },
-  { w: "exacerbate", pos: "v", def: "to make a bad situation worse", ex: "Rapid urbanisation can exacerbate existing social inequalities.", band: "8+" },
-  { w: "facilitate", pos: "v", def: "to make an action or process easier", ex: "Technology can facilitate greater access to education.", band: "7+" },
-  { w: "ubiquitous", pos: "adj", def: "present, appearing, or found everywhere", ex: "Smartphones have become ubiquitous in modern society.", band: "8+" },
-  { w: "mitigate", pos: "v", def: "to make something less severe or painful", ex: "Drainage systems were installed to mitigate the risk of flooding.", band: "7+" },
-  { w: "paradigm", pos: "n", def: "a typical example or pattern of something", ex: "The shift towards remote work represents a new paradigm in employment.", band: "8+" },
-  { w: "pragmatic", pos: "adj", def: "dealing with things sensibly and realistically", ex: "We need a pragmatic solution to the housing crisis.", band: "7+" },
-  { w: "redundant", pos: "adj", def: "no longer needed or useful", ex: "Many manual jobs have become redundant due to automation.", band: "7+" },
-  { w: "scrutinise", pos: "v", def: "to examine very carefully", ex: "The government's spending plans will be closely scrutinised.", band: "8+" },
-  { w: "unprecedented", pos: "adj", def: "never done or known before", ex: "The country is facing an unprecedented economic challenge.", band: "8+" },
-  { w: "viable", pos: "adj", def: "capable of working successfully", ex: "The committee is looking for a viable alternative to the current plan.", band: "7+" },
-  { w: "widespread", pos: "adj", def: "found or distributed over a large area", ex: "There is widespread concern about the impact of social media.", band: "6+" },
-];
+import { VOCAB_DATA, Word } from "@/lib/data/vocabulary";
 
 export default function Vocabulary() {
   const [progress, setProgress] = useState<UserProgress | null>(null);
@@ -95,8 +70,16 @@ export default function Vocabulary() {
     saveProgress(updated);
   };
 
-  const [newWord, setNewWord] = useState("");
-  const [isAdding, setIsAdding] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+
+  const categories = ["All", ...Array.from(new Set(VOCAB_DATA.map(w => w.category).filter(Boolean)))];
+
+  const filteredVocab = VOCAB_DATA.filter(w => {
+    const matchesSearch = w.w.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                         w.def.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === "All" || w.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   const addCustomWord = async () => {
     if (!newWord.trim() || !progress) return;
@@ -202,9 +185,27 @@ export default function Vocabulary() {
         </div>
       </div>
 
+      {/* Categories */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        {categories.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat || "All")}
+            className={cn(
+              "px-3 py-1.5 rounded-full text-xs font-medium transition-all",
+              selectedCategory === cat 
+                ? "bg-blue-primary text-white shadow-lg shadow-blue-primary/20" 
+                : "bg-surface-2 text-text-muted hover:bg-surface-3"
+            )}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {filteredVocab.map((item, i) => {
-          const isKnown = progress.knownWords?.includes(item.w);
+          const isKnown = progress?.knownWords?.includes(item.w);
           return (
             <button
               key={i}

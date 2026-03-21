@@ -20,11 +20,63 @@ import { getProgress, saveProgress, UserProgress } from "@/lib/store";
 import { callGemini } from "@/lib/gemini";
 import { cn, getBandColor } from "@/lib/utils";
 
+import { ChartDisplay } from "@/components/ChartDisplay";
+
 const TESTS = [
-  { id: "wt1-1", label: "Writing Task 1 (Line Graph)", skill: "writing", mins: 20, icon: FileText, color: "text-blue-secondary", desc: "Summarize the information by selecting and reporting the main features of a line graph." },
-  { id: "wt1-2", label: "Writing Task 1 (Process Diagram)", skill: "writing", mins: 20, icon: FileText, color: "text-blue-secondary", desc: "Describe the stages of a biological or industrial process." },
-  { id: "wt2-1", label: "Writing Task 2 (Opinion Essay)", skill: "writing", mins: 40, icon: PenTool, color: "text-violet-accent", desc: "To what extent do you agree or disagree with a given statement?" },
-  { id: "wt2-2", label: "Writing Task 2 (Problem/Solution)", skill: "writing", mins: 40, icon: PenTool, color: "text-violet-accent", desc: "Discuss the causes of a problem and suggest potential solutions." },
+  { 
+    id: "wt1-1", 
+    label: "Writing Task 1 (Line Graph)", 
+    skill: "writing", 
+    mins: 20, 
+    icon: FileText, 
+    color: "text-blue-secondary", 
+    desc: "The graph below shows the consumption of fish and some different kinds of meat in a European country between 1979 and 2004.",
+    chartType: "line",
+    chartData: [
+      { year: '1979', Beef: 220, Lamb: 150, Chicken: 140, Fish: 60 },
+      { year: '1984', Beef: 200, Lamb: 130, Chicken: 160, Fish: 55 },
+      { year: '1989', Beef: 180, Lamb: 110, Chicken: 190, Fish: 50 },
+      { year: '1994', Beef: 160, Lamb: 90, Chicken: 220, Fish: 52 },
+      { year: '1999', Beef: 140, Lamb: 70, Chicken: 240, Fish: 48 },
+      { year: '2004', Beef: 120, Lamb: 60, Chicken: 250, Fish: 45 },
+    ]
+  },
+  { 
+    id: "wt1-2", 
+    label: "Writing Task 1 (Process Diagram)", 
+    skill: "writing", 
+    mins: 20, 
+    icon: FileText, 
+    color: "text-blue-secondary", 
+    desc: "The diagram below shows how solar panels can be used to provide electricity for domestic use.",
+    chartType: "diagram",
+    chartData: [
+      { label: "1. Solar Panels capture sunlight" },
+      { label: "2. Inverter converts DC to AC" },
+      { label: "3. Electrical Panel distributes power" },
+      { label: "4. Utility Meter tracks usage" },
+      { label: "5. Grid backup for night use" },
+    ]
+  },
+  { 
+    id: "wt1-3", 
+    label: "Writing Task 1 (Table)", 
+    skill: "writing", 
+    mins: 20, 
+    icon: FileText, 
+    color: "text-blue-secondary", 
+    desc: "The table below shows the percentage of the population and the number of people living in poverty in different regions of the world in 2010.",
+    chartType: "table",
+    chartData: [
+      { Region: 'South Asia', 'Poverty (%)': 43, 'Millions': 510 },
+      { Region: 'Sub-Saharan Africa', 'Poverty (%)': 41, 'Millions': 380 },
+      { Region: 'East Asia', 'Poverty (%)': 15, 'Millions': 280 },
+      { Region: 'Latin America', 'Poverty (%)': 11, 'Millions': 65 },
+      { Region: 'Middle East', 'Poverty (%)': 4, 'Millions': 12 },
+    ]
+  },
+  { id: "wt2-1", label: "Writing Task 2 (Opinion Essay)", skill: "writing", mins: 40, icon: PenTool, color: "text-violet-accent", desc: "Some people think that it is best to work for the same organization for one's whole life. Others think that it is better to change jobs frequently. Discuss both views and give your opinion." },
+  { id: "wt2-2", label: "Writing Task 2 (Problem/Solution)", skill: "writing", mins: 40, icon: PenTool, color: "text-violet-accent", desc: "In many countries, the amount of crime is increasing. What are the main causes of this and what solutions can you suggest?" },
   { id: "speaking", label: "Speaking Full Simulation", skill: "speaking", mins: 15, icon: Mic, color: "text-pink-accent", desc: "Complete Parts 1, 2 & 3 with an AI examiner." },
   { id: "reading", label: "Reading Section 1", skill: "reading", mins: 20, icon: BookOpen, color: "text-green-accent", desc: "Academic reading passage with 13-14 questions." },
   { id: "listening", label: "Listening Section 1", skill: "listening", mins: 10, icon: Headphones, color: "text-amber-accent", desc: "Form completion in a social context." },
@@ -172,7 +224,12 @@ export default function MockTests() {
                   <p className="text-xs font-bold text-text-muted animate-pulse uppercase tracking-widest">Aria is preparing your test task...</p>
                 </div>
               ) : testTask ? (
-                <div className="prose prose-invert prose-sm max-w-none text-text-secondary leading-relaxed" dangerouslySetInnerHTML={{ __html: testTask.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }} />
+                <div className="space-y-4">
+                  <div className="prose prose-invert prose-sm max-w-none text-text-secondary leading-relaxed" dangerouslySetInnerHTML={{ __html: testTask.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }} />
+                  {activeTest.chartData && (
+                    <ChartDisplay type={activeTest.chartType} data={activeTest.chartData} />
+                  )}
+                </div>
               ) : (
                 <p className="text-sm text-text-secondary leading-relaxed">{activeTest.desc}. Write your response below. Aim for the required word count and maintain academic tone.</p>
               )}

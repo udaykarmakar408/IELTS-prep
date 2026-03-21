@@ -20,21 +20,7 @@ import { getProgress, saveProgress, UserProgress } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { callGemini } from "@/lib/gemini";
 import ReactMarkdown from "react-markdown";
-import { 
-  LineChart, 
-  Line, 
-  BarChart, 
-  Bar, 
-  PieChart, 
-  Pie, 
-  Cell, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer 
-} from 'recharts';
+import { ChartDisplay } from "@/components/ChartDisplay";
 
 const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#ef4444'];
 
@@ -502,102 +488,6 @@ const WRITING_TASKS = [
     wordCount: 150
   }
 ];
-
-function ChartDisplay({ type, data }: { type: string, data: any[] }) {
-  if (!data) return null;
-
-  if (type === 'table') {
-    const headers = Object.keys(data[0]);
-    return (
-      <div className="w-full overflow-x-auto bg-white p-4 rounded-xl border border-border-2">
-        <table className="w-full text-[10px] text-left border-collapse text-black">
-          <thead>
-            <tr className="bg-gray-100">
-              {headers.map(h => (
-                <th key={h} className="p-2 border border-gray-300 font-bold uppercase">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {data.map((row, i) => (
-              <tr key={i}>
-                {headers.map(h => (
-                  <td key={h} className="p-2 border border-gray-300">{row[h]}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  }
-
-  if (type === 'diagram') {
-    return (
-      <div className="w-full bg-white p-6 rounded-xl border border-border-2 flex flex-col items-center justify-center gap-4">
-        {data.map((step, i) => (
-          <React.Fragment key={i}>
-            <div className="px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg text-[10px] font-bold text-blue-600 text-center min-w-[150px]">
-              {step.label}
-            </div>
-            {i < data.length - 1 && (
-              <div className="w-0.5 h-4 bg-blue-200" />
-            )}
-          </React.Fragment>
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-full h-[300px] bg-white p-4 rounded-xl border border-border-2">
-      <ResponsiveContainer width="100%" height="100%">
-        {type === 'line' ? (
-          <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey={data[0].year ? "year" : data[0].month ? "month" : "name"} />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            {Object.keys(data[0]).filter(k => k !== 'year' && k !== 'month' && k !== 'name').map((key, i) => (
-              <Line key={key} type="monotone" dataKey={key} stroke={COLORS[i % COLORS.length]} strokeWidth={2} />
-            ))}
-          </LineChart>
-        ) : type === 'bar' ? (
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey={data[0].area ? "area" : data[0].sport ? "sport" : data[0].category ? "category" : data[0].country ? "country" : "name"} />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            {Object.keys(data[0]).filter(k => k !== 'area' && k !== 'sport' && k !== 'category' && k !== 'country' && k !== 'name').map((key, i) => (
-              <Bar key={key} dataKey={key} fill={COLORS[i % COLORS.length]} />
-            ))}
-          </BarChart>
-        ) : (
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              labelLine={false}
-              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-              outerRadius={80}
-              fill="#8884d8"
-              dataKey="value"
-            >
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip />
-            <Legend />
-          </PieChart>
-        )}
-      </ResponsiveContainer>
-    </div>
-  );
-}
 
 export default function Writing() {
   const [progress, setProgress] = useState<UserProgress | null>(null);

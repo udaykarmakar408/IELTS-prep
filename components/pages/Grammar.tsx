@@ -15,48 +15,7 @@ import { callGemini } from "@/lib/gemini";
 import ReactMarkdown from "react-markdown";
 import { Sparkles, Loader2 } from "lucide-react";
 
-const GRAMMAR_DATA = [
-  {
-    title: "Complex Sentences — Band 7+ Structures",
-    sections: [
-      {
-        heading: "Subordinating Conjunctions",
-        content: "These connect a dependent clause to a main clause, adding sophistication to your writing.\n\nCONCESSION:\n• Although the economy grew, income inequality widened.\n• Even though technology has advanced, many problems persist.\n\nCAUSE & REASON:\n• Because fossil fuels are finite, alternatives must be developed.\n• Since governments control education policy, they bear responsibility."
-      },
-      {
-        heading: "Relative Clauses",
-        content: "DEFINING (no commas):\n'The policy that was introduced in 2015 has been effective.'\n\nNON-DEFINING (with commas):\n'The government, which has faced mounting pressure, finally reversed the policy.'"
-      }
-    ]
-  },
-  {
-    title: "Tenses for Academic Writing",
-    sections: [
-      {
-        heading: "Present Simple vs Present Perfect",
-        content: "Use PRESENT SIMPLE for general truths: 'Technology helps people communicate.'\n\nUse PRESENT PERFECT for ongoing trends: 'Urbanization has accelerated over the past decade.'"
-      }
-    ]
-  },
-  {
-    title: "Passive Voice in Processes",
-    sections: [
-      {
-        heading: "Forming the Passive",
-        content: "The passive is essential for Writing Task 1 process diagrams where the person doing the action is unknown or unimportant.\n\nSTRUCTURE: [Object] + [to be] + [Past Participle]\n\nEXAMPLES:\n• The tea leaves are picked by hand.\n• The mixture is heated to 100 degrees.\n• The finished product is then packaged."
-      }
-    ]
-  },
-  {
-    title: "Articles (A, An, The)",
-    sections: [
-      {
-        heading: "Common Article Errors",
-        content: "One of the most frequent errors in IELTS writing.\n\nDEFINITE (the):\n• Use for specific things: 'The environment is at risk.'\n• Use for things already mentioned: 'The policy was effective.'\n\nINDEFINITE (a/an):\n• Use for non-specific singular countable nouns: 'A significant increase was observed.'"
-      }
-    ]
-  }
-];
+import { GRAMMAR_DATA, GrammarTopic } from "@/lib/data/grammar";
 
 export default function Grammar() {
   const [openSection, setOpenSection] = useState<string | null>("0-0");
