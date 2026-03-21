@@ -219,7 +219,7 @@ export default function DailyQuiz() {
         </div>
         <div>
           <h2 className="font-serif text-2xl font-bold mb-1">Daily Quiz</h2>
-          <p className="text-sm text-text-muted">Test your IELTS knowledge with 20 daily questions</p>
+          <p className="text-sm text-text-muted">Test your IELTS knowledge with daily questions</p>
         </div>
       </div>
 

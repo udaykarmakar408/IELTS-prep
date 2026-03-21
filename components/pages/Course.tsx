@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   CheckCircle2, 
@@ -261,7 +262,9 @@ export default function Course() {
               </div>
             ) : lessonContent ? (
               <>
-                <div dangerouslySetInnerHTML={{ __html: lessonContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }} />
+                <div className="prose prose-invert prose-sm md:prose-base max-w-none space-y-4 text-text-secondary leading-relaxed">
+                  <ReactMarkdown>{lessonContent}</ReactMarkdown>
+                </div>
                 
                 {quizQuestions.length > 0 && (
                   <div className="mt-12 p-6 bg-bg-2 border border-border rounded-2xl">

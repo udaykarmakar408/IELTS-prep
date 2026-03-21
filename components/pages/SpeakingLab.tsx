@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Mic, 
@@ -272,7 +273,9 @@ export default function SpeakingLab() {
                   <div className="flex items-center gap-2 text-violet-accent font-bold text-xs uppercase tracking-widest mb-4">
                     <MessageSquare size={14} /> AI Analysis
                   </div>
-                  <div className="prose prose-invert prose-sm max-w-none text-text-secondary leading-relaxed" dangerouslySetInnerHTML={{ __html: feedback.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }} />
+                  <div className="prose prose-invert prose-sm max-w-none text-text-secondary leading-relaxed">
+                  <ReactMarkdown>{feedback}</ReactMarkdown>
+                </div>
                   <button onClick={() => setCueCardData(null)} className="btn btn-ghost w-full mt-6 border-violet-accent/20 text-violet-accent">
                     Try Another Topic
                   </button>

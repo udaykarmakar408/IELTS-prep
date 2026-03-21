@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Calendar, 
@@ -215,8 +216,8 @@ export default function Roadmap() {
                 <X size={16} />
               </button>
             </div>
-            <div className="p-6 prose prose-invert prose-sm max-w-none">
-              <div dangerouslySetInnerHTML={{ __html: aiPlan.replace(/## (.*?)\n/g, '<h3 class="text-violet-accent font-bold mt-4 mb-2">$1</h3>').replace(/\n/g, '<br/>') }} />
+            <div className="p-6 prose prose-invert prose-sm max-w-none text-text-secondary leading-relaxed">
+              <ReactMarkdown>{aiPlan}</ReactMarkdown>
             </div>
           </motion.div>
         )}

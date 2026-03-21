@@ -26,6 +26,7 @@ import {
 import { getProgress, saveProgress, UserProgress } from "@/lib/store";
 import { callGemini } from "@/lib/gemini";
 import { cn, getBandColor } from "@/lib/utils";
+import Markdown from "react-markdown";
 
 import { ChartDisplay } from "@/components/ChartDisplay";
 
@@ -343,7 +344,7 @@ export default function MockTests() {
                     )}
 
                     <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed font-serif">
-                      <div dangerouslySetInnerHTML={{ __html: (testTask || activeTest.desc).replace(/\*\*(.*?)\*\*/g, '<strong class="text-gray-800">$1</strong>').replace(/\n/g, '<br/>') }} />
+                      <Markdown>{testTask || activeTest.desc}</Markdown>
                     </div>
 
                     {activeTest.chartData && (
@@ -411,7 +412,9 @@ export default function MockTests() {
                     <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
                       <FileText size={14} /> Performance Analysis
                     </h4>
-                    <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed bg-gray-50 p-6 rounded-2xl border border-gray-100" dangerouslySetInnerHTML={{ __html: feedback.replace(/\*\*(.*?)\*\*/g, '<strong class="text-gray-800">$1</strong>').replace(/\n/g, '<br/>') }} />
+                    <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                      <Markdown>{feedback}</Markdown>
+                    </div>
                   </div>
                   <div className="space-y-6">
                     <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">

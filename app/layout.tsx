@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Outfit, JetBrains_Mono, Playfair_Display } from 'next/font/google';
+import { Outfit, JetBrains_Mono, Playfair_Display, Plus_Jakarta_Sans } from 'next/font/google';
 import './globals.css';
 
 const outfit = Outfit({
@@ -17,6 +17,11 @@ const jetbrainsMono = JetBrains_Mono({
   variable: '--font-mono',
 });
 
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-jakarta',
+});
+
 export const metadata: Metadata = {
   title: "Uday's IELTS — AI Personal Tutor",
   description: 'AI-powered IELTS preparation platform with personalized coaching, mock tests, and structured courses.',
@@ -29,8 +34,8 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${outfit.variable} ${jetbrainsMono.variable} ${playfair.variable}`}>
-      <body className="bg-[#020c1b] text-[#e2e8f0] font-sans" suppressHydrationWarning>
+    <html lang="en" className={`${outfit.variable} ${jetbrainsMono.variable} ${playfair.variable} ${jakarta.variable}`}>
+      <body className="bg-[#020c1b] text-[#e2e8f0] font-jakarta" suppressHydrationWarning>
         <ErrorBoundary>
           {children}
         </ErrorBoundary>

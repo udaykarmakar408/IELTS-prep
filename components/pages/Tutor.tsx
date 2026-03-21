@@ -17,7 +17,8 @@ import {
 } from "lucide-react";
 import { callGemini } from "@/lib/gemini";
 import { getProgress, saveProgress, UserProgress } from "@/lib/store";
-import { cn, escHtml } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import Markdown from "react-markdown";
 
 export default function Tutor() {
   const [mode, setMode] = useState<"chat" | "writing" | "speaking" | "tips">("chat");
@@ -218,12 +219,14 @@ Respond in clean markdown. Use ## for section headers, **bold** for emphasis.`;
               {msg.role === "assistant" ? <Bot size={20} /> : <User size={20} />}
             </div>
             <div className={cn(
-              "max-w-[85%] p-5 rounded-3xl text-sm leading-relaxed whitespace-pre-wrap shadow-xl backdrop-blur-sm",
+              "max-w-[85%] p-5 rounded-3xl text-sm leading-relaxed shadow-xl backdrop-blur-sm",
               msg.role === "assistant" 
                 ? "bg-white/5 rounded-tl-none text-text-primary border border-white/5" 
                 : "bg-blue-primary/10 rounded-tr-none text-text-primary border border-blue-primary/20"
             )}>
-              <div className="prose prose-invert prose-sm max-w-none font-medium" dangerouslySetInnerHTML={{ __html: msg.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }} />
+              <div className="prose prose-invert prose-sm max-w-none font-medium">
+                <Markdown>{msg.content}</Markdown>
+              </div>
             </div>
           </div>
         ))}

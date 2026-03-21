@@ -677,7 +677,7 @@ export default function Writing() {
             <div className="flex items-center justify-between mb-3">
               <span className={cn(
                 "tag",
-                task.type === "Task 1" ? "tag-blue" : "tag-purple"
+                task.type === "Task 1" ? "tag-blue" : "tag-violet"
               )}>{task.type}</span>
               <span className="text-[10px] font-bold text-text-muted flex items-center gap-1">
                 <Clock size={10} /> {task.mins} Mins
