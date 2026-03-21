@@ -15,7 +15,6 @@ import Reading from "@/components/pages/Reading";
 import Writing from "@/components/pages/Writing";
 import Vocabulary from "@/components/pages/Vocabulary";
 import Grammar from "@/components/pages/Grammar";
-import SpeakingLab from "@/components/pages/SpeakingLab";
 import Speaking from "@/components/pages/Speaking";
 import Drills from "@/components/pages/Drills";
 import StudyTimer from "@/components/pages/StudyTimer";
@@ -64,7 +63,6 @@ export default function Home() {
       case "writing": return <Writing />;
       case "vocab": return <Vocabulary />;
       case "grammar": return <Grammar />;
-      case "speaking-lab": return <SpeakingLab />;
       case "speaking": return <Speaking />;
       case "drills": return <Drills />;
       case "timer": return <StudyTimer />;

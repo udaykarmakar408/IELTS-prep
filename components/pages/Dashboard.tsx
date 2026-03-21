@@ -19,7 +19,8 @@ import {
   Type,
   Book,
   Sparkles,
-  Mic
+  Mic,
+  Star
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { UserProgress, getProgress } from "@/lib/store";
@@ -119,12 +120,13 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6">
         {[
           { id: "tutor", label: "Ask Aria", icon: Bot, color: "text-violet-accent", bg: "bg-violet-accent/10", desc: "24/7 AI Support" },
           { id: "tests", label: "Mock Test", icon: FileText, color: "text-blue-secondary", bg: "bg-blue-secondary/10", desc: "Full Simulation" },
           { id: "quiz", label: "Daily Quiz", icon: PenTool, color: "text-pink-accent", bg: "bg-pink-accent/10", desc: "Quick Practice" },
           { id: "vocab", label: "Vocab", icon: Type, color: "text-green-accent", bg: "bg-green-accent/10", desc: "Master Words" },
+          { id: "lizhub", label: "Liz Hub", icon: Star, color: "text-amber-accent", bg: "bg-amber-accent/10", desc: "Expert Tips" },
         ].map((action) => (
           <button
             key={action.id}
@@ -238,7 +240,7 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
       {/* Skill Bands */}
       <div className="card">
         <div className="flex justify-between items-center mb-6">
-          <div className="font-bold flex items-center gap-2">
+          <div className="font-bold flex items-center gap-2 text-sm uppercase tracking-widest text-text-muted">
             <Target size={18} className="text-blue-secondary" /> Skill Bands
           </div>
           <button onClick={() => setActivePage("analytics")} className="text-[10px] font-bold text-text-muted hover:text-blue-secondary uppercase tracking-wider flex items-center gap-1">
@@ -266,26 +268,6 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
               </div>
             );
           })}
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="space-y-4">
-        <h4 className="font-bold text-sm uppercase tracking-widest text-text-muted px-1">Quick Actions</h4>
-        <div className="grid grid-cols-2 gap-4">
-          {quickActions.map((action) => (
-            <button 
-              key={action.id}
-              onClick={() => setActivePage(action.id)}
-              className="card text-left hover:border-blue-primary group"
-            >
-              <div className={cn("mb-3 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3", action.color)}>
-                <action.icon size={28} />
-              </div>
-              <div className="font-bold text-sm text-text-primary mb-1">{action.label}</div>
-              <div className="text-[10px] text-text-muted font-medium">{action.desc}</div>
-            </button>
-          ))}
         </div>
       </div>
 

@@ -12,7 +12,8 @@ import {
   FileText,
   ChevronRight,
   PlayCircle,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Star
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -83,6 +84,12 @@ export default function Resources({ setActivePage }: ResourcesProps) {
           <p className="text-sm md:text-base text-text-secondary max-w-md leading-relaxed">
             A hand-picked collection of the best free materials, tools, and channels to help you reach Band 8.0+.
           </p>
+          <button 
+            onClick={() => setActivePage("lizhub")}
+            className="btn btn-primary flex items-center gap-2"
+          >
+            <Star size={16} className="fill-white" /> Go to Liz Hub
+          </button>
         </div>
       </div>
 

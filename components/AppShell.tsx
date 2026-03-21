@@ -55,29 +55,53 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
     }
   }, [progress]);
 
-  const navItems = [
-    { id: "dashboard", label: "Dashboard", icon: Home },
-    { id: "tutor", label: "AI Tutor", icon: Bot },
-    { id: "course", label: "Course", icon: GraduationCap },
-    { id: "tests", label: "Mock Tests", icon: FileText },
-    { id: "cambridge", label: "Cambridge", icon: Book },
-    { id: "resources", label: "Resources", icon: BookOpen },
-    { id: "lizhub", label: "Liz Hub", icon: Star },
-    { id: "quiz", label: "Daily Quiz", icon: PenTool },
-    { id: "roadmap", label: "Roadmap", icon: Calendar },
-    { id: "analytics", label: "Analytics", icon: BarChart2 },
-    { id: "listening", label: "Listening", icon: Headphones },
-    { id: "reading", label: "Reading", icon: BookOpen },
-    { id: "writing", label: "Writing", icon: PenTool },
-    { id: "vocab", label: "Vocabulary", icon: Type },
-    { id: "grammar", label: "Grammar", icon: Book },
-    { id: "speaking-lab", label: "Speaking Lab", icon: Mic },
-    { id: "drills", label: "Drills", icon: Target },
-    { id: "speaking", label: "Speaking", icon: Mic },
-    { id: "timer", label: "Study Timer", icon: Timer },
-    { id: "errorlog", label: "Error Log", icon: ClipboardList },
-    { id: "settings", label: "Settings", icon: Settings },
+  const navCategories = [
+    {
+      label: "Main",
+      items: [
+        { id: "dashboard", label: "Dashboard", icon: Home },
+        { id: "course", label: "Course", icon: GraduationCap },
+        { id: "tutor", label: "AI Tutor", icon: Bot },
+      ]
+    },
+    {
+      label: "Skills Practice",
+      items: [
+        { id: "listening", label: "Listening", icon: Headphones },
+        { id: "reading", label: "Reading", icon: BookOpen },
+        { id: "writing", label: "Writing", icon: PenTool },
+        { id: "speaking", label: "Speaking Lab", icon: Mic },
+      ]
+    },
+    {
+      label: "Foundations",
+      items: [
+        { id: "vocab", label: "Vocabulary", icon: Type },
+        { id: "grammar", label: "Grammar", icon: Book },
+        { id: "drills", label: "Daily Drills", icon: Target },
+      ]
+    },
+    {
+      label: "Assessment",
+      items: [
+        { id: "cambridge", label: "Cambridge", icon: Book },
+        { id: "tests", label: "Mock Tests", icon: FileText },
+        { id: "quiz", label: "Daily Quiz", icon: PenTool },
+      ]
+    },
+    {
+      label: "More",
+      items: [
+        { id: "lizhub", label: "Liz Hub", icon: Star },
+        { id: "roadmap", label: "Roadmap", icon: Calendar },
+        { id: "resources", label: "Resources", icon: BookOpen },
+        { id: "analytics", label: "Analytics", icon: BarChart2 },
+        { id: "settings", label: "Settings", icon: Settings },
+      ]
+    }
   ];
+
+  const allNavItems = navCategories.flatMap(cat => cat.items);
 
   const avgBand = (progress && progress.bands) ? Object.values(progress.bands).filter(v => v > 0).reduce((a, b, _, arr) => a + b / arr.length, 0).toFixed(1) : "—";
 
@@ -112,38 +136,45 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
           </div>
         </div>
 
-        <nav className="flex-1 p-3 flex flex-col gap-1 overflow-y-auto custom-scrollbar">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActivePage(item.id)}
-              className={cn(
-                "w-full px-4 py-3 rounded-xl flex items-center gap-3 transition-all duration-300 text-left group relative overflow-hidden",
-                activePage === item.id 
-                  ? "bg-blue-primary/10 text-blue-secondary shadow-sm" 
-                  : "text-text-muted hover:bg-white/5 hover:text-text-primary"
-              )}
-            >
-              {activePage === item.id && (
-                <motion.div 
-                  layoutId="active-pill"
-                  className="absolute left-0 top-0 bottom-0 w-1 bg-blue-primary"
-                />
-              )}
-              <item.icon 
-                size={20} 
-                className={cn(
-                  "transition-transform duration-300 group-hover:scale-110",
-                  activePage === item.id ? "text-blue-secondary" : "text-text-muted group-hover:text-blue-secondary"
-                )} 
-              />
-              <span className={cn(
-                "text-xs font-bold uppercase tracking-widest transition-colors duration-300",
-                activePage === item.id ? "text-blue-secondary" : "text-text-muted group-hover:text-text-primary"
-              )}>
-                {item.label}
-              </span>
-            </button>
+        <nav className="flex-1 p-3 flex flex-col gap-6 overflow-y-auto custom-scrollbar">
+          {navCategories.map((category) => (
+            <div key={category.label} className="space-y-1">
+              <div className="px-4 text-[9px] font-black text-text-muted uppercase tracking-[0.2em] mb-2">
+                {category.label}
+              </div>
+              {category.items.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setActivePage(item.id)}
+                  className={cn(
+                    "w-full px-4 py-2.5 rounded-xl flex items-center gap-3 transition-all duration-300 text-left group relative overflow-hidden",
+                    activePage === item.id 
+                      ? "bg-blue-primary/10 text-blue-secondary shadow-sm" 
+                      : "text-text-muted hover:bg-white/5 hover:text-text-primary"
+                  )}
+                >
+                  {activePage === item.id && (
+                    <motion.div 
+                      layoutId="active-pill"
+                      className="absolute left-0 top-0 bottom-0 w-1 bg-blue-primary"
+                    />
+                  )}
+                  <item.icon 
+                    size={18} 
+                    className={cn(
+                      "transition-transform duration-300 group-hover:scale-110",
+                      activePage === item.id ? "text-blue-secondary" : "text-text-muted group-hover:text-blue-secondary"
+                    )} 
+                  />
+                  <span className={cn(
+                    "text-[11px] font-bold uppercase tracking-widest transition-colors duration-300",
+                    activePage === item.id ? "text-blue-secondary" : "text-text-muted group-hover:text-text-primary"
+                  )}>
+                    {item.label}
+                  </span>
+                </button>
+              ))}
+            </div>
           ))}
         </nav>
 
@@ -160,7 +191,7 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
         {/* Page Header (Desktop) */}
         <div className="hidden md:flex items-center justify-between px-6 py-4 bg-bg-1 border-b border-border flex-shrink-0">
           <h2 className="font-serif text-xl font-bold text-text-primary capitalize">
-            {navItems.find(i => i.id === activePage)?.label || activePage}
+            {allNavItems.find(i => i.id === activePage)?.label || activePage}
           </h2>
           <div className="flex items-center gap-3">
             <div className="bg-bg-2 border border-border rounded-full px-4 py-1.5 text-sm font-bold text-amber-accent flex items-center gap-1.5 shadow-sm">
@@ -193,7 +224,7 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
 
         {/* Mobile Bottom Nav */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 h-20 glass-nav flex items-center justify-around px-2 z-50 pb-4">
-          {navItems.slice(0, 5).map((item) => (
+          {allNavItems.slice(0, 5).map((item) => (
             <button
               key={item.id}
               onClick={() => setActivePage(item.id)}
@@ -247,7 +278,7 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
                 <div className="w-12 h-1.5 bg-border-2 rounded-full mx-auto mb-6" />
                 <div className="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-4 px-2">All Modules</div>
                 <div className="grid grid-cols-4 gap-2">
-                  {navItems.map((item) => (
+                  {allNavItems.map((item) => (
                     <button
                       key={item.id}
                       onClick={() => {
