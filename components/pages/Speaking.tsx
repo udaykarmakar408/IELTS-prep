@@ -11,11 +11,17 @@ import {
   ArrowLeft,
   Lightbulb,
   MessageSquare,
-  Clock
+  Clock,
+  Volume2,
+  VolumeX,
+  MicOff,
+  Loader2
 } from "lucide-react";
 import { getProgress, saveProgress, UserProgress } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { callGemini, callGeminiChat } from "@/lib/gemini";
+import { callGroq, callGroqChat } from "@/lib/groq";
+import { GoogleGenAI, Modality } from "@google/genai";
+import ReactMarkdown from "react-markdown";
 
 interface Topic {
   id: string;
@@ -258,7 +264,6 @@ const SPEAKING_TOPICS: Topic[] = [
   }
 ];
 
-import ReactMarkdown from "react-markdown";
 
 export default function Speaking() {
   const [progress, setProgress] = useState<UserProgress | null>(null);
@@ -270,6 +275,96 @@ export default function Speaking() {
   const [isTyping, setIsTyping] = useState(false);
   const [userInput, setUserInput] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [isVoiceMode, setIsVoiceMode] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [recognition, setRecognition] = useState<any>(null);
+  const [isHighlighting, setIsHighlighting] = useState(false);
+  const [highlightedVocab, setHighlightedVocab] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<'chat' | 'vocab' | 'feedback'>('chat');
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
+      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+      const rec = new SpeechRecognition();
+      rec.continuous = false;
+      rec.interimResults = false;
+      rec.lang = "en-US";
+
+      rec.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setUserInput(transcript);
+        setIsListening(false);
+      };
+
+      rec.onerror = (event: any) => {
+        console.error("Speech recognition error", event.error);
+        setIsListening(false);
+      };
+
+      rec.onend = () => {
+        setIsListening(false);
+      };
+
+      setRecognition(rec);
+    }
+  }, []);
+
+  const highlightVocab = async () => {
+    if (messages.length === 0) return;
+    setIsHighlighting(true);
+    const transcript = messages.map(m => m.text).join("\n");
+    const systemPrompt = `You are an IELTS vocabulary expert. Extract 8-10 high-level (Band 7.5+) vocabulary words or idioms from the following speaking transcript.
+    Return ONLY a JSON array of strings.`;
+
+    try {
+      const result = await callGroq(transcript, systemPrompt);
+      setHighlightedVocab(JSON.parse(result || "[]"));
+      setActiveTab('vocab');
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsHighlighting(false);
+    }
+  };
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognition?.stop();
+    } else {
+      recognition?.start();
+      setIsListening(true);
+    }
+  };
+
+  const speakText = async (text: string) => {
+    if (!isVoiceMode) return;
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-tts",
+        contents: [{ parts: [{ text }] }],
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: 'Kore' },
+            },
+          },
+        },
+      });
+
+      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (base64Audio) {
+        const audio = new Audio(`data:audio/wav;base64,${base64Audio}`);
+        audio.play();
+      }
+    } catch (error) {
+      console.error("TTS Error:", error);
+      // Fallback to browser TTS
+      const utterance = new SpeechSynthesisUtterance(text);
+      window.speechSynthesis.speak(utterance);
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -295,8 +390,9 @@ export default function Speaking() {
     Start by introducing yourself and asking the first question.`;
 
     try {
-      const initialMessage = await callGemini("Start the speaking test.", systemPrompt);
+      const initialMessage = await callGroq("Start the speaking test.", systemPrompt);
       setMessages([{ role: "model", text: initialMessage }]);
+      if (isVoiceMode) speakText(initialMessage);
     } catch (error) {
       console.error(error);
     } finally {
@@ -313,9 +409,13 @@ export default function Speaking() {
     setIsTyping(true);
 
     try {
-      const history = newMessages.map(m => ({ role: m.role, parts: [{ text: m.text }] }));
-      const response = await callGeminiChat(history, "Continue the IELTS speaking test. Ask the next question or provide the cue card if it's Part 2.");
+      const history = newMessages.map(m => ({ role: m.role === "user" ? "user" as const : "assistant" as const, content: m.text }));
+      const response = await callGroqChat([
+        { role: "system", content: "Continue the IELTS speaking test. Ask the next question or provide the cue card if it's Part 2." },
+        ...history
+      ]);
       setMessages([...newMessages, { role: "model", text: response }]);
+      if (isVoiceMode) speakText(response);
     } catch (error) {
       console.error(error);
     } finally {
@@ -337,7 +437,7 @@ export default function Speaking() {
     const transcript = messages.map(m => `${m.role === "user" ? "Student" : "Examiner"}: ${m.text}`).join("\n");
 
     try {
-      const result = await callGemini(`Transcript:\n${transcript}`, systemPrompt);
+      const result = await callGroq(`Transcript:\n${transcript}`, systemPrompt);
       setFeedback(result);
       
       // Update progress
@@ -442,21 +542,42 @@ export default function Speaking() {
 
         <div className="flex flex-col sm:flex-row gap-2 pb-2 md:pb-0">
           <div className="flex gap-2 flex-1">
+            <button 
+              onClick={toggleListening} 
+              className={cn(
+                "btn px-3 md:px-4",
+                isListening ? "bg-red-accent text-white animate-pulse" : "bg-bg-2 text-text-muted border border-border-2"
+              )}
+            >
+              {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+            </button>
             <input
               type="text"
               value={userInput}
               onChange={(e) => setUserInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-              placeholder="Type your response..."
+              placeholder={isListening ? "Listening..." : "Type your response..."}
               className="flex-1 bg-bg border border-border-2 rounded-xl px-3 md:px-4 py-2 md:py-3 text-sm text-text-primary focus:border-blue-primary outline-none transition-colors"
             />
             <button onClick={handleSendMessage} disabled={isTyping} className="btn btn-primary px-4 md:px-6">
               Send
             </button>
           </div>
-          <button onClick={endSimulation} className="btn btn-ghost px-4 text-[10px] md:text-xs h-10 md:h-auto">
-            End & Grade
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setIsVoiceMode(!isVoiceMode)} 
+              className={cn(
+                "btn px-4 text-[10px] md:text-xs h-10 md:h-auto",
+                isVoiceMode ? "bg-blue-dim text-blue-secondary border-blue-secondary/30" : "bg-bg-2 text-text-muted border border-border-2"
+              )}
+            >
+              {isVoiceMode ? <Volume2 size={16} className="mr-2" /> : <VolumeX size={16} className="mr-2" />}
+              {isVoiceMode ? "Voice ON" : "Voice OFF"}
+            </button>
+            <button onClick={endSimulation} className="btn btn-ghost px-4 text-[10px] md:text-xs h-10 md:h-auto">
+              End & Grade
+            </button>
+          </div>
         </div>
       </div>
     );

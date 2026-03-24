@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 import { motion } from "motion/react";
 import { 
   ExternalLink, 
@@ -141,10 +140,9 @@ export default function Resources({ setActivePage }: ResourcesProps) {
       <div className="card bg-gradient-to-br from-red-accent/10 to-bg-1 border-red-accent/20">
         <div className="flex flex-col md:flex-row gap-8 items-center">
           <div className="w-full md:w-1/3 aspect-video bg-bg-3 rounded-2xl flex items-center justify-center relative overflow-hidden group cursor-pointer">
-            <Image 
+            <img 
               src="https://picsum.photos/seed/ielts/800/450" 
               alt="IELTS Video Thumbnail" 
-              fill
               className="absolute inset-0 w-full h-full object-cover opacity-50 group-hover:scale-110 transition-transform duration-700"
               referrerPolicy="no-referrer"
             />

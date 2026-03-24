@@ -14,7 +14,7 @@ import {
   PlayCircle
 } from "lucide-react";
 import { getProgress, saveProgress, UserProgress } from "@/lib/store";
-import { callGemini } from "@/lib/gemini";
+import { callGroq } from "@/lib/groq";
 import { cn } from "@/lib/utils";
 import { Loader2, Sparkles } from "lucide-react";
 
@@ -190,7 +190,7 @@ export default function Course() {
       Return the quiz at the very end after a "---QUIZ---" separator in JSON format:
       [{"q": "...", "o": ["...", "..."], "a": 0}, ...]`;
       
-      const result = await callGemini(prompt, "You are an expert IELTS tutor.");
+      const result = await callGroq(prompt, "You are an expert IELTS tutor.");
       
       if (result.includes("---QUIZ---")) {
         const [content, quizJson] = result.split("---QUIZ---");

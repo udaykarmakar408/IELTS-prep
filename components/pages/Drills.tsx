@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { getProgress, saveProgress, UserProgress } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { callGemini } from "@/lib/gemini";
+import { callGroq } from "@/lib/groq";
 import ReactMarkdown from "react-markdown";
 
 interface Question {
@@ -182,7 +182,7 @@ export default function Drills() {
     }).join("\n\n");
 
     try {
-      const result = await callGemini(transcript, systemPrompt);
+      const result = await callGroq(transcript, systemPrompt);
       setAiFeedback(result);
     } catch (error) {
       console.error(error);

@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Book, ChevronDown, CheckCircle2, Lightbulb, AlertTriangle, ChevronRight, History, Trash2, Copy, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { callGemini } from "@/lib/gemini";
+import { callGroq } from "@/lib/groq";
 import ReactMarkdown from "react-markdown";
 import { Sparkles, Loader2 } from "lucide-react";
 import { getProgress, saveProgress, UserProgress } from "@/lib/store";
@@ -48,7 +48,7 @@ export default function Grammar() {
     Use markdown for formatting. Keep it concise.`;
 
     try {
-      const result = await callGemini(`Rule: ${heading}\nContext: ${content}`, systemPrompt);
+      const result = await callGroq(`Rule: ${heading}\nContext: ${content}`, systemPrompt);
       setAiExplanation(prev => ({ ...prev, [id]: result }));
     } catch (error) {
       console.error(error);
@@ -89,7 +89,7 @@ Provide your analysis in the following structured format:
 Use **Markdown** for formatting. Be encouraging but precise.`;
 
     try {
-      const result = await callGemini(`Sentence: ${userSentence}`, systemPrompt);
+      const result = await callGroq(`Sentence: ${userSentence}`, systemPrompt);
       setCheckResult(result);
       
       if (progress) {

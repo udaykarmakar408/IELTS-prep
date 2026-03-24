@@ -18,7 +18,7 @@ import {
   Edit2
 } from "lucide-react";
 import { getProgress, saveProgress, UserProgress } from "@/lib/store";
-import { callGemini } from "@/lib/gemini";
+import { callGroq } from "@/lib/groq";
 import { cn } from "@/lib/utils";
 
 const ROADMAP_PHASES = [
@@ -112,10 +112,15 @@ export default function Roadmap() {
       Target Band: ${progress.target}
       Current Strengths/Weaknesses: ${Object.entries(progress.bands).map(([k,v]) => `${k}: ${v}`).join(', ')}
       Focus on the weakest areas while maintaining the strongest.
-      Provide a specific task for each day.
-      Return in clean markdown with ## for days.`;
       
-      const result = await callGemini(prompt, "You are an expert IELTS study planner.");
+      For each day, provide:
+      - A main focus (e.g., "Reading: True/False/Not Given")
+      - A specific task (e.g., "Complete 2 passages from Cambridge 18")
+      - A "Pro Tip" for that skill.
+      
+      Return in clean markdown with ## for days and bold for emphasis.`;
+      
+      const result = await callGroq(prompt, "You are an expert IELTS study planner.");
       setAiPlan(result);
     } catch (error) {
       console.error(error);
@@ -223,15 +228,16 @@ export default function Roadmap() {
         )}
       </AnimatePresence>
 
-      <div className="card p-6 md:p-8 bg-white/5 border-white/10 shadow-2xl">
-        <div className="flex justify-between items-center mb-4 md:mb-6">
+      <div className="card p-6 md:p-8 bg-white/5 border-white/10 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-blue-primary/10 rounded-full blur-3xl -mr-16 -mt-16" />
+        <div className="flex justify-between items-center mb-4 md:mb-6 relative z-10">
           <div className="space-y-1">
             <span className="text-[9px] md:text-[10px] text-text-muted font-black uppercase tracking-widest">Current Progress</span>
             <div className="text-lg md:text-xl font-serif font-black text-text-primary">Day {currentDay} of 90</div>
           </div>
           <div className="text-2xl md:text-3xl font-serif font-black text-blue-secondary">{pct}%</div>
         </div>
-        <div className="h-2.5 md:h-3 bg-white/5 rounded-full overflow-hidden mb-6 md:mb-8 relative">
+        <div className="h-2.5 md:h-3 bg-white/5 rounded-full overflow-hidden mb-6 md:mb-8 relative z-10">
           <motion.div 
             initial={{ width: 0 }}
             animate={{ width: `${pct}%` }}
@@ -240,9 +246,12 @@ export default function Roadmap() {
             <div className="absolute inset-0 bg-white/20 animate-shimmer" style={{ backgroundSize: '200% 100%', backgroundImage: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)' }} />
           </motion.div>
         </div>
-        <div className="space-y-4 md:space-y-6">
+        <div className="space-y-4 md:space-y-6 relative z-10">
           <div className="flex flex-col gap-2 md:gap-3">
-            <label className="text-[9px] md:text-[10px] font-black text-text-muted uppercase tracking-[0.2em] block">Update your journey</label>
+            <div className="flex justify-between items-center">
+              <label className="text-[9px] md:text-[10px] font-black text-text-muted uppercase tracking-[0.2em] block">Update your journey</label>
+              <span className="text-[10px] font-bold text-blue-secondary">Slide to change day</span>
+            </div>
             <input 
               type="range" 
               min="1" 
@@ -252,7 +261,7 @@ export default function Roadmap() {
               className="w-full accent-blue-primary cursor-pointer h-1.5 md:h-2 bg-white/5 rounded-full appearance-none hover:accent-blue-secondary transition-all"
             />
           </div>
-          <div className="p-3 md:p-4 bg-blue-primary/5 rounded-2xl border border-blue-primary/10 italic text-xs md:text-sm text-text-secondary text-center font-medium leading-relaxed">
+          <div className="p-4 bg-blue-primary/5 rounded-2xl border border-blue-primary/10 italic text-xs md:text-sm text-text-secondary text-center font-medium leading-relaxed shadow-inner">
             &quot;{pct < 25 ? "Great start! The habit is forming. Keep showing up daily." :
              pct < 50 ? "You&apos;re building real momentum. Stay consistent!" :
              pct < 75 ? "Over halfway! You&apos;ve proven you can do this. Push through!" :

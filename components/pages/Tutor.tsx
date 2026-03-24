@@ -15,7 +15,7 @@ import {
   Loader2,
   Trash2
 } from "lucide-react";
-import { callGeminiChat } from "@/lib/gemini";
+import { callGroqChat } from "@/lib/groq";
 import { getProgress, saveProgress, UserProgress } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import Markdown from "react-markdown";
@@ -97,12 +97,15 @@ Respond in a way that makes the student feel they are getting a premium, one-on-
 
     try {
       const chatHistory = updatedProgress.chatHistory.map(msg => ({
-        role: msg.role === "assistant" ? "model" as const : "user" as const,
-        parts: [{ text: msg.content }]
+        role: msg.role === "assistant" ? "assistant" as const : "user" as const,
+        content: msg.content
       }));
 
-      const response = await callGeminiChat(chatHistory, getSystemInstruction());
-      
+      const response = await callGroqChat([
+        { role: "system", content: getSystemInstruction() },
+        ...chatHistory
+      ]);
+
       const finalHistory = [...newHistory, { role: "assistant" as const, content: response }];
       const finalProgress = { ...updatedProgress, chatHistory: finalHistory };
       setProgress(finalProgress);
@@ -137,27 +140,27 @@ Respond in a way that makes the student feel they are getting a premium, one-on-
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)] md:h-[calc(100vh-100px)] bg-bg-1/50 backdrop-blur-xl rounded-3xl border border-white/5 overflow-hidden shadow-2xl">
+    <div id="tutor-root" className="flex flex-col h-[calc(100vh-140px)] md:h-[calc(100vh-100px)] bg-bg-1/50 backdrop-blur-xl rounded-3xl border border-white/5 overflow-hidden shadow-2xl">
       {/* Chat Header */}
-      <div className="px-6 py-4 bg-white/5 border-b border-white/5 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-violet-accent flex items-center justify-center text-white shadow-lg shadow-violet-accent/20">
+      <div id="tutor-header" className="px-6 py-4 bg-white/5 border-b border-white/5 flex items-center justify-between">
+        <div id="tutor-header-info" className="flex items-center gap-3">
+          <div id="tutor-logo-container" className="w-10 h-10 rounded-2xl bg-violet-accent flex items-center justify-center text-white shadow-lg shadow-violet-accent/20">
             <Bot size={20} />
           </div>
           <div>
-            <div className="text-sm font-serif font-black text-text-primary tracking-tight">Aria <span className="text-violet-accent">AI</span></div>
-            <div className="text-[10px] text-text-muted font-bold uppercase tracking-widest">Expert IELTS Coach</div>
+            <div id="tutor-name" className="text-sm font-serif font-black text-text-primary tracking-tight">Aria <span className="text-violet-accent">AI</span></div>
+            <div id="tutor-subtitle" className="text-[10px] text-text-muted font-bold uppercase tracking-widest">Expert IELTS Coach</div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={clearHistory} className="p-2.5 rounded-xl bg-white/5 text-text-muted hover:text-red-accent hover:bg-red-accent/10 transition-all" title="Clear History">
+        <div id="tutor-header-actions" className="flex items-center gap-2">
+          <button id="btn-clear-history" onClick={clearHistory} className="p-2.5 rounded-xl bg-white/5 text-text-muted hover:text-red-accent hover:bg-red-accent/10 transition-all" title="Clear History">
             <Trash2 size={16} />
           </button>
         </div>
       </div>
 
       {/* Mode Tabs */}
-      <div className="flex items-center gap-1.5 p-3 bg-white/5 border-b border-white/5 overflow-x-auto no-scrollbar">
+      <div id="tutor-mode-tabs" className="flex items-center gap-1.5 p-3 bg-white/5 border-b border-white/5 overflow-x-auto no-scrollbar">
         {[
           { id: "chat", label: "Chat", icon: Bot },
           { id: "writing", label: "Writing", icon: PenTool },
@@ -166,6 +169,7 @@ Respond in a way that makes the student feel they are getting a premium, one-on-
         ].map((t) => (
           <button
             key={t.id}
+            id={`tutor-mode-tab-${t.id}`}
             onClick={() => setMode(t.id as any)}
             className={cn(
               "flex items-center gap-2 px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
@@ -220,21 +224,21 @@ Respond in a way that makes the student feel they are getting a premium, one-on-
       </AnimatePresence>
 
       {/* Chat Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+      <div id="chat-messages-container" ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
         {progress?.chatHistory.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center text-center p-8 space-y-4 opacity-60">
+          <div id="chat-empty-state" className="h-full flex flex-col items-center justify-center text-center p-8 space-y-4 opacity-60">
             <Bot size={48} className="text-blue-secondary" />
             <div>
-              <h4 className="font-serif text-xl font-bold mb-2">Hello! I&apos;m Aria.</h4>
-              <p className="text-sm text-text-muted max-w-xs">I&apos;m your personal IELTS coach. Ask me anything about the exam, or paste an essay for feedback.</p>
+              <h4 id="empty-state-title" className="font-serif text-xl font-bold mb-2">Hello! I&apos;m Aria.</h4>
+              <p id="empty-state-desc" className="text-sm text-text-muted max-w-xs">I&apos;m your personal IELTS coach. Ask me anything about the exam, or paste an essay for feedback.</p>
             </div>
-            <div className="grid grid-cols-1 gap-2 w-full max-w-xs">
+            <div id="empty-state-suggestions" className="grid grid-cols-1 gap-2 w-full max-w-xs">
               {[
                 "How can I improve my Reading score?",
                 "Explain Task 2 essay structure",
                 "Give me 10 academic words for Environment",
               ].map((q, i) => (
-                <button key={i} onClick={() => handleSend(q)} className="text-xs p-2.5 rounded-lg border border-border hover:bg-bg-2 transition-colors text-left flex justify-between items-center group">
+                <button key={i} id={`suggestion-btn-${i}`} onClick={() => handleSend(q)} className="text-xs p-2.5 rounded-lg border border-border hover:bg-bg-2 transition-colors text-left flex justify-between items-center group">
                   {q} <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
                 </button>
               ))}
@@ -243,8 +247,8 @@ Respond in a way that makes the student feel they are getting a premium, one-on-
         )}
 
         {progress?.chatHistory.map((msg, i) => (
-          <div key={i} className={cn("flex items-start gap-4", msg.role === "user" ? "flex-row-reverse" : "")}>
-            <div className={cn(
+          <div key={i} id={`chat-message-${i}`} className={cn("flex items-start gap-4", msg.role === "user" ? "flex-row-reverse" : "")}>
+            <div id={`message-avatar-${i}`} className={cn(
               "w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg",
               msg.role === "assistant" ? "bg-violet-accent text-white" : "bg-blue-primary text-white"
             )}>
@@ -277,9 +281,10 @@ Respond in a way that makes the student feel they are getting a premium, one-on-
       </div>
 
       {/* Input Area */}
-      <div className="p-3 bg-bg border-t border-border">
-        <div className="flex items-end gap-2 max-w-4xl mx-auto">
+      <div id="tutor-input-area" className="p-3 bg-bg border-t border-border">
+        <div id="tutor-input-container" className="flex items-end gap-2 max-w-4xl mx-auto">
           <textarea
+            id="tutor-input-field"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
@@ -299,6 +304,7 @@ Respond in a way that makes the student feel they are getting a premium, one-on-
             }}
           />
           <button
+            id="btn-send-message"
             onClick={() => handleSend()}
             disabled={!input.trim() || isLoading}
             className="w-12 h-12 rounded-2xl bg-blue-primary text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-primary/20 hover:bg-blue-secondary transition-colors flex-shrink-0"

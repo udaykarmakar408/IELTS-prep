@@ -28,7 +28,7 @@ import { Logo } from "@/components/Logo";
 import { UserProgress, getProgress, saveProgress } from "@/lib/store";
 import { cn, getBandColor } from "@/lib/utils";
 import { GRAMMAR_TIPS, WORDS_OF_THE_DAY } from "@/lib/content";
-import { callGemini } from "@/lib/gemini";
+import { callGroq } from "@/lib/groq";
 import Markdown from "react-markdown";
 
 interface DashboardProps {
@@ -59,12 +59,18 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
       const today = new Date().toISOString().split("T")[0];
       const avgBand = Object.values(p.bands).filter(v => v > 0).reduce((a, b, _, arr) => a + b / arr.length, 0).toFixed(1);
       
-      const prompt = `You are Aria, an expert IELTS tutor. Provide a very short (max 2 sentences), high-impact, personalized daily briefing for ${p.name}. 
+      const prompt = `You are Aria, an expert IELTS tutor. Provide a high-impact, personalized daily briefing for ${p.name}. 
       Target: Band ${p.target}. Current Avg: ${avgBand}. 
       Progress: ${p.completedLessons.length} lessons done, ${p.essaysWritten} essays written.
-      Be encouraging and suggest one specific thing to focus on today.`;
       
-      const content = await callGemini(prompt);
+      Structure:
+      1. One sentence of encouragement based on their streak (${p.streak} days).
+      2. One specific, actionable task for today (e.g., "Focus on Writing Task 2 cohesion" or "Practice Speaking Part 2 cue cards").
+      3. A quick tip for their target band.
+      
+      Keep it under 60 words total. Use bold for emphasis.`;
+      
+      const content = await callGroq(prompt);
       const updated = { ...p, dailyBriefing: { date: today, content } };
       setProgress(updated);
       await saveProgress(updated);
@@ -96,59 +102,60 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
     { id: "quiz", label: "Daily Quiz", icon: PenTool, desc: "Test your knowledge", color: "text-blue-secondary" },
     { id: "tutor", label: "AI Tutor", icon: Bot, desc: "Ask anything", color: "text-violet-accent" },
     { id: "tests", label: "Mock Test", icon: FileText, desc: "AI scored feedback", color: "text-pink-accent" },
-    { id: "speaking-lab", label: "Speaking Lab", icon: Mic, desc: "Cue card practice", color: "text-amber-accent" },
+    { id: "flashcards", label: "Flashcards", icon: BookOpen, desc: "SRS Vocabulary", color: "text-amber-accent" },
   ];
 
   const avgBand = ((progress.bands.listening + progress.bands.reading + progress.bands.writing + progress.bands.speaking) / 4).toFixed(1);
 
   const startRandomPractice = () => {
-    const pages = ["quiz", "tests", "speaking-lab", "vocab", "grammar"];
+    const pages = ["quiz", "tests", "speaking", "speaking-lab", "vocab", "grammar", "listening", "reading", "writing"];
     const randomPage = pages[Math.floor(Math.random() * pages.length)];
     setActivePage(randomPage);
   };
 
   return (
-    <div className="space-y-6">
+    <div id="dashboard-root" className="space-y-6">
       {/* Hero Card */}
-      <div className="card-blue overflow-hidden relative p-6 md:p-10">
-        <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+      <div id="dashboard-hero" className="card-blue overflow-hidden relative p-6 md:p-10">
+        <div id="hero-logo-bg" className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
           <Logo className="w-32 h-32 md:w-48 md:h-48" />
         </div>
-        <div className="flex flex-col md:flex-row justify-between gap-6 md:gap-8 relative z-10">
-          <div className="space-y-4 md:space-y-6">
+        <div id="hero-content-flex" className="flex flex-col md:flex-row justify-between gap-6 md:gap-8 relative z-10">
+          <div id="hero-text-section" className="space-y-4 md:space-y-6">
             <div>
               <div className="text-[10px] text-blue-secondary font-black uppercase tracking-[0.2em] mb-2">Personalized Learning</div>
-              <h3 className="font-serif text-3xl md:text-5xl font-black text-text-primary leading-tight tracking-tight">
+              <h3 id="hero-greeting" className="font-serif text-3xl md:text-5xl font-black text-text-primary leading-tight tracking-tight">
                 Hello, <span className="text-blue-secondary">{progress.name}</span>
               </h3>
             </div>
-            <p className="text-sm md:text-base text-text-secondary max-w-md leading-relaxed">
+            <p id="hero-motivation" className="text-sm md:text-base text-text-secondary max-w-md leading-relaxed">
               {progress.streak >= 3 
                 ? `You're on a ${progress.streak}-day winning streak! Your consistency is the key to mastering the IELTS.` 
                 : "Your journey to Band 8.0 starts with a single step. Let's practice today."}
             </p>
-            <div className="flex flex-wrap gap-3 md:gap-4">
-              <button onClick={() => setActivePage("course")} className="btn btn-primary px-4 py-2 text-sm md:text-base">Continue Learning</button>
-              <button onClick={startRandomPractice} className="btn btn-ghost border-blue-secondary/30 text-blue-secondary hover:bg-blue-secondary hover:text-white px-4 py-2 text-sm md:text-base">Quick Practice</button>
+            <div id="hero-actions" className="flex flex-wrap gap-3 md:gap-4">
+              <button id="hero-btn-continue" onClick={() => setActivePage("course")} className="btn btn-primary px-4 py-2 text-sm md:text-base">Continue Learning</button>
+              <button id="hero-btn-random" onClick={startRandomPractice} className="btn btn-ghost border-blue-secondary/30 text-blue-secondary hover:bg-blue-secondary hover:text-white px-4 py-2 text-sm md:text-base">Quick Practice</button>
             </div>
           </div>
           
-          <div className="flex flex-col items-center md:items-end justify-center bg-white/5 backdrop-blur-md rounded-3xl p-4 md:p-6 border border-white/10">
+          <div id="hero-band-display" className="flex flex-col items-center md:items-end justify-center bg-white/5 backdrop-blur-md rounded-3xl p-4 md:p-6 border border-white/10">
             <div className="text-[10px] text-text-muted font-black uppercase tracking-widest mb-1 md:mb-2">Predicted Band</div>
-            <div className="font-serif text-6xl md:text-8xl font-black text-blue-secondary leading-none tracking-tighter">
+            <div id="hero-band-score" className="font-serif text-6xl md:text-8xl font-black text-blue-secondary leading-none tracking-tighter">
               {avgBand === "0.0" ? "—" : avgBand}
             </div>
-            <div className="text-[10px] md:text-xs text-text-muted mt-2 md:mt-4 font-bold uppercase tracking-widest">Target: <span className="text-text-primary">{progress.target}</span></div>
+            <div id="hero-target-display" className="text-[10px] md:text-xs text-text-muted mt-2 md:mt-4 font-bold uppercase tracking-widest">Target: <span className="text-text-primary">{progress.target}</span></div>
           </div>
         </div>
 
-        <div className="mt-6 md:mt-8 space-y-2">
+        <div id="hero-progress-section" className="mt-6 md:mt-8 space-y-2">
           <div className="flex justify-between items-end text-xs">
             <span className="text-text-muted font-medium">Overall course progress</span>
-            <span className="text-blue-secondary font-bold">{progressPct}%</span>
+            <span id="hero-progress-pct" className="text-blue-secondary font-bold">{progressPct}%</span>
           </div>
-          <div className="h-2 bg-bg-3 rounded-full overflow-hidden">
+          <div id="hero-progress-bar-bg" className="h-2 bg-bg-3 rounded-full overflow-hidden">
             <motion.div 
+              id="hero-progress-bar-fill"
               initial={{ width: 0 }}
               animate={{ width: `${progressPct}%` }}
               transition={{ duration: 1, ease: "easeOut" }}
@@ -159,15 +166,15 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
       </div>
 
       {/* Daily Goal & Stats */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 card bg-gradient-to-br from-blue-primary/10 to-bg-1 border-blue-primary/20 p-6">
+      <div id="dashboard-stats-grid" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div id="daily-progress-card" className="lg:col-span-2 card bg-gradient-to-br from-blue-primary/10 to-bg-1 border-blue-primary/20 p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h3 className="text-lg font-serif font-black text-text-primary tracking-tight">Daily Progress</h3>
               <p className="text-xs text-text-muted">You&apos;re doing great! Keep it up.</p>
             </div>
             <div className="text-right">
-              <span className="text-2xl font-black text-blue-secondary">65%</span>
+              <span id="daily-goal-pct" className="text-2xl font-black text-blue-secondary">65%</span>
               <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Goal Reached</p>
             </div>
           </div>
@@ -176,10 +183,11 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
             <div className="space-y-2">
               <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
                 <span className="text-text-secondary">Study Time</span>
-                <span className="text-blue-secondary">45 / 60 mins</span>
+                <span id="daily-study-time" className="text-blue-secondary">45 / 60 mins</span>
               </div>
-              <div className="h-2 bg-bg-2 rounded-full overflow-hidden">
+              <div id="study-time-bar-bg" className="h-2 bg-bg-2 rounded-full overflow-hidden">
                 <motion.div 
+                  id="study-time-bar-fill"
                   initial={{ width: 0 }}
                   animate={{ width: "75%" }}
                   className="h-full bg-blue-primary shadow-[0_0_10px_rgba(59,130,246,0.5)]"
@@ -187,14 +195,14 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
               </div>
             </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+            <div id="daily-stats-mini-grid" className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
               {[
-                { label: "Words", value: `${progress.vocabLearned || 0}/20`, color: "text-violet-accent" },
-                { label: "Essays", value: `${progress.essaysWritten || 0}/2`, color: "text-blue-secondary" },
-                { label: "Quizzes", value: `${progress.quizHistory?.length || 0}/5`, color: "text-green-accent" },
-                { label: "Listening", value: `${progress.studyMinutes || 0}m`, color: "text-amber-accent" },
+                { id: "stat-words", label: "Words", value: `${progress.vocabLearned || 0}/20`, color: "text-violet-accent" },
+                { id: "stat-essays", label: "Essays", value: `${progress.essaysWritten || 0}/2`, color: "text-blue-secondary" },
+                { id: "stat-quizzes", label: "Quizzes", value: `${progress.quizHistory?.length || 0}/5`, color: "text-green-accent" },
+                { id: "stat-listening", label: "Listening", value: `${progress.studyMinutes || 0}m`, color: "text-amber-accent" },
               ].map((stat, i) => (
-                <div key={i} className="p-3 bg-bg-2/50 border border-border-2 rounded-2xl text-center">
+                <div key={i} id={stat.id} className="p-3 bg-bg-2/50 border border-border-2 rounded-2xl text-center">
                   <div className={cn("text-sm font-black mb-0.5", stat.color)}>{stat.value}</div>
                   <div className="text-[9px] font-bold text-text-muted uppercase tracking-widest">{stat.label}</div>
                 </div>
@@ -203,18 +211,18 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
           </div>
         </div>
 
-        <div className="card bg-bg-2 border-border-2 p-6">
+        <div id="recent-activity-card" className="card bg-bg-2 border-border-2 p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-text-primary uppercase tracking-widest">Recent Activity</h3>
             <History size={14} className="text-text-muted" />
           </div>
-          <div className="space-y-4">
+          <div id="recent-activity-list" className="space-y-4">
             {[
               { type: "Writing", detail: "Task 2 Essay Analyzed", time: "2h ago", icon: PenTool, color: "text-blue-secondary" },
               { type: "Vocabulary", detail: "Learned 5 new words", time: "5h ago", icon: BookOpen, color: "text-violet-accent" },
               { type: "Grammar", detail: "Completed 3 exercises", time: "Yesterday", icon: CheckCircle2, color: "text-green-accent" },
             ].map((act, i) => (
-              <div key={i} className="flex items-start gap-3 group cursor-pointer">
+              <div key={i} id={`activity-item-${i}`} className="flex items-start gap-3 group cursor-pointer">
                 <div className={cn("p-2 rounded-xl bg-bg-1 border border-border-2 group-hover:border-blue-primary/30 transition-all", act.color)}>
                   <act.icon size={14} />
                 </div>
@@ -228,23 +236,25 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
               </div>
             ))}
           </div>
-          <button className="w-full mt-6 py-2 text-[10px] font-bold text-blue-secondary uppercase tracking-widest border border-blue-primary/20 rounded-xl hover:bg-blue-dim/10 transition-all">
+          <button id="btn-view-history" className="w-full mt-6 py-2 text-[10px] font-bold text-blue-secondary uppercase tracking-widest border border-blue-primary/20 rounded-xl hover:bg-blue-dim/10 transition-all">
             View Full History
           </button>
         </div>
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-6">
+      <div id="quick-actions-grid" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-6">
         {[
           { id: "tutor", label: "Ask Aria", icon: Bot, color: "text-violet-accent", bg: "bg-violet-accent/10", desc: "24/7 AI Support" },
           { id: "tests", label: "Mock Test", icon: FileText, color: "text-blue-secondary", bg: "bg-blue-secondary/10", desc: "Full Simulation" },
           { id: "quiz", label: "Daily Quiz", icon: PenTool, color: "text-pink-accent", bg: "bg-pink-accent/10", desc: "Quick Practice" },
+          { id: "flashcards", label: "Flashcards", icon: BookOpen, color: "text-amber-accent", bg: "bg-amber-accent/10", desc: "SRS Vocabulary" },
           { id: "vocab", label: "Vocab", icon: Type, color: "text-green-accent", bg: "bg-green-accent/10", desc: "Master Words" },
           { id: "lizhub", label: "Liz Hub", icon: Star, color: "text-amber-accent", bg: "bg-amber-accent/10", desc: "Expert Tips" },
         ].map((action) => (
           <button
             key={action.id}
+            id={`quick-action-${action.id}`}
             onClick={() => setActivePage(action.id)}
             className="card flex flex-col items-start gap-4 p-6 group"
           >
@@ -277,28 +287,82 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
         ))}
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-        {/* Aria's Daily Briefing */}
-        <div className="card bg-gradient-to-br from-blue-primary/10 to-bg-1 border-blue-primary/20 relative overflow-hidden">
-          <div className="flex items-center gap-2 text-blue-primary font-bold text-xs uppercase tracking-widest mb-4">
-            <Bot size={14} /> Aria&apos;s Daily Briefing
+      {/* Aria's Daily Briefing & Roadmap Shortcut */}
+      <div className="grid md:grid-cols-3 gap-6">
+        <div className="md:col-span-2 card bg-gradient-to-br from-blue-primary/10 via-bg-1 to-bg-1 border-blue-primary/20 relative overflow-hidden p-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3 text-blue-primary font-black text-xs uppercase tracking-[0.2em]">
+              <div className="w-8 h-8 bg-blue-primary/10 rounded-full flex items-center justify-center">
+                <Bot size={16} />
+              </div>
+              Aria&apos;s Daily Briefing
+            </div>
+            <div className="text-[10px] text-text-muted font-bold uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/5">
+              Updated Today
+            </div>
           </div>
+          
           {isGeneratingBriefing ? (
-            <div className="flex items-center gap-3 py-2">
+            <div className="flex items-center gap-3 py-4">
               <div className="w-2 h-2 bg-blue-primary rounded-full animate-bounce" />
               <div className="w-2 h-2 bg-blue-primary rounded-full animate-bounce [animation-delay:0.2s]" />
               <div className="w-2 h-2 bg-blue-primary rounded-full animate-bounce [animation-delay:0.4s]" />
+              <span className="text-xs text-text-muted font-medium ml-2">Aria is analyzing your progress...</span>
             </div>
           ) : (
-            <div className="prose prose-invert prose-sm max-w-none text-text-secondary leading-relaxed italic">
+            <div className="prose prose-invert prose-sm max-w-none text-text-secondary leading-relaxed font-medium">
               <Markdown>{progress.dailyBriefing?.content || "Getting your briefing ready..."}</Markdown>
             </div>
           )}
-          <div className="absolute -bottom-4 -right-4 opacity-5 pointer-events-none">
-            <Bot size={120} />
+          
+          <div className="absolute -bottom-6 -right-6 opacity-5 pointer-events-none transform rotate-12">
+            <Bot size={160} />
           </div>
         </div>
 
+        <div className="card bg-bg-2 border-border-2 p-6 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-amber-accent font-bold text-[10px] uppercase tracking-widest mb-4">
+              <CheckCircle2 size={14} /> Your Daily Tasks
+            </div>
+            <div className="space-y-3">
+              {[
+                { label: "Daily Quiz", id: "quiz", done: !!progress.dailyQuizDone },
+                { label: "Learn 5 Words", id: "vocab", done: progress.vocabLearned >= 5 },
+                { label: "Study for 60m", id: "timer", done: progress.studyMinutes >= 60 },
+                { label: "Review Flashcards", id: "flashcards", done: false },
+              ].map((task, i) => (
+                <button 
+                  key={i} 
+                  onClick={() => setActivePage(task.id)}
+                  className="w-full flex items-center justify-between p-3 rounded-xl bg-bg-1 border border-border-2 hover:border-blue-primary/30 transition-all group"
+                >
+                  <span className={cn("text-xs font-medium transition-colors", task.done ? "text-text-muted line-through" : "text-text-primary group-hover:text-blue-primary")}>
+                    {task.label}
+                  </span>
+                  {task.done ? (
+                    <CheckCircle2 size={16} className="text-green-accent" />
+                  ) : (
+                    <ChevronRight size={14} className="text-text-muted group-hover:text-blue-primary group-hover:translate-x-1 transition-all" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="mt-6 pt-4 border-t border-border-2">
+            <div className="flex justify-between items-center text-[10px] font-bold uppercase tracking-widest text-text-muted">
+              <span>Overall Completion</span>
+              <span>25%</span>
+            </div>
+            <div className="h-1 bg-bg-3 rounded-full mt-2 overflow-hidden">
+              <div className="h-full bg-amber-accent w-1/4" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Grammar Tip & Word of the Day */}
+      <div className="grid md:grid-cols-2 gap-6">
         {/* Grammar Tip of the Day */}
         <div className="card bg-gradient-to-br from-amber-accent/10 to-bg-1 border-amber-accent/20">
           <div className="flex items-center gap-2 text-amber-accent font-bold text-xs uppercase tracking-widest mb-4">

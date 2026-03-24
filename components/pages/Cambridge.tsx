@@ -16,7 +16,7 @@ import {
   FileText
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { callGemini } from "@/lib/gemini";
+import { callGroq } from "@/lib/groq";
 import ReactMarkdown from "react-markdown";
 import { GoogleGenAI, Modality } from "@google/genai";
 import { pcmToWav } from "@/lib/audio";
@@ -155,7 +155,7 @@ export default function Cambridge() {
     Use markdown for formatting. Keep it professional and accurate.`;
 
     try {
-      const result = await callGemini(`Essay:\n${essay}`, systemPrompt);
+      const result = await callGroq(`Essay:\n${essay}`, systemPrompt);
       setFeedback(result);
     } catch (error) {
       console.error(error);
@@ -168,7 +168,7 @@ export default function Cambridge() {
     setIsGeneratingAudio(true);
     setAudioError(null);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY! });
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
         contents: [{ parts: [{ text: `Read the following IELTS listening script in its entirety, clearly and at a natural pace. Ensure you read every single word from start to finish without stopping early: ${text}` }] }],
@@ -226,7 +226,7 @@ export default function Cambridge() {
     Use markdown formatting.`;
 
     try {
-      const result = await callGemini(prompt);
+      const result = await callGroq(prompt);
       setAnalysis(result);
     } catch (error) {
       console.error(error);

@@ -21,6 +21,7 @@ import {
   Settings,
   Menu,
   X,
+  AlertCircle,
   ChevronRight,
   Flame,
   Star,
@@ -86,6 +87,7 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
       label: "Foundations",
       items: [
         { id: "vocab", label: "Vocabulary", icon: Type },
+        { id: "flashcards", label: "Flashcards", icon: BookOpen },
         { id: "grammar", label: "Grammar", icon: Book },
         { id: "drills", label: "Daily Drills", icon: Target },
       ]
@@ -106,6 +108,8 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
         { id: "roadmap", label: "Roadmap", icon: Calendar },
         { id: "resources", label: "Resources", icon: BookOpen },
         { id: "analytics", label: "Analytics", icon: BarChart2 },
+        { id: "timer", label: "Study Timer", icon: Timer },
+        { id: "errorlog", label: "Error Log", icon: AlertCircle },
         { id: "settings", label: "Settings", icon: Settings },
       ]
     }
@@ -116,45 +120,46 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
   const avgBand = (progress && progress.bands) ? Object.values(progress.bands).filter(v => v > 0).reduce((a, b, _, arr) => a + b / arr.length, 0).toFixed(1) : "—";
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-bg overflow-hidden">
+    <div id="app-shell-root" className="flex flex-col md:flex-row min-h-screen bg-bg overflow-hidden">
       {/* Mobile Header */}
-      <header className="md:hidden fixed top-0 left-0 right-0 h-16 glass-nav border-b border-white/5 flex items-center px-4 gap-3 z-[60]">
-        <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => setActivePage("dashboard")}>
+      <header id="mobile-header" className="md:hidden fixed top-0 left-0 right-0 h-16 glass-nav border-b border-white/5 flex items-center px-4 gap-3 z-[60]">
+        <div id="mobile-logo-container" className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => setActivePage("dashboard")}>
           <Logo className="w-10 h-10" />
           <LogoText />
         </div>
-        <div className="flex items-center gap-2">
-          <div className="bg-bg-2 border border-border rounded-full px-3 py-1 text-xs font-bold text-amber-accent flex items-center gap-1">
+        <div id="mobile-streak-container" className="flex items-center gap-2">
+          <div id="mobile-streak-badge" className="bg-bg-2 border border-border rounded-full px-3 py-1 text-xs font-bold text-amber-accent flex items-center gap-1">
             <Flame size={12} /> {progress?.streak || 0}d
           </div>
         </div>
       </header>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 flex-shrink-0 glass-sidebar overflow-hidden">
-        <div className="p-8 border-b border-white/5">
-          <div className="flex items-center gap-4 cursor-pointer group" onClick={() => setActivePage("dashboard")}>
+      <aside id="desktop-sidebar" className="hidden md:flex flex-col w-64 flex-shrink-0 glass-sidebar overflow-hidden">
+        <div id="sidebar-logo-section" className="p-8 border-b border-white/5">
+          <div id="sidebar-logo-container" className="flex items-center gap-4 cursor-pointer group" onClick={() => setActivePage("dashboard")}>
             <Logo className="w-12 h-12 group-hover:scale-110 transition-transform duration-500" />
             <LogoText />
           </div>
         </div>
         
-        <div className="px-6 py-4 border-b border-white/5 bg-white/5">
-          <div className="text-sm font-bold text-text-primary truncate">{progress?.name || "Learner"}</div>
-          <div className="text-[10px] text-text-muted mt-1 font-bold uppercase tracking-wider flex items-center gap-1.5">
+        <div id="sidebar-user-section" className="px-6 py-4 border-b border-white/5 bg-white/5">
+          <div id="user-name-display" className="text-sm font-bold text-text-primary truncate">{progress?.name || "Learner"}</div>
+          <div id="user-stats-display" className="text-[10px] text-text-muted mt-1 font-bold uppercase tracking-wider flex items-center gap-1.5">
             <Flame size={12} className="text-amber-accent" /> {progress?.streak || 0}d streak · Target {progress?.target || 7.5}
           </div>
         </div>
 
-        <nav className="flex-1 p-3 flex flex-col gap-6 overflow-y-auto custom-scrollbar">
+        <nav id="sidebar-nav" className="flex-1 p-3 flex flex-col gap-6 overflow-y-auto custom-scrollbar">
           {navCategories.map((category) => (
-            <div key={category.label} className="space-y-1">
+            <div key={category.label} id={`nav-category-${category.label.toLowerCase()}`} className="space-y-1">
               <div className="px-4 text-[9px] font-black text-text-muted uppercase tracking-[0.2em] mb-2">
                 {category.label}
               </div>
               {category.items.map((item) => (
                 <button
                   key={item.id}
+                  id={`nav-item-${item.id}`}
                   onClick={() => setActivePage(item.id)}
                   className={cn(
                     "w-full px-4 py-2.5 rounded-xl flex items-center gap-3 transition-all duration-300 text-left group relative overflow-hidden",
@@ -197,27 +202,28 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 relative flex flex-col min-h-0 overflow-hidden pt-14 md:pt-0">
+      <main id="main-content" className="flex-1 relative flex flex-col min-h-0 overflow-hidden pt-14 md:pt-0">
         {/* Page Header (Desktop) */}
-        <div className="hidden md:flex items-center justify-between px-6 py-4 bg-bg-1 border-b border-border flex-shrink-0">
-          <h2 className="font-serif text-xl font-bold text-text-primary capitalize">
+        <div id="page-header-desktop" className="hidden md:flex items-center justify-between px-6 py-4 bg-bg-1 border-b border-border flex-shrink-0">
+          <h2 id="page-title" className="font-serif text-xl font-bold text-text-primary capitalize">
             {allNavItems.find(i => i.id === activePage)?.label || activePage}
           </h2>
-          <div className="flex items-center gap-3">
-            <div className="bg-bg-2 border border-border rounded-full px-4 py-1.5 text-sm font-bold text-amber-accent flex items-center gap-1.5 shadow-sm">
+          <div id="header-stats-container" className="flex items-center gap-3">
+            <div id="header-streak-badge" className="bg-bg-2 border border-border rounded-full px-4 py-1.5 text-sm font-bold text-amber-accent flex items-center gap-1.5 shadow-sm">
               <Flame size={16} /> {progress?.streak || 0}d
             </div>
-            <div className="bg-blue-dim border border-border-2 rounded-full px-4 py-1.5 text-sm font-bold text-blue-secondary shadow-sm">
+            <div id="header-band-badge" className="bg-blue-dim border border-border-2 rounded-full px-4 py-1.5 text-sm font-bold text-blue-secondary shadow-sm">
               Band {avgBand === "0.0" ? "—" : avgBand}
             </div>
           </div>
         </div>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar relative bg-gradient-to-b from-bg to-bg-1">
+        <div id="page-content-viewport" className="flex-1 overflow-y-auto custom-scrollbar relative bg-gradient-to-b from-bg to-bg-1">
           <AnimatePresence mode="wait">
             <motion.div
               key={activePage}
+              id={`page-container-${activePage}`}
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
@@ -229,14 +235,15 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
           </AnimatePresence>
           
           {/* Bottom Padding for Mobile Nav */}
-          <div className="h-20 md:hidden" />
+          <div id="mobile-nav-spacer" className="h-20 md:hidden" />
         </div>
 
         {/* Mobile Bottom Nav */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 h-20 glass-nav flex items-center justify-around px-2 z-50 pb-4 border-t border-white/5">
+        <nav id="mobile-bottom-nav" className="md:hidden fixed bottom-0 left-0 right-0 h-20 glass-nav flex items-center justify-around px-2 z-50 pb-4 border-t border-white/5">
           {navCategories[0].items.concat(navCategories[1].items.slice(0, 1)).map((item) => (
             <button
               key={item.id}
+              id={`mobile-nav-item-${item.id}`}
               onClick={() => setActivePage(item.id)}
               className={cn(
                 "flex flex-col items-center justify-center gap-1.5 py-2 px-3 rounded-2xl transition-all duration-300",
@@ -338,22 +345,6 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
           )}
         </AnimatePresence>
       </main>
-
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #1a2f52;
-          border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #243d66;
-        }
-      `}</style>
     </div>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Image from "next/image";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   PenTool, 
@@ -18,7 +17,7 @@ import {
 } from "lucide-react";
 import { getProgress, saveProgress, UserProgress } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { callGemini } from "@/lib/gemini";
+import { callGroq } from "@/lib/groq";
 import ReactMarkdown from "react-markdown";
 import { ChartDisplay } from "@/components/ChartDisplay";
 import { STRUCTURE_TASKS, WRITING_TASKS } from "@/lib/content";
@@ -32,6 +31,8 @@ export default function Writing() {
   const [userText, setUserText] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [smartReview, setSmartReview] = useState<any[] | null>(null);
+  const [feedbackTab, setFeedbackTab] = useState<"report" | "review">("report");
   const [timeLeft, setTimeLeft] = useState(0);
   
   // Structure Analysis State
@@ -67,6 +68,48 @@ export default function Writing() {
     setTimeLeft(task.mins * 60);
   };
 
+  const renderHighlightedText = (text: string, errors: any[]) => {
+    if (!errors || errors.length === 0) return text;
+    
+    let parts: React.ReactNode[] = [];
+    let lastIndex = 0;
+    
+    // Sort errors by their appearance in text to handle them sequentially
+    const sortedErrors = [...errors].sort((a, b) => {
+      const indexA = text.indexOf(a.original);
+      const indexB = text.indexOf(b.original);
+      return indexA - indexB;
+    });
+
+    sortedErrors.forEach((err, i) => {
+      const index = text.indexOf(err.original, lastIndex);
+      if (index !== -1) {
+        // Add text before error
+        parts.push(text.substring(lastIndex, index));
+        // Add highlighted error
+        parts.push(
+          <span 
+            key={i} 
+            className={cn(
+              "px-1 rounded cursor-help transition-colors",
+              err.type === "grammar" ? "bg-red-accent/20 border-b-2 border-red-accent" : 
+              err.type === "spelling" ? "bg-amber-accent/20 border-b-2 border-amber-accent" : 
+              "bg-blue-primary/20 border-b-2 border-blue-primary"
+            )}
+            title={err.explanation}
+          >
+            {err.original}
+          </span>
+        );
+        lastIndex = index + err.original.length;
+      }
+    });
+    
+    // Add remaining text
+    parts.push(text.substring(lastIndex));
+    return parts;
+  };
+
   const handleAnalyzeStructure = async () => {
     if (Object.keys(userAnalysis).length === 0) return;
     setIsAnalyzing(true);
@@ -79,7 +122,7 @@ export default function Writing() {
     Use markdown for formatting.`;
 
     try {
-      const result = await callGemini("Analyze my essay structure identification.", systemPrompt);
+      const result = await callGroq("Analyze my essay structure identification.", systemPrompt);
       setStructureFeedback(result);
     } catch (error) {
       console.error(error);
@@ -130,9 +173,28 @@ export default function Writing() {
     
     Use clear Markdown formatting with bold headers and bullet points. Be encouraging but strictly professional.`;
 
+    const smartReviewPrompt = `You are an IELTS Writing proofreader. Analyze the following essay and identify ALL grammatical, spelling, and vocabulary errors.
+    Return ONLY a JSON array of objects with this structure:
+    [
+      { "original": "text with error", "correction": "corrected text", "type": "grammar" | "spelling" | "vocabulary", "explanation": "brief explanation" }
+    ]
+    Essay: ${userText}`;
+
     try {
-      const result = await callGemini(userText, systemPrompt);
+      const [result, smartResult] = await Promise.all([
+        callGroq(userText, systemPrompt),
+        callGroq(smartReviewPrompt, "Return ONLY JSON.")
+      ]);
+
       setFeedback(result);
+      try {
+        const jsonMatch = smartResult.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          setSmartReview(JSON.parse(jsonMatch[0]));
+        }
+      } catch (e) {
+        console.error("Failed to parse smart review JSON", e);
+      }
       
       if (progress) {
         const updated = { 
@@ -287,11 +349,10 @@ export default function Writing() {
               )}
               {activeTask.image && !activeTask.chartData && (
                 <div className="relative aspect-video rounded-xl overflow-hidden border border-border-2 mb-4">
-                  <Image 
+                  <img 
                     src={activeTask.image} 
                     alt="Writing Task Chart" 
-                    fill 
-                    className="object-cover"
+                    className="absolute inset-0 w-full h-full object-cover"
                     referrerPolicy="no-referrer"
                   />
                 </div>
@@ -329,16 +390,77 @@ export default function Writing() {
                 {isAnalyzing ? "AI Examiner is checking..." : "Get AI Feedback"}
               </button>
             ) : (
-              <div className="space-y-4">
-                <div className="card bg-blue-dim/10 border-blue-primary/20">
-                  <div className="flex items-center gap-2 text-blue-secondary font-bold text-[10px] uppercase tracking-widest mb-4">
-                    <MessageSquare size={14} /> AI Examiner Feedback
-                  </div>
-                  <div className="prose prose-invert prose-sm max-w-none markdown-body h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                    <ReactMarkdown>{feedback}</ReactMarkdown>
-                  </div>
+              <div className="space-y-4 flex-1 flex flex-col min-h-0">
+                <div className="flex bg-bg-2 p-1 rounded-xl border border-border shrink-0">
+                  <button 
+                    onClick={() => setFeedbackTab("report")}
+                    className={cn(
+                      "flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all",
+                      feedbackTab === "report" ? "bg-blue-primary text-white shadow-lg" : "text-text-muted"
+                    )}
+                  >
+                    Examiner Report
+                  </button>
+                  <button 
+                    onClick={() => setFeedbackTab("review")}
+                    className={cn(
+                      "flex-1 py-2 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all",
+                      feedbackTab === "review" ? "bg-blue-primary text-white shadow-lg" : "text-text-muted"
+                    )}
+                  >
+                    Smart Review
+                  </button>
                 </div>
-                <button onClick={() => setActiveTask(null)} className="btn btn-ghost w-full">Try Another Task</button>
+
+                <div className="flex-1 min-h-0">
+                  {feedbackTab === "report" ? (
+                    <div className="card bg-blue-dim/10 border-blue-primary/20 h-full flex flex-col">
+                      <div className="flex items-center gap-2 text-blue-secondary font-bold text-[10px] uppercase tracking-widest mb-4 shrink-0">
+                        <MessageSquare size={14} /> AI Examiner Feedback
+                      </div>
+                      <div className="prose prose-invert prose-sm max-w-none markdown-body overflow-y-auto pr-2 custom-scrollbar flex-1">
+                        <ReactMarkdown>{feedback}</ReactMarkdown>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="card bg-amber-dim/10 border-amber-accent/20 h-full flex flex-col">
+                      <div className="flex items-center gap-2 text-amber-accent font-bold text-[10px] uppercase tracking-widest mb-4 shrink-0">
+                        <Sparkles size={14} /> Smart Error Review
+                      </div>
+                      <div className="overflow-y-auto pr-2 custom-scrollbar flex-1 space-y-4">
+                        <div className="p-4 bg-bg-1 rounded-xl border border-border-2 text-sm leading-relaxed font-serif whitespace-pre-wrap">
+                          {smartReview ? (
+                            renderHighlightedText(userText, smartReview)
+                          ) : (
+                            userText
+                          )}
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Identified Errors</div>
+                          {smartReview?.map((err, i) => (
+                            <div key={i} className="p-3 bg-bg-2 border border-border rounded-xl flex items-start gap-3">
+                              <div className={cn(
+                                "w-2 h-2 rounded-full mt-1.5 shrink-0",
+                                err.type === "grammar" ? "bg-red-accent" : err.type === "spelling" ? "bg-amber-accent" : "bg-blue-primary"
+                              )} />
+                              <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-xs font-bold text-red-accent line-through opacity-70">{err.original}</span>
+                                  <ChevronRight size={12} className="text-text-muted" />
+                                  <span className="text-xs font-bold text-green-accent">{err.correction}</span>
+                                </div>
+                                <p className="text-[10px] text-text-muted">{err.explanation}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <button onClick={() => { setActiveTask(null); setFeedback(null); setSmartReview(null); }} className="btn btn-ghost w-full shrink-0">Try Another Task</button>
               </div>
             )}
           </div>

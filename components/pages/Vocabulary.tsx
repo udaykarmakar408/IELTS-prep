@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { getProgress, saveProgress, UserProgress } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { callGemini } from "@/lib/gemini";
+import { callGroq } from "@/lib/groq";
 import ReactMarkdown from "react-markdown";
 import { Loader2 } from "lucide-react";
 
@@ -47,7 +47,7 @@ export default function Vocabulary() {
     Use markdown for formatting.`;
 
     try {
-      const result = await callGemini(`Word: ${selectedWord.w}\nSentence: ${testSentence}`, systemPrompt);
+      const result = await callGroq(`Word: ${selectedWord.w}\nSentence: ${testSentence}`, systemPrompt);
       setTestFeedback(result);
     } catch (error) {
       console.error(error);
@@ -74,7 +74,7 @@ export default function Vocabulary() {
     Use markdown for formatting. Keep it concise and high-band.`;
 
     try {
-      const result = await callGemini(`Word: ${word}`, systemPrompt);
+      const result = await callGroq(`Word: ${word}`, systemPrompt);
       setAiAnalysis(result);
     } catch (error) {
       console.error(error);
@@ -117,7 +117,7 @@ export default function Vocabulary() {
     Return in JSON format: { "w": "${newWord}", "pos": "...", "def": "...", "ex": "...", "band": "..." }`;
 
     try {
-      const result = await callGemini(`Word: ${newWord}`, systemPrompt);
+      const result = await callGroq(`Word: ${newWord}`, systemPrompt);
       const parsed = JSON.parse(result.replace(/```json|```/g, ""));
       
       const updated = {

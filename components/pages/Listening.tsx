@@ -15,10 +15,15 @@ import {
   PenTool,
   Loader2,
   AlertCircle,
-  Sparkles
+  MessageSquare,
+  Sparkles,
+  Bot,
+  ClipboardList,
+  Type
 } from "lucide-react";
 import { getProgress, saveProgress, UserProgress } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { callGroq } from "@/lib/groq";
 import { GoogleGenAI, Modality } from "@google/genai";
 import { pcmToWav } from "@/lib/audio";
 import ReactMarkdown from "react-markdown";
@@ -280,14 +285,24 @@ export default function Listening() {
   const [activeSection, setActiveSection] = useState<any>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackProgress, setPlaybackProgress] = useState(0);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [notes, setNotes] = useState("");
   const [userAnswers, setUserAnswers] = useState<Record<string, string>>({});
   const [showResults, setShowResults] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioError, setAudioError] = useState<string | null>(null);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [highlightedVocab, setHighlightedVocab] = useState<string[]>([]);
   const [isHighlighting, setIsHighlighting] = useState(false);
+
+  const [isFullTest, setIsFullTest] = useState(false);
+  const [fullTestSections, setFullTestSections] = useState<any[]>([]);
+  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
+  const [isGeneratingFullTest, setIsGeneratingFullTest] = useState(false);
+  const [activeTab, setActiveTab] = useState<"questions" | "notes" | "transcript" | "vocab">("questions");
+  const audioRef = React.useRef<HTMLAudioElement>(null);
 
   const highlightVocab = async () => {
     if (!activeSection) return;
@@ -297,14 +312,8 @@ export default function Listening() {
     Example: ["ubiquitous", "bioaccumulation", "mitigate"]`;
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY! });
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: [{ parts: [{ text: activeSection.script }] }],
-        config: { systemInstruction: systemPrompt, responseMimeType: "application/json" }
-      });
-      const result = JSON.parse(response.text || "[]");
-      setHighlightedVocab(result);
+      const result = await callGroq(activeSection.script, systemPrompt);
+      setHighlightedVocab(JSON.parse(result || "[]"));
     } catch (error) {
       console.error(error);
     } finally {
@@ -319,12 +328,60 @@ export default function Listening() {
     load();
   }, []);
 
+  const generateFullTest = async () => {
+    setIsGeneratingFullTest(true);
+    setFeedback(null);
+    const systemPrompt = `Generate a full-length IELTS Listening test with 4 sections.
+    Section 1: A conversation between two people set in an everyday social context.
+    Section 2: A monologue set in an everyday social context.
+    Section 3: A conversation between up to four people set in an educational or training context.
+    Section 4: A monologue on an academic subject.
+    
+    For each section, provide:
+    1. Title
+    2. Type
+    3. Difficulty
+    4. A realistic script (approx 200-300 words each)
+    5. 5-10 questions with answers.
+    
+    Return ONLY a JSON array of 4 objects.`;
+
+    try {
+      const result = await callGroq("Generate a full IELTS Listening test.", systemPrompt);
+      const sections = JSON.parse(result || "[]");
+      setFullTestSections(sections);
+      setIsFullTest(true);
+      setCurrentSectionIndex(0);
+      setActiveSection(sections[0]);
+      generateAudio(sections[0].script);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsGeneratingFullTest(false);
+    }
+  };
+
+  const nextSection = () => {
+    if (currentSectionIndex < fullTestSections.length - 1) {
+      const nextIndex = currentSectionIndex + 1;
+      setCurrentSectionIndex(nextIndex);
+      setActiveSection(fullTestSections[nextIndex]);
+      setUserAnswers({});
+      setShowResults(false);
+      setAudioUrl(null);
+      generateAudio(fullTestSections[nextIndex].script);
+    } else {
+      setIsFullTest(false);
+      setActiveSection(null);
+    }
+  };
+
   const generateAudio = useCallback(async (text: string) => {
     setIsGeneratingAudio(true);
     setAudioError(null);
     try {
       if (!text) throw new Error("No script provided for audio generation");
-      const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY! });
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
         contents: [{ parts: [{ text: `Read the following IELTS listening script in its entirety, clearly and at a natural pace. Ensure you read every single word from start to finish without stopping early: ${text}` }] }],
@@ -418,6 +475,17 @@ export default function Listening() {
     setIsPlaying(!isPlaying);
   };
 
+  const handleSpeedChange = () => {
+    const rates = [0.8, 1, 1.2, 1.5];
+    const currentIndex = rates.indexOf(playbackRate);
+    const nextIndex = (currentIndex + 1) % rates.length;
+    const nextRate = rates[nextIndex];
+    setPlaybackRate(nextRate);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = nextRate;
+    }
+  };
+
   const handleCheck = async () => {
     setShowResults(true);
     setIsAnalyzing(true);
@@ -428,7 +496,7 @@ export default function Listening() {
     }
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY! });
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
       const prompt = `You are an IELTS Listening tutor. A student has completed a listening task.
       Task Title: ${activeSection.title}
       Transcript: ${activeSection.script}
@@ -438,12 +506,8 @@ export default function Listening() {
       Provide constructive feedback. Analyze their mistakes if any. Explain why the correct answers are correct based on the transcript. Give tips for improving listening skills for this type of task (${activeSection.type}).
       Use markdown for formatting. Keep it concise but helpful.`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: [{ parts: [{ text: prompt }] }],
-      });
-
-      setFeedback(response.text || "No feedback generated.");
+      const result = await callGroq(prompt);
+      setFeedback(result || "No feedback generated.");
     } catch (error) {
       console.error("Feedback generation error:", error);
       setFeedback("Could not generate AI feedback at this time.");
@@ -498,13 +562,22 @@ export default function Listening() {
             {audioUrl && <audio ref={audioRef} src={audioUrl} className="hidden" />}
 
             <div className="flex items-center justify-between gap-4">
-              <button 
-                onClick={handlePlay} 
-                disabled={isGeneratingAudio || !!audioError}
-                className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-primary text-white flex items-center justify-center hover:bg-blue-secondary transition-colors disabled:opacity-50 flex-shrink-0"
-              >
-                {isGeneratingAudio ? <Loader2 size={20} className="animate-spin" /> : isPlaying ? <Pause size={20} /> : <Play size={20} className="ml-0.5 md:ml-1" />}
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={handlePlay} 
+                  disabled={isGeneratingAudio || !!audioError}
+                  className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-primary text-white flex items-center justify-center hover:bg-blue-secondary transition-colors disabled:opacity-50 flex-shrink-0"
+                >
+                  {isGeneratingAudio ? <Loader2 size={20} className="animate-spin" /> : isPlaying ? <Pause size={20} /> : <Play size={20} className="ml-0.5 md:ml-1" />}
+                </button>
+                
+                <button 
+                  onClick={handleSpeedChange}
+                  className="px-2 py-1 bg-bg-3 hover:bg-bg-2 rounded text-[10px] font-bold text-text-muted transition-colors"
+                >
+                  {playbackRate}x
+                </button>
+              </div>
               
               <div className="text-[9px] md:text-[10px] font-bold text-text-muted uppercase tracking-widest text-center flex-1">
                 {isGeneratingAudio ? "Generating Audio..." : audioError ? "Audio Error" : isPlaying ? "🔊 Playing Audio..." : playbackProgress >= 100 ? "✅ Audio Complete" : "Ready to Play"}
@@ -523,111 +596,256 @@ export default function Listening() {
           </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="font-bold text-sm flex items-center gap-2 px-1">
-            <PenTool size={16} className="text-blue-secondary" /> Practice Questions
-          </div>
-          {activeSection.questions.map((q: any, i: number) => (
-            <div key={i} className="card border-border">
-              <div className="text-xs font-bold text-text-primary mb-3">{q.q}</div>
-              <input
-                type="text"
-                value={userAnswers[i] || ""}
-                onChange={(e) => setUserAnswers({ ...userAnswers, [i]: e.target.value })}
-                placeholder="Your answer..."
-                disabled={showResults}
-                className={cn(
-                  "w-full bg-bg-2 border border-border-2 rounded-xl px-4 py-2.5 text-sm outline-none transition-all",
-                  showResults && userAnswers[i]?.toLowerCase() === q.answer.toLowerCase() && "border-green-accent bg-green-accent/5 text-green-accent",
-                  showResults && userAnswers[i]?.toLowerCase() !== q.answer.toLowerCase() && "border-red-accent bg-red-accent/5 text-red-accent"
-                )}
-              />
-              {showResults && (
-                <div className="mt-2 text-[10px] font-bold uppercase tracking-wider">
-                  {userAnswers[i]?.toLowerCase() === q.answer.toLowerCase() 
-                    ? <span className="text-green-accent">Correct!</span> 
-                    : <span className="text-red-accent">Incorrect. Answer: {q.answer}</span>}
-                </div>
+        <div className="flex items-center gap-1 p-1 bg-white/5 rounded-2xl border border-white/5 mb-6">
+          {[
+            { id: 'questions', label: 'Questions', icon: ClipboardList },
+            { id: 'notes', label: 'Scratchpad', icon: PenTool },
+            { id: 'transcript', label: 'Transcript', icon: FileText },
+            { id: 'vocab', label: 'Vocabulary', icon: Type },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                activeTab === tab.id 
+                  ? "bg-blue-primary text-white shadow-lg shadow-blue-primary/20" 
+                  : "text-text-muted hover:bg-white/5 hover:text-text-primary"
               )}
-            </div>
+            >
+              <tab.icon size={14} />
+              <span className="hidden md:inline">{tab.label}</span>
+            </button>
           ))}
         </div>
 
-        {!showResults ? (
-          <button onClick={handleCheck} className="btn btn-primary w-full py-4">Check Answers</button>
-        ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="card bg-bg-2 border-border-2">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2 text-text-muted font-bold text-[10px] uppercase tracking-widest">
-                    <FileText size={14} /> Transcript
+        <AnimatePresence mode="wait">
+          {activeTab === 'questions' && (
+            <motion.div
+              key="questions"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-6"
+            >
+              <div className="grid grid-cols-1 gap-4">
+                {activeSection.questions.map((q: any, i: number) => (
+                  <div key={i} className="card border-border hover:border-blue-primary/30 transition-all group">
+                    <div className="flex gap-4">
+                      <div className="text-lg font-serif font-black text-blue-secondary opacity-50 group-hover:opacity-100 transition-opacity">{i + 1}.</div>
+                      <div className="flex-1 space-y-3">
+                        <p className="text-sm text-text-primary font-medium leading-relaxed">{q.q}</p>
+                        <input
+                          type="text"
+                          value={userAnswers[i] || ""}
+                          onChange={(e) => setUserAnswers({ ...userAnswers, [i]: e.target.value })}
+                          placeholder="Type your answer..."
+                          disabled={showResults}
+                          className={cn(
+                            "w-full bg-bg-2 border border-border-2 rounded-xl px-4 py-3 text-sm outline-none transition-all focus:border-blue-primary/50",
+                            showResults && userAnswers[i]?.toLowerCase() === q.answer.toLowerCase() && "border-green-accent bg-green-accent/5 text-green-accent",
+                            showResults && userAnswers[i]?.toLowerCase() !== q.answer.toLowerCase() && "border-red-accent bg-red-accent/5 text-red-accent"
+                          )}
+                        />
+                        {showResults && (
+                          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest">
+                            {userAnswers[i]?.toLowerCase() === q.answer.toLowerCase() 
+                              ? <span className="text-green-accent flex items-center gap-1"><CheckCircle2 size={12} /> Correct</span> 
+                              : <span className="text-red-accent flex items-center gap-1"><AlertCircle size={12} /> Correct Answer: {q.answer}</span>}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {!showResults ? (
+                <button 
+                  onClick={handleCheck} 
+                  disabled={Object.keys(userAnswers).length === 0}
+                  className="w-full py-5 bg-blue-primary hover:bg-blue-secondary disabled:opacity-50 text-white rounded-2xl font-black uppercase tracking-[0.2em] shadow-xl shadow-blue-primary/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+                >
+                  <ClipboardList size={20} />
+                  Check My Answers
+                </button>
+              ) : (
+                <div className="space-y-6">
+                  <div className="card bg-blue-dim/10 border-blue-primary/20 p-6">
+                    <div className="flex items-center gap-2 text-blue-secondary font-black text-xs uppercase tracking-widest mb-4">
+                      <Sparkles size={16} /> AI Tutor Feedback
+                    </div>
+                    <div className="prose prose-invert prose-sm max-w-none text-text-secondary leading-relaxed">
+                      {isAnalyzing ? (
+                        <div className="flex flex-col items-center justify-center py-8 gap-3">
+                          <Loader2 size={24} className="animate-spin text-blue-primary" />
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Aria is analyzing your performance...</span>
+                        </div>
+                      ) : (
+                        <ReactMarkdown>{feedback}</ReactMarkdown>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                    {isFullTest && currentSectionIndex < fullTestSections.length - 1 ? (
+                      <button onClick={nextSection} className="btn btn-primary flex-1 py-4">
+                        Next Section ({currentSectionIndex + 2}/4)
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={() => {
+                          setShowResults(false);
+                          setFeedback(null);
+                          setUserAnswers({});
+                          setActiveTab('questions');
+                        }} 
+                        className="btn btn-primary flex-1 py-4"
+                      >
+                        Try Again
+                      </button>
+                    )}
+                    <button 
+                      onClick={() => { 
+                        setActiveSection(null); 
+                        setIsFullTest(false); 
+                        setShowResults(false);
+                        setAudioUrl(null);
+                      }} 
+                      className="btn btn-ghost px-8 py-4"
+                    >
+                      Exit
+                    </button>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {activeTab === 'notes' && (
+            <motion.div
+              key="notes"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-4"
+            >
+              <div className="text-[10px] font-black text-text-muted uppercase tracking-widest px-1">Take notes while listening</div>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Type your notes here... (e.g., spelling, dates, names)"
+                className="w-full h-[400px] bg-bg-2 border border-border-2 rounded-2xl p-6 text-sm outline-none focus:border-blue-primary/50 transition-all resize-none custom-scrollbar font-medium leading-relaxed"
+              />
+            </motion.div>
+          )}
+
+          {activeTab === 'transcript' && (
+            <motion.div
+              key="transcript"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="card p-8 bg-white/5 border-white/10"
+            >
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-2 text-blue-primary font-black text-xs uppercase tracking-widest">
+                  <FileText size={16} /> Transcript
+                </div>
+                <button 
+                  onClick={highlightVocab}
+                  disabled={isHighlighting}
+                  className="text-[10px] font-black text-blue-secondary uppercase tracking-widest flex items-center gap-2 hover:underline disabled:opacity-50 bg-blue-primary/10 px-4 py-2 rounded-full"
+                >
+                  {isHighlighting ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} 
+                  {highlightedVocab.length > 0 ? "Refresh Vocab" : "Highlight Key Vocab"}
+                </button>
+              </div>
+              
+              <div className="prose prose-invert prose-sm md:prose-base max-w-none text-text-secondary leading-loose font-medium italic">
+                {activeSection.script}
+              </div>
+
+              {highlightedVocab.length > 0 && (
+                <div className="mt-12 pt-8 border-t border-white/5">
+                  <div className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-6">Key Vocabulary from this section</div>
+                  <div className="flex flex-wrap gap-3">
+                    {highlightedVocab.map((word, i) => (
+                      <span key={i} className="px-4 py-2 bg-blue-dim/20 border border-blue-primary/20 rounded-xl text-xs text-blue-secondary font-bold shadow-sm">
+                        {word}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {activeTab === 'vocab' && (
+            <motion.div 
+              key="vocab"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              className="h-full bg-bg-2 rounded-3xl border border-border-2 p-8 flex flex-col items-center justify-center text-center"
+            >
+              {highlightedVocab.length > 0 ? (
+                <div className="w-full space-y-8">
+                  <div className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">Key Vocabulary from this section</div>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {highlightedVocab.map((word, i) => (
+                      <span key={i} className="px-5 py-3 bg-blue-dim/20 border border-blue-primary/20 rounded-2xl text-sm text-blue-secondary font-black shadow-sm hover:scale-105 transition-transform cursor-default">
+                        {word}
+                      </span>
+                    ))}
                   </div>
                   <button 
                     onClick={highlightVocab}
-                    disabled={isHighlighting}
-                    className="text-[9px] font-bold text-blue-secondary uppercase tracking-widest flex items-center gap-1 hover:underline disabled:opacity-50"
+                    className="text-[10px] font-black text-blue-primary uppercase tracking-widest hover:underline"
                   >
-                    {isHighlighting ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />} Highlight Vocab
+                    Refresh Analysis
                   </button>
                 </div>
-                <div className="space-y-4">
-                  <p className="text-xs text-text-secondary leading-relaxed italic whitespace-pre-wrap h-[200px] overflow-y-auto custom-scrollbar pr-2">
-                    {activeSection.script}
-                  </p>
-                  {highlightedVocab.length > 0 && (
-                    <div className="pt-3 border-t border-border-2">
-                      <div className="text-[9px] font-bold text-text-muted uppercase tracking-widest mb-2">Key Vocabulary</div>
-                      <div className="flex flex-wrap gap-2">
-                        {highlightedVocab.map((word, i) => (
-                          <span key={i} className="px-2 py-1 bg-blue-dim/20 border border-blue-primary/20 rounded-lg text-[10px] text-blue-secondary font-medium">
-                            {word}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+              ) : (
+                <div className="space-y-6">
+                  <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center text-text-muted mx-auto">
+                    <Sparkles size={32} />
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="text-lg font-serif font-black text-text-primary">Vocab Lab</h4>
+                    <p className="text-xs text-text-muted max-w-xs leading-relaxed">Aria can extract high-level vocabulary from the listening script to help you improve your lexical resource.</p>
+                  </div>
+                  <button 
+                    onClick={highlightVocab}
+                    disabled={isHighlighting || !activeSection}
+                    className="btn btn-primary px-8 py-3 text-[10px] font-black uppercase tracking-widest disabled:opacity-50"
+                  >
+                    {isHighlighting ? <Loader2 size={16} className="animate-spin" /> : "Analyze Script"}
+                  </button>
                 </div>
-              </div>
-
-              <div className="card bg-blue-dim/10 border-blue-primary/20">
-                <div className="flex items-center gap-2 text-blue-secondary font-bold text-[10px] uppercase tracking-widest mb-3">
-                  <Sparkles size={14} /> AI Tutor Feedback
-                </div>
-                <div className="prose prose-invert prose-sm max-w-none markdown-body h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                  {isAnalyzing ? (
-                    <div className="flex flex-col items-center justify-center h-full gap-3 text-text-muted">
-                      <Loader2 size={24} className="animate-spin" />
-                      <div className="text-[10px] font-bold uppercase tracking-widest">Analyzing your performance...</div>
-                    </div>
-                  ) : (
-                    <ReactMarkdown>{feedback}</ReactMarkdown>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <button 
-              onClick={() => {
-                setShowResults(false);
-                setFeedback(null);
-                setUserAnswers({});
-              }} 
-              className="btn btn-ghost w-full py-4"
-            >
-              Try Another Section
-            </button>
-          </div>
-        )}
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     );
   }
 
   return (
     <div className="space-y-8">
-      <div>
-        <h2 className="font-serif text-2xl font-bold mb-1">🎧 Listening Practice</h2>
-        <p className="text-sm text-text-muted">IELTS-style audio with real-time player and questions</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-serif text-2xl font-bold mb-1">🎧 Listening Practice</h2>
+          <p className="text-sm text-text-muted">IELTS-style audio with real-time player and questions</p>
+        </div>
+        <button 
+          onClick={generateFullTest} 
+          disabled={isGeneratingFullTest}
+          className="btn btn-primary bg-violet-accent hover:bg-violet-accent/80 border-none flex items-center gap-2"
+        >
+          {isGeneratingFullTest ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+          Full Mock Test
+        </button>
       </div>
 
       <div className="space-y-4">

@@ -1,31 +1,33 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import AppShell from "@/components/AppShell";
-import Dashboard from "@/components/pages/Dashboard";
-import Tutor from "@/components/pages/Tutor";
-import Course from "@/components/pages/Course";
-import MockTests from "@/components/pages/MockTests";
-import Resources from "@/components/pages/Resources";
-import DailyQuiz from "@/components/pages/DailyQuiz";
-import Roadmap from "@/components/pages/Roadmap";
-import Analytics from "@/components/pages/Analytics";
-import Listening from "@/components/pages/Listening";
-import Reading from "@/components/pages/Reading";
-import Writing from "@/components/pages/Writing";
-import Vocabulary from "@/components/pages/Vocabulary";
-import Grammar from "@/components/pages/Grammar";
-import Speaking from "@/components/pages/Speaking";
-import Drills from "@/components/pages/Drills";
-import StudyTimer from "@/components/pages/StudyTimer";
-import ErrorLog from "@/components/pages/ErrorLog";
-import Settings from "@/components/pages/Settings";
-import Setup from "@/components/pages/Setup";
-import LizHub from "@/components/pages/LizHub";
-import Cambridge from "@/components/pages/Cambridge";
-import { getProgress, UserProgress } from "@/lib/store";
+import AppShell from "../components/AppShell";
+import Dashboard from "../components/pages/Dashboard";
+import Tutor from "../components/pages/Tutor";
+import Course from "../components/pages/Course";
+import MockTests from "../components/pages/MockTests";
+import Resources from "../components/pages/Resources";
+import DailyQuiz from "../components/pages/DailyQuiz";
+import Roadmap from "../components/pages/Roadmap";
+import Analytics from "../components/pages/Analytics";
+import Listening from "../components/pages/Listening";
+import Reading from "../components/pages/Reading";
+import Writing from "../components/pages/Writing";
+import Vocabulary from "../components/pages/Vocabulary";
+import Grammar from "../components/pages/Grammar";
+import Speaking from "../components/pages/Speaking";
+import Drills from "../components/pages/Drills";
+import Flashcards from "../components/pages/Flashcards";
+import StudyTimer from "../components/pages/StudyTimer";
+import ErrorLog from "../components/pages/ErrorLog";
+import Settings from "../components/pages/Settings";
+import Setup from "../components/pages/Setup";
+import LizHub from "../components/pages/LizHub";
+import Cambridge from "../components/pages/Cambridge";
+import SpeakingLab from "../components/pages/SpeakingLab";
+import { getProgress, UserProgress } from "../lib/store";
 
-export default function Home() {
+export default function App() {
   const [activePage, setActivePage] = useState("dashboard");
   const [progress, setProgress] = useState<UserProgress | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -64,7 +66,9 @@ export default function Home() {
       case "vocab": return <Vocabulary />;
       case "grammar": return <Grammar />;
       case "speaking": return <Speaking />;
+      case "speaking-lab": return <SpeakingLab />;
       case "drills": return <Drills />;
+      case "flashcards": return <Flashcards />;
       case "timer": return <StudyTimer />;
       case "errorlog": return <ErrorLog />;
       case "settings": return <Settings onUpdate={async () => setProgress(await getProgress())} />;

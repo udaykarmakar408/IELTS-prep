@@ -98,20 +98,22 @@ export async function getProgress(): Promise<UserProgress> {
   if (typeof window === "undefined") return defaultProgress;
   
   // Try Supabase first
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data, error } = await supabase
-        .from('user_progress')
-        .select('progress_data')
-        .eq('id', user.id)
-        .single();
-      if (data && !error) {
-        return mergeProgress(data.progress_data);
+  if (supabase) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data, error } = await supabase
+          .from('user_progress')
+          .select('progress_data')
+          .eq('id', user.id)
+          .single();
+        if (data && !error) {
+          return mergeProgress(data.progress_data);
+        }
       }
+    } catch (e) {
+      console.error("Supabase fetch error:", e);
     }
-  } catch (e) {
-    console.error("Supabase fetch error:", e);
   }
 
   // Fallback to local storage
@@ -132,13 +134,19 @@ export async function saveProgress(progress: UserProgress) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
 
   // Sync to Supabase
-  const { data: { user } } = await supabase.auth.getUser();
-  if (user) {
-    await supabase.from('user_progress').upsert({
-      id: user.id,
-      progress_data: progress,
-      updated_at: new Date().toISOString()
-    });
+  if (supabase) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from('user_progress').upsert({
+          id: user.id,
+          progress_data: progress,
+          updated_at: new Date().toISOString()
+        });
+      }
+    } catch (e) {
+      console.error("Supabase sync error:", e);
+    }
   }
 }
 

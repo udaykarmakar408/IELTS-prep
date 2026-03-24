@@ -16,8 +16,15 @@ import {
   MessageSquare,
   Trophy
 } from "lucide-react";
-import { callGemini } from "@/lib/gemini";
+import { callGroq } from "@/lib/groq";
 import { cn } from "@/lib/utils";
+
+declare global {
+  interface Window {
+    webkitSpeechRecognition: any;
+    SpeechRecognition: any;
+  }
+}
 
 const CUE_CARDS = [
   { topic: "A person who has influenced you", categories: ["People", "Experience"] },
@@ -36,11 +43,44 @@ export default function SpeakingLab() {
   const [phase, setPhase] = useState<"prep" | "speak" | "feedback">("prep");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [transcription, setTranscription] = useState("");
+  const [recognition, setRecognition] = useState<any>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && (window.webkitSpeechRecognition || window.SpeechRecognition)) {
+      const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+      const recog = new SpeechRecognition();
+      recog.continuous = true;
+      recog.interimResults = true;
+      recog.lang = "en-US";
+
+      recog.onresult = (event: any) => {
+        let interimTranscript = "";
+        let finalTranscript = "";
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+        setTranscription(prev => prev + finalTranscript);
+      };
+
+      recog.onerror = (event: any) => {
+        console.error("Speech recognition error", event.error);
+      };
+
+      setRecognition(recog);
+    }
+  }, []);
 
   const startPractice = async (topic?: string) => {
     setIsGenerating(true);
     setFeedback(null);
     setPhase("prep");
+    setTranscription("");
     setTimer(60); // 1 minute prep time
     setIsTimerActive(true);
     
@@ -51,7 +91,7 @@ export default function SpeakingLab() {
       2. 4 bullet points (You should say: who/what/where/when, why, how you felt, etc.)
       Return in JSON format: { "topic": "...", "bullets": ["...", "...", "...", "..."] }`;
       
-      const result = await callGemini(prompt, "You are an IELTS Speaking examiner.");
+      const result = await callGroq(prompt, "You are an IELTS Speaking examiner.");
       const data = JSON.parse(result.replace(/```json\n?|\n?```/g, ''));
       setCueCardData(data);
     } catch (error) {
@@ -70,9 +110,22 @@ export default function SpeakingLab() {
       if (phase === "prep") {
         setPhase("speak");
         setTimer(120); // 2 minutes speaking time
+        if (recognition) {
+          try {
+            recognition.start();
+          } catch (e) {
+            console.error("Failed to start recognition", e);
+          }
+        }
       } else {
         setIsTimerActive(false);
-        // In a real app, we'd record audio here. For now, we'll simulate the user "finishing".
+        if (recognition) {
+          try {
+            recognition.stop();
+          } catch (e) {
+            console.error("Failed to stop recognition", e);
+          }
+        }
       }
     }
     return () => clearInterval(interval);
@@ -82,15 +135,18 @@ export default function SpeakingLab() {
     setIsAnalyzing(true);
     try {
       const prompt = `Simulate an IELTS Speaking Part 2 feedback for the topic: "${cueCardData.topic}".
-      Provide:
-      1. Estimated Band (7.0-8.5)
-      2. Fluency & Coherence feedback
-      3. Lexical Resource (Vocabulary) suggestions
-      4. Grammatical Range & Accuracy tips
-      5. Pronunciation focus
-      Return in clean Markdown.`;
+      The student's transcribed response was: "${transcription || "No response recorded."}"
       
-      const result = await callGemini(prompt, "You are a senior IELTS examiner.");
+      Provide a detailed evaluation:
+      1. Estimated Band (0-9)
+      2. Fluency & Coherence: Analyze pace, hesitation, and logical flow.
+      3. Lexical Resource: Identify good vocabulary used and suggest 5-10 more advanced words/collocations for this topic.
+      4. Grammatical Range & Accuracy: Point out specific grammatical errors in the transcript and suggest corrections.
+      5. Pronunciation: Based on the transcript (if available), suggest focus areas.
+      
+      Return in clean Markdown with bold headers.`;
+      
+      const result = await callGroq(prompt, "You are a senior IELTS examiner.");
       setFeedback(result);
       setPhase("feedback");
     } catch (error) {
@@ -200,9 +256,18 @@ export default function SpeakingLab() {
                     <Mic size={40} />
                   </div>
                   <h4 className="text-lg md:text-xl font-serif font-black text-text-primary mb-2">Recording in Progress</h4>
-                  <p className="text-[10px] md:text-xs text-text-muted uppercase tracking-widest font-bold">Speak for 1-2 minutes</p>
+                  <p className="text-[10px] md:text-xs text-text-muted uppercase tracking-widest font-bold mb-4">Speak for 1-2 minutes</p>
+                  
+                  <div className="w-full max-w-md bg-bg-1/50 rounded-xl p-4 border border-red-accent/10 min-h-[100px] text-xs text-text-secondary italic leading-relaxed">
+                    {transcription || "Listening for your voice..."}
+                  </div>
+
                   <button 
-                    onClick={() => { setIsTimerActive(false); setTimer(0); }}
+                    onClick={() => { 
+                      setIsTimerActive(false); 
+                      setTimer(0); 
+                      if (recognition) recognition.stop();
+                    }}
                     className="btn btn-ghost mt-6 md:mt-8 border-red-accent/30 text-red-accent hover:bg-red-accent hover:text-white"
                   >
                     <Square size={16} /> Finish Speaking
@@ -218,7 +283,17 @@ export default function SpeakingLab() {
                   <h4 className="text-lg md:text-xl font-serif font-black text-text-primary mb-2">Preparation Time</h4>
                   <p className="text-[10px] md:text-xs text-text-muted uppercase tracking-widest font-bold">Take notes on your structure</p>
                   <button 
-                    onClick={() => { setPhase("speak"); setTimer(120); }}
+                    onClick={() => { 
+                      setPhase("speak"); 
+                      setTimer(120); 
+                      if (recognition) {
+                        try {
+                          recognition.start();
+                        } catch (e) {
+                          console.error("Failed to start recognition", e);
+                        }
+                      }
+                    }}
                     className="btn btn-primary bg-amber-accent hover:bg-amber-accent/80 border-none mt-6 md:mt-8"
                   >
                     Start Speaking Now

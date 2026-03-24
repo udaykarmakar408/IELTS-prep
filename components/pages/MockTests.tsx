@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import Image from "next/image";
 import { 
   FileText, 
   PenTool, 
@@ -24,7 +23,9 @@ import {
   Pause
 } from "lucide-react";
 import { getProgress, saveProgress, UserProgress } from "@/lib/store";
-import { callGemini } from "@/lib/gemini";
+import { callGroq } from "@/lib/groq";
+import { GoogleGenAI, Modality } from "@google/genai";
+import { pcmToWav } from "@/lib/audio";
 import { cn, getBandColor } from "@/lib/utils";
 import Markdown from "react-markdown";
 
@@ -108,6 +109,10 @@ export default function MockTests() {
   const [audioProgress, setAudioProgress] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState(1);
   const [reviewedQuestions, setReviewedQuestions] = useState<number[]>([]);
+  const [testStage, setTestStage] = useState<"listening" | "reading" | "writing" | "speaking" | "result" | null>(null);
+  const [fullTestResults, setFullTestResults] = useState<any>({});
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
 
   const toggleReview = () => {
     setReviewedQuestions(prev => 
@@ -117,32 +122,87 @@ export default function MockTests() {
     );
   };
 
-  const generateTask = async (test: any) => {
+  const generateAudio = async (text: string) => {
+    setIsGeneratingAudio(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-tts",
+        contents: [{ parts: [{ text: `Read the following IELTS listening script clearly: ${text}` }] }],
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } },
+        },
+      });
+
+      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (base64Audio) {
+        const binaryString = atob(base64Audio);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
+        const pcmData = new Int16Array(bytes.buffer);
+        const wavBlob = pcmToWav(pcmData, 24000);
+        const url = URL.createObjectURL(wavBlob);
+        const audio = new Audio(url);
+        
+        audio.onended = () => {
+          URL.revokeObjectURL(url);
+        };
+        
+        await audio.play();
+        setIsPlaying(true);
+      } else {
+        // Fallback to browser TTS
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.9;
+        window.speechSynthesis.speak(utterance);
+        setIsPlaying(true);
+      }
+    } catch (error) {
+      console.error(error);
+      // Fallback to browser TTS
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.9;
+      window.speechSynthesis.speak(utterance);
+      setIsPlaying(true);
+    } finally {
+      setIsGeneratingAudio(false);
+    }
+  };
+
+  const generateTask = useCallback(async (test: any, stage?: string) => {
     setActiveTest(test);
     setIsGeneratingTask(true);
     setTestTask(null);
     setFeedback(null);
     setAnswer("");
     
+    const currentSkill = stage || test.skill;
+    
     try {
-      const prompt = `Generate a realistic IELTS ${test.label} task.
-      Skill: ${test.skill}
+      const prompt = `Generate a realistic IELTS ${test.label} task for ${currentSkill}.
       Description: ${test.desc}
-      If it's Writing Task 1, describe a chart or process.
-      If it's Writing Task 2, provide a prompt.
-      If it's Reading, provide a short passage and 3 questions.
+      If it's Writing, provide a prompt.
+      If it's Reading, provide a long academic passage (500 words) and 10 questions.
+      If it's Listening, provide a script for a conversation and 10 questions.
       Return in clean Markdown.`;
       
-      const result = await callGemini(prompt, "You are an IELTS examiner.");
+      const result = await callGroq(prompt, "You are an IELTS examiner.");
       setTestTask(result);
       setTimeLeft(test.mins * 60);
+      
+      if (currentSkill === 'listening') {
+        const scriptMatch = result.match(/Script:([\s\S]*?)Questions:/i);
+        if (scriptMatch) generateAudio(scriptMatch[1]);
+      }
     } catch (error) {
       console.error(error);
       setTestTask("Failed to generate task. Please try again.");
     } finally {
       setIsGeneratingTask(false);
     }
-  };
+  }, []);
 
   const handleSubmit = useCallback(async () => {
     if (!answer.trim() || isSubmitting || !progress || !activeTest) return;
@@ -151,50 +211,51 @@ export default function MockTests() {
     const systemPrompt = `You are a strict IELTS examiner. Analyze the student's response for ${activeTest.label}. 
     Task was: ${testTask}
     Provide a detailed band score breakdown (0-9) for each criterion and an overall band.
-    Be honest and critical. Use markdown for formatting.
-    Format your response exactly as:
-    📊 BAND SCORES
-    Criterion 1: [score]/9
-    Criterion 2: [score]/9
-    Criterion 3: [score]/9
-    Criterion 4: [score]/9
-    ━━━━━━━━━━━━━━━
-    Overall Band: [score]
-
-    📝 DETAILED FEEDBACK
-    [Feedback text]
-
-    ✅ 3 IMPROVEMENTS
-    1. [Tip 1]
-    2. [Tip 2]
-    3. [Tip 3]`;
+    Be honest and critical. Use markdown for formatting.`;
 
     try {
-      const result = await callGemini(`TASK: ${activeTest.desc}\n\nSTUDENT RESPONSE:\n${answer}`, systemPrompt);
-      setFeedback(result);
+      const result = await callGroq(`TASK: ${activeTest.desc}\n\nSTUDENT RESPONSE:\n${answer}`, systemPrompt);
+      
+      if (activeTest.id === 'full') {
+        const bandMatch = result.match(/Overall Band:\s*([0-9]\.?[0-9]?)/i);
+        const band = bandMatch ? parseFloat(bandMatch[1]) : 6.0;
+        
+        const nextStageMap: any = { listening: "reading", reading: "writing", writing: "result" };
+        const nextStage = nextStageMap[testStage || "listening"];
+        
+        setFullTestResults({ ...fullTestResults, [testStage || "listening"]: { band, feedback: result } });
+        
+        if (nextStage === "result") {
+          setFeedback("Full Test Completed. See results below.");
+          setEstimatedBand(band); // Simplified average or last band
+          setTestStage("result");
+        } else {
+          setTestStage(nextStage);
+          generateTask(activeTest, nextStage);
+        }
+      } else {
+        setFeedback(result);
+        const bandMatch = result.match(/Overall Band:\s*([0-9]\.?[0-9]?)/i);
+        const band = bandMatch ? parseFloat(bandMatch[1]) : null;
+        setEstimatedBand(band);
 
-      const bandMatch = result.match(/Overall Band:\s*([0-9]\.?[0-9]?)/i);
-      const band = bandMatch ? parseFloat(bandMatch[1]) : null;
-      setEstimatedBand(band);
-
-      if (band) {
-        const updated = {
-          ...progress,
-          bands: activeTest.skill === "all" 
-            ? { ...progress.bands, reading: band, writing: band, listening: band } 
-            : { ...progress.bands, [activeTest.skill]: band },
-          bandHistory: [...progress.bandHistory, { date: new Date().toISOString().split("T")[0], band, skill: activeTest.skill }],
-          mockHistory: [...progress.mockHistory, { date: new Date().toISOString().split("T")[0], test: activeTest.label, band, skill: activeTest.skill }],
-        };
-        setProgress(updated);
-        saveProgress(updated);
+        if (band) {
+          const updated = {
+            ...progress,
+            bands: { ...progress.bands, [activeTest.skill]: band },
+            bandHistory: [...progress.bandHistory, { date: new Date().toISOString().split("T")[0], band, skill: activeTest.skill }],
+            mockHistory: [...progress.mockHistory, { date: new Date().toISOString().split("T")[0], test: activeTest.label, band, skill: activeTest.skill }],
+          };
+          setProgress(updated);
+          saveProgress(updated);
+        }
       }
     } catch (error) {
       console.error(error);
     } finally {
       setIsSubmitting(false);
     }
-  }, [activeTest, answer, progress, isSubmitting, testTask]);
+  }, [activeTest, answer, progress, isSubmitting, testTask, testStage, fullTestResults, generateTask]);
 
   useEffect(() => {
     const load = async () => {
@@ -215,7 +276,12 @@ export default function MockTests() {
   }, [activeTest, timeLeft, feedback, handleSubmit]);
 
   const startTest = (test: any) => {
-    generateTask(test);
+    if (test.id === 'full') {
+      setTestStage("listening");
+      generateTask(test, "listening");
+    } else {
+      generateTask(test);
+    }
   };
 
   if (!progress) return null;
@@ -244,6 +310,11 @@ export default function MockTests() {
           </div>
 
           <div className="flex items-center gap-8">
+            {testStage && testStage !== "result" && (
+              <div className="flex items-center gap-2 px-3 py-1 bg-blue-dim/20 text-blue-secondary rounded-full text-[10px] font-bold uppercase tracking-widest border border-blue-secondary/20">
+                Stage: {testStage}
+              </div>
+            )}
             {testTask && !feedback && (
               <div className={cn(
                 "flex items-center gap-3 px-4 py-1.5 rounded-lg border-2 font-mono text-lg font-black transition-colors",
@@ -267,7 +338,7 @@ export default function MockTests() {
 
         {/* Main Test Area */}
         <main className="flex-1 overflow-hidden flex flex-col relative">
-          {!feedback ? (
+          {!feedback || (testStage && testStage !== "result") ? (
             <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
               {/* Left Pane: Task/Passage */}
               <div className="w-full md:w-1/2 border-b md:border-b-0 md:border-r border-gray-200 bg-white overflow-y-auto p-4 md:p-8 custom-scrollbar h-[40vh] md:h-full">
@@ -323,11 +394,10 @@ export default function MockTests() {
 
                     {activeTest.skill === 'speaking' && (
                       <div className="aspect-video bg-gray-900 rounded-2xl overflow-hidden relative mb-8 group">
-                        <Image 
+                        <img 
                           src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=800" 
                           alt="AI Examiner" 
-                          fill
-                          className="object-cover opacity-80"
+                          className="absolute inset-0 w-full h-full object-cover opacity-80"
                           referrerPolicy="no-referrer"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
@@ -386,6 +456,36 @@ export default function MockTests() {
                       </div>
                     </>
                   )}
+                </div>
+              </div>
+            </div>
+          ) : testStage === "result" ? (
+            <div className="flex-1 overflow-y-auto bg-white p-12 custom-scrollbar">
+              <div className="max-w-4xl mx-auto space-y-12">
+                <div className="text-center space-y-4">
+                  <div className="w-20 h-20 bg-blue-primary rounded-full flex items-center justify-center text-white mx-auto shadow-xl shadow-blue-primary/20">
+                    <Trophy size={40} />
+                  </div>
+                  <h2 className="text-4xl font-serif font-bold text-gray-800">Mock Test Results</h2>
+                  <p className="text-gray-500">Comprehensive analysis of your full IELTS simulation.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {Object.entries(fullTestResults).map(([skill, data]: [string, any]) => (
+                    <div key={skill} className="card bg-gray-50 border-gray-200">
+                      <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">{skill}</div>
+                      <div className="text-3xl font-black text-blue-primary mb-4">Band {data.band}</div>
+                      <div className="prose prose-xs max-w-none text-gray-600 line-clamp-6">
+                        <Markdown>{data.feedback}</Markdown>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex justify-center">
+                  <button onClick={() => { setActiveTest(null); setFeedback(null); setTestStage(null); }} className="btn btn-primary px-12 py-4">
+                    Return to Dashboard
+                  </button>
                 </div>
               </div>
             </div>
