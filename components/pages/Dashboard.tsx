@@ -172,9 +172,30 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
   const tasksPct = Math.round((tasksDoneCount / dailyTasks.length) * 100);
 
   return (
-    <div id="dashboard-root" className="space-y-6">
+    <motion.div 
+      id="dashboard-root" 
+      className="space-y-6"
+      initial="hidden"
+      animate="visible"
+      variants={{
+        hidden: { opacity: 0 },
+        visible: {
+          opacity: 1,
+          transition: {
+            staggerChildren: 0.1
+          }
+        }
+      }}
+    >
       {/* Hero Card */}
-      <div id="dashboard-hero" className="card-blue overflow-hidden relative p-6 md:p-10">
+      <motion.div 
+        id="dashboard-hero" 
+        className="card-blue overflow-hidden relative p-6 md:p-10"
+        variants={{
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0 }
+        }}
+      >
         <div id="hero-logo-bg" className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
           <Logo className="w-32 h-32 md:w-48 md:h-48" />
         </div>
@@ -216,16 +237,23 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
               id="hero-progress-bar-fill"
               initial={{ width: 0 }}
               animate={{ width: `${progressPct}%` }}
-              transition={{ duration: 1, ease: "easeOut" }}
+              transition={{ duration: 1, ease: "easeOut", delay: 0.5 }}
               className="h-full bg-blue-primary rounded-full relative bar-fill"
             />
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Daily Goal & Stats */}
       <div id="dashboard-stats-grid" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div id="daily-progress-card" className="lg:col-span-2 card bg-gradient-to-br from-blue-primary/10 to-bg-1 border-blue-primary/20 p-8">
+        <motion.div 
+          id="daily-progress-card" 
+          className="lg:col-span-2 card bg-gradient-to-br from-blue-primary/10 to-bg-1 border-blue-primary/20 p-8"
+          variants={{
+            hidden: { opacity: 0, x: -20 },
+            visible: { opacity: 1, x: 0 }
+          }}
+        >
           <div className="flex items-center justify-between mb-8">
             <div>
               <h3 className="text-xl font-serif font-black text-text-primary tracking-tight">Daily Progress</h3>
@@ -248,6 +276,7 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
                   id="study-time-bar-fill"
                   initial={{ width: 0 }}
                   animate={{ width: `${dailyGoalPct}%` }}
+                  transition={{ duration: 1, ease: "easeOut", delay: 0.7 }}
                   className="h-full bg-blue-primary shadow-[0_0_15px_rgba(59,130,246,0.4)] relative overflow-hidden"
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
@@ -262,23 +291,48 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
                 { id: "stat-quizzes", label: "Quizzes", value: `${progress.quizHistory?.length || 0}/5`, color: "text-green-accent", bg: "bg-green-accent/5" },
                 { id: "stat-listening", label: "Listening", value: `${progress.studyMinutes || 0}m`, color: "text-amber-accent", bg: "bg-amber-accent/5" },
               ].map((stat, i) => (
-                <div key={i} id={stat.id} className={cn("p-4 border border-border-2 rounded-2xl text-center transition-all hover:border-blue-primary/20", stat.bg)}>
+                <motion.div 
+                  key={i} 
+                  id={stat.id} 
+                  className={cn("p-4 border border-border-2 rounded-2xl text-center transition-all hover:border-blue-primary/20", stat.bg)}
+                  variants={{
+                    hidden: { opacity: 0, scale: 0.9 },
+                    visible: { opacity: 1, scale: 1 }
+                  }}
+                  whileHover={{ y: -5, scale: 1.05 }}
+                >
                   <div className={cn("text-base font-black mb-1", stat.color)}>{stat.value}</div>
                   <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest">{stat.label}</div>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div id="recent-activity-card" className="card bg-bg-2 border-border-2 p-6">
+        <motion.div 
+          id="recent-activity-card" 
+          className="card bg-bg-2 border-border-2 p-6"
+          variants={{
+            hidden: { opacity: 0, x: 20 },
+            visible: { opacity: 1, x: 0 }
+          }}
+        >
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-text-primary uppercase tracking-widest">Recent Activity</h3>
             <History size={14} className="text-text-muted" />
           </div>
           <div id="recent-activity-list" className="space-y-4">
             {recentActivities.length > 0 ? recentActivities.map((act, i) => (
-              <div key={i} id={`activity-item-${i}`} className="flex items-start gap-3 group cursor-pointer">
+              <motion.div 
+                key={i} 
+                id={`activity-item-${i}`} 
+                className="flex items-start gap-3 group cursor-pointer"
+                variants={{
+                  hidden: { opacity: 0, x: 10 },
+                  visible: { opacity: 1, x: 0 }
+                }}
+                whileHover={{ x: 5 }}
+              >
                 <div className={cn("p-2 rounded-xl bg-bg-1 border border-border-2 group-hover:border-blue-primary/30 transition-all", act.color)}>
                   <act.icon size={14} />
                 </div>
@@ -289,7 +343,7 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
                     <span className="text-[9px] text-text-muted italic">{act.time}</span>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             )) : (
               <div className="text-center py-8">
                 <History size={24} className="mx-auto text-text-muted mb-2 opacity-20" />
@@ -300,7 +354,7 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
           <button id="btn-view-history" onClick={() => setActivePage("analytics")} className="w-full mt-6 py-2 text-[10px] font-bold text-blue-secondary uppercase tracking-widest border border-blue-primary/20 rounded-xl hover:bg-blue-dim/10 transition-all">
             View Full History
           </button>
-        </div>
+        </motion.div>
       </div>
 
       {/* Quick Actions */}
@@ -538,7 +592,7 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 

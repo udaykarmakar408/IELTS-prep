@@ -151,17 +151,41 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
           </div>
         </div>
 
-        <nav id="sidebar-nav" className="flex-1 p-4 flex flex-col gap-8 overflow-y-auto custom-scrollbar">
+        <motion.nav 
+          id="sidebar-nav" 
+          className="flex-1 p-4 flex flex-col gap-8 overflow-y-auto custom-scrollbar"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: {
+                staggerChildren: 0.05
+              }
+            }
+          }}
+        >
           {navCategories.map((category) => (
-            <div key={category.label} id={`nav-category-${category.label.toLowerCase()}`} className="space-y-1.5">
+            <motion.div 
+              key={category.label} 
+              id={`nav-category-${category.label.toLowerCase()}`} 
+              className="space-y-1.5"
+              variants={{
+                hidden: { opacity: 0, x: -10 },
+                visible: { opacity: 1, x: 0 }
+              }}
+            >
               <div className="px-4 text-[10px] font-black text-text-muted uppercase tracking-[0.25em] mb-3">
                 {category.label}
               </div>
               {category.items.map((item) => (
-                <button
+                <motion.button
                   key={item.id}
                   id={`nav-item-${item.id}`}
                   onClick={() => setActivePage(item.id)}
+                  whileHover={{ x: 4 }}
+                  whileTap={{ scale: 0.98 }}
                   className={cn(
                     "w-full px-4 py-2.5 rounded-xl flex items-center gap-3 transition-all duration-300 text-left group relative overflow-hidden",
                     activePage === item.id 
@@ -173,6 +197,7 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
                     <motion.div 
                       layoutId="active-pill"
                       className="absolute left-0 top-0 bottom-0 w-1 bg-blue-primary"
+                      transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     />
                   )}
                   <item.icon 
@@ -188,11 +213,11 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
                   )}>
                     {item.label}
                   </span>
-                </button>
+                </motion.button>
               ))}
-            </div>
+            </motion.div>
           ))}
-        </nav>
+        </motion.nav>
 
         <div className="p-3 border-t border-border">
           <div className="bg-bg-2 rounded-xl p-2.5">
@@ -221,19 +246,9 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
 
         {/* Page Content */}
         <div id="page-content-viewport" className="flex-1 overflow-y-auto custom-scrollbar relative bg-gradient-to-b from-bg to-bg-1 scroll-smooth">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activePage}
-              id={`page-container-${activePage}`}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="p-5 md:p-10 lg:p-14 max-w-7xl mx-auto w-full min-h-full"
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
+          <div className="p-5 md:p-10 lg:p-14 max-w-7xl mx-auto w-full min-h-full">
+            {children}
+          </div>
           
           {/* Bottom Padding for Mobile Nav */}
           <div id="mobile-nav-spacer" className="h-20 md:hidden" />

@@ -47,10 +47,10 @@ export default function Analytics() {
     : null;
 
   const skills = [
-    { key: "reading", label: "Reading", color: "#3b82f6", icon: "📖" },
-    { key: "writing", label: "Writing", color: "#7c3aed", icon: "✍️" },
-    { key: "speaking", label: "Speaking", color: "#db2477", icon: "🎤" },
-    { key: "listening", label: "Listening", color: "#059669", icon: "🎧" },
+    { key: "reading", label: "Reading", color: "#0d7af6", icon: "📖" },
+    { key: "writing", label: "Writing", color: "#3b82f6", icon: "✍️" },
+    { key: "speaking", label: "Speaking", color: "#0d7af6", icon: "🎤" },
+    { key: "listening", label: "Listening", color: "#009966", icon: "🎧" },
   ];
 
   // Prepare chart data
@@ -67,8 +67,27 @@ export default function Analytics() {
   }));
 
   return (
-    <div className="space-y-8 pb-20">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <motion.div 
+      className="space-y-8 pb-20"
+      initial="hidden"
+      animate="visible"
+      variants={{
+        hidden: { opacity: 0 },
+        visible: {
+          opacity: 1,
+          transition: {
+            staggerChildren: 0.1
+          }
+        }
+      }}
+    >
+      <motion.div 
+        className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+        variants={{
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0 }
+        }}
+      >
         <div>
           <h2 className="font-serif text-2xl font-bold mb-1">📊 Analytics</h2>
           <p className="text-sm text-text-muted">Your complete IELTS progress dashboard</p>
@@ -77,34 +96,57 @@ export default function Analytics() {
           <Calendar size={14} className="text-green-accent" />
           <span className="text-[10px] font-bold text-green-accent uppercase tracking-widest">Active Streak: {progress.streak} Days</span>
         </div>
-      </div>
+      </motion.div>
 
       {/* Band Score Hero */}
-      <div className="card-blue p-8 md:p-12 relative overflow-hidden">
+      <motion.div 
+        className="card-blue p-8 md:p-12 relative overflow-hidden"
+        variants={{
+          hidden: { opacity: 0, scale: 0.95 },
+          visible: { opacity: 1, scale: 1 }
+        }}
+      >
         <div className="flex flex-col md:flex-row justify-between items-center gap-10 relative z-10">
           <div className="text-center md:text-left space-y-4">
             <div className="text-[10px] text-blue-secondary font-black uppercase tracking-[0.2em]">Overall Predicted Band</div>
-            <div className="font-serif text-8xl md:text-9xl font-black text-blue-secondary leading-none tracking-tighter drop-shadow-2xl">
+            <motion.div 
+              className="font-serif text-8xl md:text-9xl font-black text-blue-secondary leading-none tracking-tighter drop-shadow-2xl"
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.5, type: "spring", stiffness: 200 }}
+            >
               {avgBand === "0.0" ? "—" : avgBand}
-            </div>
+            </motion.div>
             <div className="text-xs text-text-muted font-bold uppercase tracking-widest">Target Band: <span className="text-text-primary">{progress.target}</span></div>
           </div>
           <div className="grid grid-cols-2 gap-4 w-full md:w-auto">
-            <div className="text-center bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-6 min-w-[120px] shadow-xl">
+            <motion.div 
+              className="text-center bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-6 min-w-[120px] shadow-xl"
+              whileHover={{ y: -5, backgroundColor: "rgba(255,255,255,0.1)" }}
+            >
               <div className="text-3xl font-black text-green-accent">{progress.studyDays.length}</div>
               <div className="text-[10px] text-text-muted font-black uppercase tracking-widest mt-2">Study Days</div>
-            </div>
-            <div className="text-center bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-6 min-w-[120px] shadow-xl">
+            </motion.div>
+            <motion.div 
+              className="text-center bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-6 min-w-[120px] shadow-xl"
+              whileHover={{ y: -5, backgroundColor: "rgba(255,255,255,0.1)" }}
+            >
               <div className="text-3xl font-black text-violet-accent">{progress.courseXP || 0}</div>
               <div className="text-[10px] text-text-muted font-black uppercase tracking-widest mt-2">Total XP</div>
-            </div>
+            </motion.div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Band History Chart */}
-        <div className="card">
+        <motion.div 
+          className="card"
+          variants={{
+            hidden: { opacity: 0, x: -20 },
+            visible: { opacity: 1, x: 0 }
+          }}
+        >
           <div className="flex items-center justify-between mb-6">
             <div className="text-sm font-bold uppercase tracking-widest text-text-muted">Band Score History</div>
             <div className="text-[10px] font-bold text-blue-secondary uppercase tracking-widest flex items-center gap-1">
@@ -116,8 +158,8 @@ export default function Analytics() {
               <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="colorBand" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#0d7af6" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#0d7af6" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -140,27 +182,33 @@ export default function Analytics() {
                   dx={-10}
                 />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', fontSize: '12px', backdropFilter: 'blur(10px)', boxShadow: '0 10px 25px rgba(0,0,0,0.3)' }}
-                  itemStyle={{ color: '#3b82f6', fontWeight: 'bold' }}
-                  cursor={{ stroke: '#3b82f6', strokeWidth: 2, strokeDasharray: '5 5' }}
+                  contentStyle={{ backgroundColor: 'rgba(7, 20, 39, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', fontSize: '12px', backdropFilter: 'blur(10px)', boxShadow: '0 10px 25px rgba(0,0,0,0.3)' }}
+                  itemStyle={{ color: '#0d7af6', fontWeight: 'bold' }}
+                  cursor={{ stroke: '#0d7af6', strokeWidth: 2, strokeDasharray: '5 5' }}
                 />
                 <Area 
                   type="monotone" 
                   dataKey="band" 
-                  stroke="#3b82f6" 
+                  stroke="#0d7af6" 
                   strokeWidth={4}
                   fillOpacity={1} 
                   fill="url(#colorBand)" 
                   animationDuration={2000}
-                  activeDot={{ r: 6, strokeWidth: 0, fill: '#3b82f6' }}
+                  activeDot={{ r: 6, strokeWidth: 0, fill: '#0d7af6' }}
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </motion.div>
 
         {/* Study Time Chart */}
-        <div className="card">
+        <motion.div 
+          className="card"
+          variants={{
+            hidden: { opacity: 0, x: 20 },
+            visible: { opacity: 1, x: 0 }
+          }}
+        >
           <div className="flex items-center justify-between mb-6">
             <div className="text-sm font-bold uppercase tracking-widest text-text-muted">Study Time (Mins)</div>
             <div className="text-[10px] font-bold text-green-accent uppercase tracking-widest flex items-center gap-1">
@@ -172,8 +220,8 @@ export default function Analytics() {
               <AreaChart data={studyTimeData}>
                 <defs>
                   <linearGradient id="colorMins" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#009966" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#009966" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -194,46 +242,84 @@ export default function Analytics() {
                   dx={-10}
                 />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', fontSize: '12px', backdropFilter: 'blur(10px)', boxShadow: '0 10px 25px rgba(0,0,0,0.3)' }}
-                  itemStyle={{ color: '#10b981', fontWeight: 'bold' }}
-                  cursor={{ stroke: '#10b981', strokeWidth: 2, strokeDasharray: '5 5' }}
+                  contentStyle={{ backgroundColor: 'rgba(7, 20, 39, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', fontSize: '12px', backdropFilter: 'blur(10px)', boxShadow: '0 10px 25px rgba(0,0,0,0.3)' }}
+                  itemStyle={{ color: '#009966', fontWeight: 'bold' }}
+                  cursor={{ stroke: '#009966', strokeWidth: 2, strokeDasharray: '5 5' }}
                 />
                 <Area 
                   type="monotone" 
                   dataKey="mins" 
-                  stroke="#10b981" 
+                  stroke="#009966" 
                   strokeWidth={4}
                   fillOpacity={1} 
                   fill="url(#colorMins)" 
                   animationDuration={2000}
-                  activeDot={{ r: 6, strokeWidth: 0, fill: '#10b981' }}
+                  activeDot={{ r: 6, strokeWidth: 0, fill: '#009966' }}
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </motion.div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="card flex flex-col items-center justify-center text-center p-6">
+      <motion.div 
+        className="grid grid-cols-1 md:grid-cols-3 gap-4"
+        variants={{
+          hidden: { opacity: 0 },
+          visible: {
+            opacity: 1,
+            transition: {
+              staggerChildren: 0.1
+            }
+          }
+        }}
+      >
+        <motion.div 
+          className="card flex flex-col items-center justify-center text-center p-6"
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0 }
+          }}
+          whileHover={{ y: -5 }}
+        >
           <div className="p-2 rounded-xl bg-blue-dim text-blue-secondary mb-2"><TrendingUp size={20} /></div>
           <div className="font-serif text-2xl font-black text-text-primary">{quizAvg !== null ? `${quizAvg}%` : "—"}</div>
           <div className="text-[10px] text-text-muted font-bold uppercase tracking-widest">Quiz Avg</div>
-        </div>
-        <div className="card flex flex-col items-center justify-center text-center p-6">
+        </motion.div>
+        <motion.div 
+          className="card flex flex-col items-center justify-center text-center p-6"
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0 }
+          }}
+          whileHover={{ y: -5 }}
+        >
           <div className="p-2 rounded-xl bg-violet-accent/10 text-violet-accent mb-2"><FileTextIcon size={20} /></div>
           <div className="font-serif text-2xl font-black text-text-primary">{(progress.mockHistory || []).length}</div>
           <div className="text-[10px] text-text-muted font-bold uppercase tracking-widest">Mock Tests</div>
-        </div>
-        <div className="card flex flex-col items-center justify-center text-center p-6">
+        </motion.div>
+        <motion.div 
+          className="card flex flex-col items-center justify-center text-center p-6"
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0 }
+          }}
+          whileHover={{ y: -5 }}
+        >
           <div className="p-2 rounded-xl bg-green-accent/10 text-green-accent mb-2"><CheckCircle2 size={20} /></div>
           <div className="font-serif text-2xl font-black text-text-primary">{(progress.completedLessons || []).length}</div>
           <div className="text-[10px] text-text-muted font-bold uppercase tracking-widest">Lessons</div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Skill Bands */}
-      <div className="card">
+      <motion.div 
+        className="card"
+        variants={{
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0 }
+        }}
+      >
         <div className="font-bold text-sm uppercase tracking-widest text-text-muted mb-6">Skill Breakdown</div>
         <div className="space-y-6">
           {skills.map((s) => {
@@ -253,23 +339,32 @@ export default function Analytics() {
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${pct}%` }}
-                    transition={{ duration: 0.8 }}
+                    transition={{ duration: 0.8, delay: 0.5 }}
                     className="h-full rounded-full"
                     style={{ backgroundColor: s.color }}
                   />
-                  <div 
+                  <motion.div 
                     className="absolute top-0 h-full w-0.5 bg-amber-accent/50 z-10" 
                     style={{ left: `${(progress.target / 9) * 100}%` }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.2 }}
                   />
                 </div>
               </div>
             );
           })}
         </div>
-      </div>
+      </motion.div>
 
       {/* Recommendations */}
-      <div className="card bg-gradient-to-br from-blue-dim/30 to-bg-1 border-blue-dim/50">
+      <motion.div 
+        className="card bg-gradient-to-br from-blue-dim/30 to-bg-1 border-blue-dim/50"
+        variants={{
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0 }
+        }}
+      >
         <div className="flex items-center gap-2 text-blue-secondary font-bold text-xs uppercase tracking-widest mb-6">
           <Trophy size={14} /> Personal Recommendations
         </div>
@@ -279,14 +374,21 @@ export default function Analytics() {
             { text: "✏️ Start the Daily Quiz — 20 questions a day is the fastest way to build knowledge.", show: (progress.quizHistory || []).length === 0 },
             { text: "📝 Take a full Mock Test this week to get fresh AI feedback.", show: (progress.mockHistory || []).length < 3 },
           ].filter(r => r.show).map((rec, i) => (
-            <div key={i} className="flex items-start gap-3 p-3 bg-bg-2/50 rounded-xl border border-border/50">
+            <motion.div 
+              key={i} 
+              className="flex items-start gap-3 p-3 bg-bg-2/50 rounded-xl border border-border/50"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 1.5 + (i * 0.1) }}
+              whileHover={{ x: 5 }}
+            >
               <ChevronRight size={14} className="text-blue-secondary mt-0.5 flex-shrink-0" />
               <span className="text-xs text-text-secondary leading-relaxed">{rec.text}</span>
-            </div>
+            </motion.div>
           ))}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

@@ -2,17 +2,17 @@
 
 @theme {
   --color-bg: #020c1b;
-  --color-bg-1: #071428;
+  --color-bg-1: #071427;
   --color-bg-2: #0c1d3a;
   --color-bg-3: #112244;
   --color-border: #1a2f52;
   --color-border-2: #243d66;
-  --color-blue-primary: #2563eb;
+  --color-blue-primary: #0d7af6;
   --color-blue-secondary: #3b82f6;
-  --color-blue-dim: #1e3a5f;
-  --color-violet-accent: #7c3aed;
+  --color-blue-dim: #071427;
+  --color-violet-accent: #3b82f6;
   --color-pink-accent: #db2777;
-  --color-green-accent: #059669;
+  --color-green-accent: #009966;
   --color-amber-accent: #d97706;
   --color-red-accent: #dc2626;
   --color-text-primary: #e2e8f0;

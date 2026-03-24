@@ -28,6 +28,8 @@ import SpeakingLab from "../components/pages/SpeakingLab";
 import PracticeLibrary from "../components/pages/PracticeLibrary";
 import { getProgress, UserProgress } from "../lib/store";
 
+import { AnimatePresence, motion } from "motion/react";
+
 export default function App() {
   const [activePage, setActivePage] = useState("dashboard");
   const [progress, setProgress] = useState<UserProgress | null>(null);
@@ -80,7 +82,18 @@ export default function App() {
 
   return (
     <AppShell activePage={activePage} setActivePage={setActivePage}>
-      {renderPage()}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activePage}
+          initial={{ opacity: 0, y: 10, scale: 0.99 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -10, scale: 1.01 }}
+          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          className="w-full"
+        >
+          {renderPage()}
+        </motion.div>
+      </AnimatePresence>
     </AppShell>
   );
 }

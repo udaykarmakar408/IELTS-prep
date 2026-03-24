@@ -240,10 +240,20 @@ export default function Course() {
 
   if (activeLesson) {
     return (
-      <div className="space-y-6">
-        <button onClick={() => { setActiveLesson(null); setLessonContent(null); }} className="flex items-center gap-2 text-text-muted hover:text-text-primary transition-colors mb-4">
+      <motion.div 
+        className="space-y-6"
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -20 }}
+        transition={{ duration: 0.3 }}
+      >
+        <motion.button 
+          onClick={() => { setActiveLesson(null); setLessonContent(null); }} 
+          whileHover={{ x: -5 }}
+          className="flex items-center gap-2 text-text-muted hover:text-text-primary transition-colors mb-4 text-xs font-bold uppercase tracking-widest"
+        >
           <ArrowLeft size={16} /> Back to Course
-        </button>
+        </motion.button>
         
         <div className="card border-blue-primary/30 bg-gradient-to-br from-bg-1 to-bg-2 p-4 md:p-8">
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
@@ -262,12 +272,21 @@ export default function Course() {
               </div>
             ) : lessonContent ? (
               <>
-                <div className="prose prose-invert prose-sm md:prose-base max-w-none space-y-4 text-text-secondary leading-relaxed">
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="prose prose-invert prose-sm md:prose-base max-w-none space-y-4 text-text-secondary leading-relaxed"
+                >
                   <ReactMarkdown>{lessonContent}</ReactMarkdown>
-                </div>
+                </motion.div>
                 
                 {quizQuestions.length > 0 && (
-                  <div className="mt-12 p-6 bg-bg-2 border border-border rounded-2xl">
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="mt-12 p-6 bg-bg-2 border border-border rounded-2xl"
+                  >
                     <h3 className="text-xl font-bold text-text-primary mb-6 flex items-center gap-2">
                       <Sparkles size={20} className="text-blue-secondary" /> Lesson Quiz
                     </h3>
@@ -277,13 +296,15 @@ export default function Course() {
                           <p className="text-sm font-bold text-text-primary">{qIdx + 1}. {q.q}</p>
                           <div className="grid grid-cols-1 gap-2">
                             {q.o.map((opt: string, oIdx: number) => (
-                              <button
+                              <motion.button
                                 key={oIdx}
                                 onClick={() => !quizSubmitted && setQuizAnswers(prev => {
                                   const next = [...prev];
                                   next[qIdx] = oIdx.toString();
                                   return next;
                                 })}
+                                whileHover={{ x: 5 }}
+                                whileTap={{ scale: 0.98 }}
                                 className={cn(
                                   "text-left px-4 py-3 rounded-xl text-xs font-medium transition-all border",
                                   quizAnswers[qIdx] === oIdx.toString()
@@ -294,53 +315,96 @@ export default function Course() {
                                 )}
                               >
                                 {opt}
-                              </button>
+                              </motion.button>
                             ))}
                           </div>
                         </div>
                       ))}
                     </div>
                     {!quizSubmitted ? (
-                      <button 
+                      <motion.button 
                         onClick={() => setQuizSubmitted(true)}
                         disabled={quizAnswers.includes("")}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         className="btn btn-primary w-full mt-8 disabled:opacity-50"
                       >
                         Submit Quiz
-                      </button>
+                      </motion.button>
                     ) : (
-                      <div className="mt-8 p-4 bg-green-accent/5 border border-green-accent/20 rounded-xl text-center">
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="mt-8 p-4 bg-green-accent/5 border border-green-accent/20 rounded-xl text-center"
+                      >
                         <p className="text-sm font-bold text-green-accent mb-2">Quiz Completed!</p>
                         <p className="text-xs text-text-muted">You scored {quizAnswers.filter((ans, i) => parseInt(ans) === quizQuestions[i].a).length} out of {quizQuestions.length}</p>
-                      </div>
+                      </motion.div>
                     )}
-                  </div>
+                  </motion.div>
                 )}
               </>
             ) : (
-              <p>Select a lesson to begin your journey.</p>
+              <div className="flex flex-col items-center justify-center py-20 space-y-6">
+                <div className="w-20 h-20 bg-blue-dim rounded-3xl flex items-center justify-center text-blue-secondary">
+                  <BookOpen size={40} />
+                </div>
+                <div className="text-center">
+                  <h3 className="text-xl font-bold text-text-primary mb-2">Ready to Start?</h3>
+                  <p className="text-sm text-text-muted max-w-xs mx-auto">Click the button below and Aria will generate a personalized lesson for you.</p>
+                </div>
+                <motion.button 
+                  onClick={() => generateLessonContent(activeLesson)}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-10 py-4 bg-blue-primary text-white rounded-2xl font-black uppercase tracking-[0.2em] text-xs shadow-lg shadow-blue-primary/20"
+                >
+                  Start Learning
+                </motion.button>
+              </div>
             )}
           </div>
 
           {!isGenerating && lessonContent && (
             <div className="mt-10">
-              <button 
+              <motion.button 
                 onClick={() => handleCompleteLesson(activeLesson.id, activeLesson.xp)}
                 disabled={quizQuestions.length > 0 && !quizSubmitted}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 className="btn btn-primary w-full py-4 disabled:opacity-50"
               >
                 {progress.completedLessons.includes(activeLesson.id) ? "Back to Course" : `Complete Lesson & Earn ${activeLesson.xp} XP`}
-              </button>
+              </motion.button>
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <motion.div 
+      className="space-y-8"
+      initial="hidden"
+      animate="visible"
+      variants={{
+        hidden: { opacity: 0 },
+        visible: {
+          opacity: 1,
+          transition: {
+            staggerChildren: 0.1
+          }
+        }
+      }}
+    >
+      <motion.div 
+        className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
+        variants={{
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0 }
+        }}
+      >
         <div>
           <h2 className="font-serif text-2xl font-bold mb-1">🎓 IELTS Course</h2>
           <p className="text-sm text-text-muted">Structured curriculum from Band 0 to 9</p>
@@ -356,7 +420,7 @@ export default function Course() {
             <div className="text-[10px] text-text-muted font-bold uppercase mt-1">Lessons</div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       <div className="space-y-6">
         {COURSE_DATA.map((level, idx) => {
@@ -365,7 +429,14 @@ export default function Course() {
           const pct = Math.round((lessonsDone / level.lessons.length) * 100);
 
           return (
-            <div key={level.id} className={cn("space-y-4", !isUnlocked && "opacity-60")}>
+            <motion.div 
+              key={level.id} 
+              className={cn("space-y-4", !isUnlocked && "opacity-60")}
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: { opacity: 1, y: 0 }
+              }}
+            >
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-1">
                 <div className="flex items-center gap-3">
                   <div className={cn("w-12 h-12 rounded-2xl flex items-center justify-center text-2xl shadow-sm", level.bg)}>
@@ -387,6 +458,7 @@ export default function Course() {
                       <motion.div 
                         initial={{ width: 0 }}
                         animate={{ width: `${pct}%` }}
+                        transition={{ duration: 1, delay: 0.5 }}
                         className={cn("h-full rounded-full", level.color.replace('text', 'bg'))}
                       />
                     </div>
@@ -398,10 +470,12 @@ export default function Course() {
                 {level.lessons.map((lesson) => {
                   const isDone = progress.completedLessons.includes(lesson.id);
                   return (
-                    <button
+                    <motion.button
                       key={lesson.id}
                       onClick={() => isUnlocked && generateLessonContent(lesson)}
                       disabled={!isUnlocked}
+                      whileHover={isUnlocked ? { y: -2, scale: 1.01 } : {}}
+                      whileTap={isUnlocked ? { scale: 0.98 } : {}}
                       className={cn(
                         "card flex items-center gap-4 text-left transition-all group p-4",
                         isDone ? "border-green-accent/30 bg-green-accent/5" : "hover:border-blue-primary/50",
@@ -418,33 +492,38 @@ export default function Course() {
                         <div className={cn("text-sm font-bold truncate", isDone ? "text-text-secondary" : "text-text-primary")}>{lesson.title}</div>
                         <div className="text-[10px] text-text-muted font-bold uppercase tracking-tighter mt-0.5">{lesson.type} · +{lesson.xp} XP</div>
                       </div>
-                    </button>
+                    </motion.button>
                   );
                 })}
               </div>
 
               {level.resources && level.resources.length > 0 && (
-                <div className="mt-4 p-4 bg-bg-2/50 rounded-2xl border border-border/50">
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  className="mt-4 p-4 bg-bg-2/50 rounded-2xl border border-border/50"
+                >
                   <div className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-3 flex items-center gap-2">
                     <BookOpen size={12} /> Level Resources
                   </div>
                   <div className="flex flex-wrap gap-3">
                     {level.resources.map((res, rIdx) => (
-                      <a 
+                      <motion.a 
                         key={rIdx} 
                         href={res.link} 
+                        whileHover={{ x: 2, color: "var(--blue-secondary)" }}
                         className="flex items-center gap-2 px-3 py-1.5 bg-bg-1 border border-border rounded-lg text-[11px] font-bold text-text-secondary hover:text-blue-secondary hover:border-blue-secondary/30 transition-all"
                       >
                         <ChevronRight size={12} /> {res.title}
-                      </a>
+                      </motion.a>
                     ))}
                   </div>
-                </div>
+                </motion.div>
               )}
-            </div>
+            </motion.div>
           );
         })}
       </div>
-    </div>
+    </motion.div>
   );
 }

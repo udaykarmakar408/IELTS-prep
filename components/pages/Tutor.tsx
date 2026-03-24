@@ -140,7 +140,13 @@ Respond in a way that makes the student feel they are getting a premium, one-on-
   };
 
   return (
-    <div id="tutor-root" className="flex flex-col h-[calc(100vh-140px)] md:h-[calc(100vh-100px)] bg-bg-1/50 backdrop-blur-xl rounded-3xl border border-white/5 overflow-hidden shadow-2xl">
+    <motion.div 
+      id="tutor-root" 
+      className="flex flex-col h-[calc(100vh-140px)] md:h-[calc(100vh-100px)] bg-bg-1/50 backdrop-blur-xl rounded-3xl border border-white/5 overflow-hidden shadow-2xl"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       {/* Chat Header */}
       <div id="tutor-header" className="px-6 py-4 bg-white/5 border-b border-white/5 flex items-center justify-between">
         <div id="tutor-header-info" className="flex items-center gap-3">
@@ -153,9 +159,16 @@ Respond in a way that makes the student feel they are getting a premium, one-on-
           </div>
         </div>
         <div id="tutor-header-actions" className="flex items-center gap-2">
-          <button id="btn-clear-history" onClick={clearHistory} className="p-2.5 rounded-xl bg-white/5 text-text-muted hover:text-red-accent hover:bg-red-accent/10 transition-all" title="Clear History">
+          <motion.button 
+            id="btn-clear-history" 
+            onClick={clearHistory} 
+            whileHover={{ scale: 1.1, color: "#ef4444" }}
+            whileTap={{ scale: 0.9 }}
+            className="p-2.5 rounded-xl bg-white/5 text-text-muted hover:text-red-accent hover:bg-red-accent/10 transition-all" 
+            title="Clear History"
+          >
             <Trash2 size={16} />
-          </button>
+          </motion.button>
         </div>
       </div>
 
@@ -167,17 +180,19 @@ Respond in a way that makes the student feel they are getting a premium, one-on-
           { id: "speaking", label: "Speaking", icon: Mic },
           { id: "tips", label: "Tips", icon: Lightbulb },
         ].map((t) => (
-          <button
+          <motion.button
             key={t.id}
             id={`tutor-mode-tab-${t.id}`}
             onClick={() => setMode(t.id as any)}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             className={cn(
               "flex items-center gap-2 px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
               mode === t.id ? "bg-blue-primary text-white shadow-lg shadow-blue-primary/20" : "text-text-muted hover:bg-white/10 hover:text-text-primary"
             )}
           >
             <t.icon size={14} /> {t.label}
-          </button>
+          </motion.button>
         ))}
       </div>
 
@@ -313,6 +328,6 @@ Respond in a way that makes the student feel they are getting a premium, one-on-
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
