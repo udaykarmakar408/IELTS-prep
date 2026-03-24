@@ -3,10 +3,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { 
-  Headphones, 
-  Play, 
-  Pause, 
-  RotateCcw, 
+  Search, 
+  Clock, 
   CheckCircle2, 
   ChevronRight, 
   ArrowLeft,
@@ -19,14 +17,33 @@ import {
   Sparkles,
   Bot,
   ClipboardList,
-  Type
+  Type,
+  Play,
+  Pause,
+  RotateCcw,
+  Trophy,
+  BookOpenCheck,
+  Headphones
 } from "lucide-react";
+import { AudioPlayer } from "@/components/ui/AudioPlayer";
 import { getProgress, saveProgress, UserProgress } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { callGroq } from "@/lib/groq";
+import { callGroq, callGroqJSON } from "@/lib/groq";
 import { GoogleGenAI, Modality } from "@google/genai";
 import { pcmToWav } from "@/lib/audio";
 import ReactMarkdown from "react-markdown";
+
+const LISTENING_SAMPLES = [
+  {
+    id: "ls1",
+    title: "Sample: Form Completion",
+    type: "Form Completion",
+    script: "Woman: Hello, I'd like to book a room for two nights. Man: Certainly. Can I have your name, please? Woman: It's Sarah Jenkins. That's J-E-N-K-I-N-S.",
+    question: "Name: Sarah ________",
+    answer: "Jenkins",
+    explanation: "The speaker spells out the surname: J-E-N-K-I-N-S."
+  }
+];
 
 const LISTENING_SECTIONS = [
   {
@@ -282,6 +299,7 @@ const LISTENING_SECTIONS = [
 
 export default function Listening() {
   const [progress, setProgress] = useState<UserProgress | null>(null);
+  const [activeModuleTab, setActiveModuleTab] = useState<"practice" | "samples" | "ai-test">("practice");
   const [activeSection, setActiveSection] = useState<any>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [playbackProgress, setPlaybackProgress] = useState(0);
@@ -302,7 +320,6 @@ export default function Listening() {
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [isGeneratingFullTest, setIsGeneratingFullTest] = useState(false);
   const [activeTab, setActiveTab] = useState<"questions" | "notes" | "transcript" | "vocab">("questions");
-  const audioRef = React.useRef<HTMLAudioElement>(null);
 
   const highlightVocab = async () => {
     if (!activeSection) return;
@@ -331,24 +348,37 @@ export default function Listening() {
   const generateFullTest = async () => {
     setIsGeneratingFullTest(true);
     setFeedback(null);
-    const systemPrompt = `Generate a full-length IELTS Listening test with 4 sections.
-    Section 1: A conversation between two people set in an everyday social context.
-    Section 2: A monologue set in an everyday social context.
-    Section 3: A conversation between up to four people set in an educational or training context.
-    Section 4: A monologue on an academic subject.
-    
-    For each section, provide:
-    1. Title
-    2. Type
-    3. Difficulty
-    4. A realistic script (approx 200-300 words each)
-    5. 5-10 questions with answers.
-    
-    Return ONLY a JSON array of 4 objects.`;
+    const schema = {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          title: { type: "string" },
+          type: { type: "string" },
+          difficulty: { type: "string" },
+          script: { type: "string" },
+          questions: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: "string" },
+                q: { type: "string" },
+                answer: { type: "string" }
+              },
+              required: ["id", "q", "answer"]
+            }
+          }
+        },
+        required: ["id", "title", "type", "difficulty", "script", "questions"]
+      }
+    };
+
+    const prompt = "Generate a full-length IELTS Listening test with 4 sections. Section 1: Social conversation. Section 2: Social monologue. Section 3: Educational conversation. Section 4: Academic monologue.";
 
     try {
-      const result = await callGroq("Generate a full IELTS Listening test.", systemPrompt);
-      const sections = JSON.parse(result || "[]");
+      const sections = await callGroqJSON(prompt, schema, "You are an IELTS Listening expert.");
       setFullTestSections(sections);
       setIsFullTest(true);
       setCurrentSectionIndex(0);
@@ -437,55 +467,6 @@ export default function Listening() {
     };
   }, [audioUrl]);
 
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const updateProgress = () => {
-      if (audio.duration) {
-        const pct = (audio.currentTime / audio.duration) * 100;
-        setPlaybackProgress(pct);
-      }
-    };
-
-    const handleEnded = () => {
-      setIsPlaying(false);
-      setPlaybackProgress(100);
-    };
-
-    audio.addEventListener('timeupdate', updateProgress);
-    audio.addEventListener('ended', handleEnded);
-
-    return () => {
-      audio.removeEventListener('timeupdate', updateProgress);
-      audio.removeEventListener('ended', handleEnded);
-    };
-  }, [audioUrl]);
-
-  const handlePlay = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    if (isPlaying) {
-      audio.pause();
-    } else {
-      if (playbackProgress >= 100) audio.currentTime = 0;
-      audio.play().catch(console.error);
-    }
-    setIsPlaying(!isPlaying);
-  };
-
-  const handleSpeedChange = () => {
-    const rates = [0.8, 1, 1.2, 1.5];
-    const currentIndex = rates.indexOf(playbackRate);
-    const nextIndex = (currentIndex + 1) % rates.length;
-    const nextRate = rates[nextIndex];
-    setPlaybackRate(nextRate);
-    if (audioRef.current) {
-      audioRef.current.playbackRate = nextRate;
-    }
-  };
-
   const handleCheck = async () => {
     setShowResults(true);
     setIsAnalyzing(true);
@@ -496,7 +477,6 @@ export default function Listening() {
     }
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
       const prompt = `You are an IELTS Listening tutor. A student has completed a listening task.
       Task Title: ${activeSection.title}
       Transcript: ${activeSection.script}
@@ -506,21 +486,13 @@ export default function Listening() {
       Provide constructive feedback. Analyze their mistakes if any. Explain why the correct answers are correct based on the transcript. Give tips for improving listening skills for this type of task (${activeSection.type}).
       Use markdown for formatting. Keep it concise but helpful.`;
 
-      const result = await callGroq(prompt);
+      const result = await callGroq(prompt, "You are an IELTS Listening tutor.");
       setFeedback(result || "No feedback generated.");
     } catch (error) {
       console.error("Feedback generation error:", error);
       setFeedback("Could not generate AI feedback at this time.");
     } finally {
       setIsAnalyzing(false);
-    }
-  };
-
-  const resetAudio = () => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      setPlaybackProgress(0);
-      if (isPlaying) audioRef.current.play();
     }
   };
 
@@ -555,42 +527,25 @@ export default function Listening() {
           </div>
 
           <div className="space-y-3 md:space-y-4">
-            <div className="h-1 md:h-1.5 bg-bg-3 rounded-full overflow-hidden">
-              <motion.div animate={{ width: `${playbackProgress}%` }} className="h-full bg-blue-primary" />
-            </div>
-            
-            {audioUrl && <audio ref={audioRef} src={audioUrl} className="hidden" />}
-
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={handlePlay} 
-                  disabled={isGeneratingAudio || !!audioError}
-                  className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-blue-primary text-white flex items-center justify-center hover:bg-blue-secondary transition-colors disabled:opacity-50 flex-shrink-0"
-                >
-                  {isGeneratingAudio ? <Loader2 size={20} className="animate-spin" /> : isPlaying ? <Pause size={20} /> : <Play size={20} className="ml-0.5 md:ml-1" />}
-                </button>
-                
-                <button 
-                  onClick={handleSpeedChange}
-                  className="px-2 py-1 bg-bg-3 hover:bg-bg-2 rounded text-[10px] font-bold text-text-muted transition-colors"
-                >
-                  {playbackRate}x
-                </button>
-              </div>
-              
-              <div className="text-[9px] md:text-[10px] font-bold text-text-muted uppercase tracking-widest text-center flex-1">
-                {isGeneratingAudio ? "Generating Audio..." : audioError ? "Audio Error" : isPlaying ? "🔊 Playing Audio..." : playbackProgress >= 100 ? "✅ Audio Complete" : "Ready to Play"}
-              </div>
-
-              <button onClick={resetAudio} className="p-2 text-text-muted hover:text-text-primary transition-colors flex-shrink-0">
-                <RotateCcw size={18} />
-              </button>
-            </div>
-
-            {audioError && (
-              <div className="flex items-center gap-2 text-red-accent text-[10px] font-bold uppercase mt-2">
-                <AlertCircle size={14} /> {audioError}
+            {audioUrl ? (
+              <AudioPlayer 
+                src={audioUrl} 
+                onEnded={() => setPlaybackProgress(100)}
+                className="bg-transparent border-none shadow-none p-0"
+              />
+            ) : (
+              <div className="h-24 flex flex-col items-center justify-center bg-bg-2/50 rounded-2xl border border-dashed border-border-2 gap-3">
+                {isGeneratingAudio ? (
+                  <>
+                    <Loader2 size={24} className="animate-spin text-blue-primary" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Generating Audio...</span>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle size={24} className="text-red-accent" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-red-accent">{audioError || "Audio not available"}</span>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -833,45 +788,114 @@ export default function Listening() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="font-serif text-2xl font-bold mb-1">🎧 Listening Practice</h2>
-          <p className="text-sm text-text-muted">IELTS-style audio with real-time player and questions</p>
+          <h2 className="font-serif text-2xl font-bold mb-1">🎧 Listening Lab</h2>
+          <p className="text-sm text-text-muted">Improve your listening with authentic IELTS tasks</p>
         </div>
-        <button 
-          onClick={generateFullTest} 
-          disabled={isGeneratingFullTest}
-          className="btn btn-primary bg-violet-accent hover:bg-violet-accent/80 border-none flex items-center gap-2"
-        >
-          {isGeneratingFullTest ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
-          Full Mock Test
-        </button>
+        <div className="flex bg-bg-2 p-1 rounded-xl border border-border">
+          <button 
+            onClick={() => setActiveModuleTab("practice")}
+            className={cn(
+              "px-4 py-2 rounded-lg text-xs font-bold transition-all",
+              activeModuleTab === "practice" ? "bg-blue-primary text-white shadow-lg shadow-blue-primary/20" : "text-text-muted hover:text-text-primary"
+            )}
+          >
+            Practice
+          </button>
+          <button 
+            onClick={() => setActiveModuleTab("samples")}
+            className={cn(
+              "px-4 py-2 rounded-lg text-xs font-bold transition-all",
+              activeModuleTab === "samples" ? "bg-blue-primary text-white shadow-lg shadow-blue-primary/20" : "text-text-muted hover:text-text-primary"
+            )}
+          >
+            Sample Q&A
+          </button>
+          <button 
+            onClick={() => setActiveModuleTab("ai-test")}
+            className={cn(
+              "px-4 py-2 rounded-lg text-xs font-bold transition-all",
+              activeModuleTab === "ai-test" ? "bg-blue-primary text-white shadow-lg shadow-blue-primary/20" : "text-text-muted hover:text-text-primary"
+            )}
+          >
+            AI Practice Test
+          </button>
+        </div>
       </div>
 
-      <div className="space-y-4">
-        {LISTENING_SECTIONS.map((sec) => (
-          <button
-            key={sec.id}
-            onClick={() => setActiveSection(sec)}
-            className="card w-full text-left hover:border-blue-primary group flex items-center gap-4"
-          >
-            <div className="w-12 h-12 rounded-2xl bg-bg-2 flex items-center justify-center text-blue-secondary group-hover:scale-110 transition-transform">
-              <Headphones size={24} />
-            </div>
-            <div className="flex-1 min-width-0">
-              <div className="font-bold text-sm text-text-primary mb-1 truncate">{sec.title}</div>
-              <div className="flex items-center gap-2">
-                <span className={cn(
-                  "tag",
-                  sec.difficulty === "Easy" ? "tag-green" : "tag-amber"
-                )}>{sec.difficulty}</span>
-                <span className="tag tag-gray">{sec.type}</span>
+      {activeModuleTab === "practice" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {LISTENING_SECTIONS.map((section) => (
+            <button
+              key={section.id}
+              onClick={() => { setActiveSection(section); setUserAnswers({}); setShowResults(false); setFeedback(null); }}
+              className="card w-full text-left hover:border-blue-primary group"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className="tag tag-blue">{section.type}</span>
+                <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Section {section.id.split('-')[1]}</span>
+              </div>
+              <h3 className="font-bold text-text-primary mb-2 group-hover:text-blue-primary transition-colors">{section.title}</h3>
+              <div className="flex items-center justify-between pt-4 border-t border-border-2">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">{section.questions.length} Questions</span>
+                <ChevronRight size={16} className="text-text-muted group-hover:text-blue-primary group-hover:translate-x-1 transition-all" />
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {activeModuleTab === "samples" && (
+        <div className="space-y-6">
+          {LISTENING_SAMPLES.map((sample) => (
+            <div key={sample.id} className="card bg-bg-2 border-border-2 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-text-primary">{sample.title}</h3>
+                <span className="tag tag-blue">{sample.type}</span>
+              </div>
+              <div className="space-y-4">
+                <div className="p-4 bg-bg-1 rounded-xl border border-border-2 text-sm text-text-secondary italic">
+                  <div className="text-[10px] font-bold text-blue-primary uppercase tracking-widest mb-2">Script Snippet</div>
+                  {sample.script}
+                </div>
+                <div className="space-y-2">
+                  <div className="text-xs font-bold text-text-primary">Question: {sample.question}</div>
+                </div>
+                <div className="p-4 bg-green-accent/5 border border-green-accent/20 rounded-xl">
+                  <div className="text-[10px] font-bold text-green-accent uppercase tracking-widest mb-1">Correct Answer</div>
+                  <div className="text-sm font-bold text-text-primary mb-2">{sample.answer}</div>
+                  <div className="text-[10px] text-text-muted leading-relaxed">
+                    <span className="font-bold">Explanation:</span> {sample.explanation}
+                  </div>
+                </div>
               </div>
             </div>
-            <ChevronRight size={18} className="text-text-muted group-hover:text-blue-primary group-hover:translate-x-1 transition-all" />
+          ))}
+        </div>
+      )}
+
+      {activeModuleTab === "ai-test" && (
+        <div className="flex flex-col items-center justify-center py-20 text-center space-y-6">
+          <div className="w-20 h-20 rounded-3xl bg-blue-primary/10 text-blue-primary flex items-center justify-center">
+            <Sparkles size={40} />
+          </div>
+          <div className="max-w-md">
+            <h3 className="text-xl font-bold mb-2">AI-Generated Full Test</h3>
+            <p className="text-sm text-text-muted">
+              Aria will generate a complete IELTS Listening test with 4 sections and realistic audio scripts.
+            </p>
+          </div>
+          <button 
+            onClick={generateFullTest}
+            disabled={isGeneratingFullTest}
+            className="btn btn-primary px-8 py-4 flex items-center gap-2"
+          >
+            {isGeneratingFullTest ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} />}
+            {isGeneratingFullTest ? "Generating Test..." : "Generate Full Test"}
           </button>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -15,13 +15,34 @@ import {
   Volume2,
   VolumeX,
   MicOff,
-  Loader2
+  Loader2,
+  Sparkles
 } from "lucide-react";
 import { getProgress, saveProgress, UserProgress } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { callGroq, callGroqChat } from "@/lib/groq";
 import { GoogleGenAI, Modality } from "@google/genai";
 import ReactMarkdown from "react-markdown";
+import SpeakingLiveSession from "./SpeakingLiveSession";
+
+const SPEAKING_SAMPLES = [
+  {
+    id: "ss1",
+    part: 1,
+    topic: "Hometown",
+    question: "Where is your hometown?",
+    answer: "My hometown is a vibrant city located in the southern part of the country. It's famous for its historical landmarks and delicious local cuisine. I've lived there all my life, and I really enjoy the sense of community there.",
+    analysis: "This answer is direct and provides relevant details. It uses good vocabulary like 'vibrant' and 'historical landmarks'."
+  },
+  {
+    id: "ss2",
+    part: 2,
+    topic: "A memorable journey",
+    question: "Describe a memorable journey you have taken.",
+    answer: "One of the most memorable journeys I've ever had was a road trip through the mountains last summer. I went with a group of close friends, and we spent a week exploring different trails and camping under the stars. The scenery was absolutely breathtaking, and the experience brought us all much closer together.",
+    analysis: "The speaker uses a range of narrative tenses and descriptive adjectives like 'memorable' and 'breathtaking'. The structure follows the cue card prompts well."
+  }
+];
 
 interface Topic {
   id: string;
@@ -267,6 +288,7 @@ const SPEAKING_TOPICS: Topic[] = [
 
 export default function Speaking() {
   const [progress, setProgress] = useState<UserProgress | null>(null);
+  const [activeModuleTab, setActiveModuleTab] = useState<"practice" | "samples" | "ai-test">("practice");
   const [activeTopic, setActiveTopic] = useState<Topic | null>(null);
   const [timerState, setTimerState] = useState<"idle" | "prep" | "speak">("idle");
   const [timeLeft, setTimeLeft] = useState(0);
@@ -281,6 +303,8 @@ export default function Speaking() {
   const [isHighlighting, setIsHighlighting] = useState(false);
   const [highlightedVocab, setHighlightedVocab] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'chat' | 'vocab' | 'feedback'>('chat');
+  const [isLiveSessionOpen, setIsLiveSessionOpen] = useState(false);
+  const [liveMode, setLiveMode] = useState<"part1" | "part2" | "part3" | "full" | "mock">("full");
 
   useEffect(() => {
     if (typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
@@ -642,65 +666,203 @@ export default function Speaking() {
             </div>
           </div>
         )}
+
+        <div className="pt-4">
+          <button 
+            onClick={() => setIsLiveSessionOpen(true)}
+            className="btn btn-primary bg-blue-primary/10 text-blue-primary hover:bg-blue-primary/20 border-blue-primary/30 w-full py-4 rounded-2xl flex items-center justify-center gap-3 group"
+          >
+            <Sparkles size={20} className="group-hover:animate-pulse" />
+            <span className="font-bold">Discuss this topic with Live AI</span>
+          </button>
+        </div>
+
+        <AnimatePresence>
+          {isLiveSessionOpen && (
+            <SpeakingLiveSession 
+              onClose={() => setIsLiveSessionOpen(false)} 
+              topic={activeTopic.title}
+              mode="part2"
+            />
+          )}
+        </AnimatePresence>
       </div>
     );
   }
 
   return (
     <div className="space-y-8 pb-10">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="font-serif text-2xl font-bold mb-1">🎤 Speaking Center</h2>
           <p className="text-sm text-text-muted">Master all 3 parts of the IELTS speaking test</p>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[
-          { id: "part1", label: "Part 1", title: "Introduction", desc: "Personal questions", color: "blue" },
-          { id: "part2", label: "Part 2", title: "Cue Card", desc: "Long turn talk", color: "violet" },
-          { id: "part3", label: "Part 3", title: "Discussion", desc: "Abstract topics", color: "emerald" }
-        ].map((sim) => (
-          <button
-            key={sim.id}
-            onClick={() => startSimulation(sim.id as any)}
+        <div className="flex bg-bg-2 p-1 rounded-xl border border-border">
+          <button 
+            onClick={() => setActiveModuleTab("practice")}
             className={cn(
-              "card text-left group hover:-translate-y-1 transition-all",
-              sim.color === "blue" ? "hover:border-blue-primary" : sim.color === "violet" ? "hover:border-violet-accent" : "hover:border-emerald-accent"
+              "px-4 py-2 rounded-lg text-xs font-bold transition-all",
+              activeModuleTab === "practice" ? "bg-blue-primary text-white shadow-lg shadow-blue-primary/20" : "text-text-muted hover:text-text-primary"
             )}
           >
-            <div className={cn(
-              "text-[10px] font-bold uppercase tracking-widest mb-1",
-              sim.color === "blue" ? "text-blue-secondary" : sim.color === "violet" ? "text-violet-accent" : "text-emerald-accent"
-            )}>
-              {sim.label}
-            </div>
-            <div className="font-bold text-text-primary mb-1">{sim.title}</div>
-            <div className="text-xs text-text-muted">{sim.desc}</div>
+            Practice
           </button>
-        ))}
+          <button 
+            onClick={() => setActiveModuleTab("samples")}
+            className={cn(
+              "px-4 py-2 rounded-lg text-xs font-bold transition-all",
+              activeModuleTab === "samples" ? "bg-blue-primary text-white shadow-lg shadow-blue-primary/20" : "text-text-muted hover:text-text-primary"
+            )}
+          >
+            Sample Q&A
+          </button>
+          <button 
+            onClick={() => setActiveModuleTab("ai-test")}
+            className={cn(
+              "px-4 py-2 rounded-lg text-xs font-bold transition-all",
+              activeModuleTab === "ai-test" ? "bg-blue-primary text-white shadow-lg shadow-blue-primary/20" : "text-text-muted hover:text-text-primary"
+            )}
+          >
+            AI Practice Test
+          </button>
+        </div>
       </div>
 
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider">Part 2 Cue Cards</h3>
-        </div>
-        <div className="space-y-3">
-          {SPEAKING_TOPICS.map((topic) => (
-            <button
-              key={topic.id}
-              onClick={() => setActiveTopic(topic)}
-              className="card w-full text-left hover:border-blue-primary group flex items-center justify-between"
-            >
-              <div className="flex-1 min-width-0">
-                <div className="font-bold text-sm text-text-primary mb-1 truncate">{topic.title}</div>
-                <div className="text-[10px] text-text-muted font-medium uppercase tracking-wider">Tap to practice with timer</div>
+      <AnimatePresence>
+        {isLiveSessionOpen && (
+          <SpeakingLiveSession 
+            onClose={() => setIsLiveSessionOpen(false)} 
+            topic={undefined}
+            mode={liveMode}
+          />
+        )}
+      </AnimatePresence>
+
+      {activeModuleTab === "practice" && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              { id: "part1", label: "Part 1", title: "Introduction", desc: "Personal questions", color: "blue" },
+              { id: "part2", label: "Part 2", title: "Cue Card", desc: "Long turn talk", color: "violet" },
+              { id: "part3", label: "Part 3", title: "Discussion", desc: "Abstract topics", color: "emerald" }
+            ].map((sim) => (
+              <div
+                key={sim.id}
+                className={cn(
+                  "card text-left group transition-all flex flex-col justify-between",
+                  sim.color === "blue" ? "hover:border-blue-primary" : sim.color === "violet" ? "hover:border-violet-accent" : "hover:border-emerald-accent"
+                )}
+              >
+                <div>
+                  <div className={cn(
+                    "text-[10px] font-bold uppercase tracking-widest mb-1",
+                    sim.color === "blue" ? "text-blue-secondary" : sim.color === "violet" ? "text-violet-accent" : "text-emerald-accent"
+                  )}>
+                    {sim.label}
+                  </div>
+                  <div className="font-bold text-text-primary mb-1">{sim.title}</div>
+                  <div className="text-xs text-text-muted mb-4">{sim.desc}</div>
+                </div>
+                
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => startSimulation(sim.id as any)}
+                    className="btn btn-ghost w-full py-2 text-[10px] font-bold uppercase tracking-widest border border-border-2 hover:bg-bg-2"
+                  >
+                    Text Practice
+                  </button>
+                  <button
+                    onClick={() => {
+                      setLiveMode(sim.id as any);
+                      setIsLiveSessionOpen(true);
+                    }}
+                    className={cn(
+                      "btn w-full py-2 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2",
+                      sim.color === "blue" ? "bg-blue-primary text-white" : sim.color === "violet" ? "bg-violet-accent text-white" : "bg-emerald-accent text-white"
+                    )}
+                  >
+                    <Mic size={12} />
+                    Voice Chat
+                  </button>
+                </div>
               </div>
-              <ChevronRight size={18} className="text-text-muted group-hover:text-blue-primary group-hover:translate-x-1 transition-all" />
-            </button>
+            ))}
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider">Part 2 Cue Cards</h3>
+            </div>
+            <div className="space-y-3">
+              {SPEAKING_TOPICS.map((topic) => (
+                <button
+                  key={topic.id}
+                  onClick={() => setActiveTopic(topic)}
+                  className="card w-full text-left hover:border-blue-primary group flex items-center justify-between"
+                >
+                  <div className="flex-1 min-width-0">
+                    <div className="font-bold text-sm text-text-primary mb-1 truncate">{topic.title}</div>
+                    <div className="text-[10px] text-text-muted font-medium uppercase tracking-wider">Tap to practice with timer</div>
+                  </div>
+                  <ChevronRight size={18} className="text-text-muted group-hover:text-blue-primary group-hover:translate-x-1 transition-all" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {activeModuleTab === "samples" && (
+        <div className="space-y-6">
+          {SPEAKING_SAMPLES.map((sample) => (
+            <div key={sample.id} className="card bg-bg-2 border-border-2 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <span className="tag tag-blue">Part {sample.part}</span>
+                  <h3 className="font-bold text-text-primary">{sample.topic}</h3>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Question</div>
+                  <div className="text-sm font-bold text-text-primary">{sample.question}</div>
+                </div>
+                <div className="p-4 bg-bg-1 rounded-xl border border-border-2 text-sm text-text-secondary italic leading-relaxed">
+                  <div className="text-[10px] font-bold text-blue-primary uppercase tracking-widest mb-2">Model Answer</div>
+                  "{sample.answer}"
+                </div>
+                <div className="p-4 bg-violet-accent/5 border border-violet-accent/20 rounded-xl">
+                  <div className="text-[10px] font-bold text-violet-accent uppercase tracking-widest mb-1">Examiner Analysis</div>
+                  <div className="text-xs text-text-secondary leading-relaxed">
+                    {sample.analysis}
+                  </div>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
-      </div>
+      )}
+
+      {activeModuleTab === "ai-test" && (
+        <div className="flex flex-col items-center justify-center py-20 text-center space-y-6">
+          <div className="w-20 h-20 rounded-3xl bg-violet-accent/10 text-violet-accent flex items-center justify-center">
+            <Sparkles size={40} />
+          </div>
+          <div className="max-w-md">
+            <h3 className="text-xl font-bold mb-2">AI Mock Speaking Test</h3>
+            <p className="text-sm text-text-muted">
+              Experience a full 15-minute IELTS Speaking test (Parts 1, 2, and 3) with our AI examiner. You'll receive a detailed band score and feedback.
+            </p>
+          </div>
+          <button 
+            onClick={() => { setLiveMode("mock"); setIsLiveSessionOpen(true); }}
+            className="btn btn-primary bg-violet-accent hover:bg-violet-accent/80 border-none px-8 py-4 flex items-center gap-2"
+          >
+            <Mic size={20} />
+            Start Full Mock Test
+          </button>
+        </div>
+      )}
     </div>
   );
 }

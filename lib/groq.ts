@@ -31,6 +31,30 @@ export async function callGroq(prompt: string, systemInstruction?: string, model
   }
 }
 
+export async function callGroqJSON(prompt: string, schema?: any, systemInstruction?: string, model: string = "llama-3.3-70b-versatile") {
+  try {
+    const response = await groq.chat.completions.create({
+      messages: [
+        ...(systemInstruction ? [{ role: "system" as const, content: systemInstruction }] : []),
+        { role: "user" as const, content: `${prompt}\n\nReturn your response in JSON format.` },
+      ],
+      model: model,
+      response_format: { type: "json_object" },
+      temperature: 0.7,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) {
+      throw new Error("Groq JSON returned an empty response.");
+    }
+
+    return JSON.parse(content);
+  } catch (error) {
+    console.error(`Groq JSON Error (${model}):`, error);
+    throw error;
+  }
+}
+
 export async function callGroqChat(
   messages: { role: "user" | "assistant" | "system"; content: string }[],
   model: string = "llama-3.3-70b-versatile"

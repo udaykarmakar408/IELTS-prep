@@ -20,6 +20,8 @@ import { callGroq } from "@/lib/groq";
 import ReactMarkdown from "react-markdown";
 import { GoogleGenAI, Modality } from "@google/genai";
 import { pcmToWav } from "@/lib/audio";
+import { AudioPlayer } from "@/components/ui/AudioPlayer";
+import { CAMBRIDGE_TEST_DATA } from "@/lib/data/cambridge_data";
 
 interface Test {
   id: string;
@@ -92,35 +94,7 @@ const CAMBRIDGE_BOOKS: Book[] = [
   }
 ];
 
-const TEST_DATA: Record<string, any> = {
-  "c19-t1": {
-    reading: {
-      title: "The Impact of Urban Green Spaces",
-      passage: `Urban green spaces, such as parks, gardens, and urban forests, play a crucial role in enhancing the quality of life in cities. Research has shown that access to green spaces can significantly reduce stress levels and improve mental health. Furthermore, these areas help to mitigate the urban heat island effect, where cities become significantly warmer than their surrounding rural areas due to human activities and the concentration of heat-absorbing materials like concrete and asphalt.
-
-In addition to environmental benefits, urban green spaces provide social advantages. They serve as communal areas where people can interact, fostering a sense of community. For children, parks offer essential spaces for physical activity and play, which are vital for healthy development. However, as cities continue to grow and densify, the preservation and creation of green spaces face significant challenges, including high land values and competing development interests.`,
-      questions: [
-        { id: 1, type: "true-false", question: "Urban green spaces can help reduce stress levels.", answer: "TRUE" },
-        { id: 2, type: "true-false", question: "Cities are usually cooler than rural areas.", answer: "FALSE" },
-        { id: 3, type: "true-false", question: "Green spaces have no social benefits for children.", answer: "FALSE" }
-      ]
-    },
-    listening: {
-      title: "Library Membership Inquiry",
-      transcript: `Librarian: Good morning! How can I help you today?
-Student: Hi, I'd like to inquire about joining the library. I'm a new student here.
-Librarian: Welcome! To join, you'll need your student ID card and a proof of address, like a utility bill or a rental agreement.
-Student: I have my ID card, but I don't have a utility bill yet. Will a letter from the university work?
-Librarian: Yes, a formal letter from the university confirming your address is perfectly fine.
-Student: Great. And how many books can I borrow at once?
-Librarian: Undergraduate students can borrow up to 10 books for a period of two weeks.`,
-      questions: [
-        { id: 1, type: "gap-fill", question: "To join the library, the student needs an ID card and proof of _______.", answer: "address" },
-        { id: 2, type: "gap-fill", question: "Undergraduates can borrow a maximum of _______ books.", answer: "10" }
-      ]
-    }
-  }
-};
+const TEST_DATA = CAMBRIDGE_TEST_DATA;
 
 export default function Cambridge() {
   const [activeBook, setActiveBook] = useState<Book | null>(null);
@@ -136,8 +110,6 @@ export default function Cambridge() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [audioError, setAudioError] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audioRef = React.useRef<HTMLAudioElement | null>(null);
 
   // Analysis state
   const [analysis, setAnalysis] = useState<string | null>(null);
@@ -262,31 +234,20 @@ export default function Cambridge() {
             <h3 className="text-xl font-serif font-black text-text-primary">{data.title}</h3>
             <p className="text-xs text-text-muted uppercase tracking-widest font-bold">Section 1: Social Needs</p>
           </div>
-          <div className="ml-auto">
-            <button 
-              onClick={() => {
-                if (audioUrl) {
-                  if (isPlaying) audioRef.current?.pause();
-                  else audioRef.current?.play();
-                  setIsPlaying(!isPlaying);
-                } else {
-                  handleGenerateAudio(data.transcript);
-                }
-              }}
-              disabled={isGeneratingAudio}
-              className="btn btn-primary px-6 flex items-center gap-2"
-            >
-              {isGeneratingAudio ? <Loader2 size={18} className="animate-spin" /> : isPlaying ? "Pause Audio" : "Play Audio"}
-            </button>
-            {audioUrl && (
-              <audio 
-                ref={audioRef} 
+          <div className="ml-auto w-full max-w-xs">
+            {audioUrl ? (
+              <AudioPlayer 
                 src={audioUrl} 
-                onEnded={() => setIsPlaying(false)}
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-                className="hidden" 
+                className="bg-transparent border-none shadow-none p-0"
               />
+            ) : (
+              <button 
+                onClick={() => handleGenerateAudio(data.transcript || "")}
+                disabled={isGeneratingAudio}
+                className="btn btn-primary px-6 flex items-center gap-2 w-full"
+              >
+                {isGeneratingAudio ? <Loader2 size={18} className="animate-spin" /> : "Generate & Play Audio"}
+              </button>
             )}
           </div>
         </div>
@@ -315,7 +276,7 @@ export default function Cambridge() {
             <button 
               onClick={() => setShowResults(true)}
               className="btn btn-primary w-full mt-10"
-              disabled={Object.keys(userAnswers).length < 2}
+              disabled={Object.keys(userAnswers).length < (data?.questions?.length || 0)}
             >
               Check Answers
             </button>
@@ -324,7 +285,7 @@ export default function Cambridge() {
           <div className="card bg-white border-border-2 p-8">
             <h4 className="text-xs font-black text-text-muted uppercase tracking-widest mb-4">Transcript Preview</h4>
             <div className="text-xs text-text-secondary leading-relaxed space-y-2 italic">
-              {data.transcript.split('\n').map((line: string, i: number) => <p key={i}>{line}</p>)}
+              {data.transcript?.split('\n').map((line: string, i: number) => <p key={i}>{line}</p>)}
             </div>
           </div>
         </div>
@@ -336,7 +297,7 @@ export default function Cambridge() {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <button onClick={() => { setActiveSkill(null); setShowResults(false); setUserAnswers({}); setAudioUrl(null); setIsPlaying(false); }} className="flex items-center gap-2 text-text-muted hover:text-text-primary transition-colors">
+          <button onClick={() => { setActiveSkill(null); setShowResults(false); setUserAnswers({}); setAudioUrl(null); }} className="flex items-center gap-2 text-text-muted hover:text-text-primary transition-colors">
             <ArrowLeft size={16} /> Back to {activeTest.label}
           </button>
           <div className="text-[10px] font-bold text-blue-secondary uppercase tracking-widest">
@@ -396,7 +357,7 @@ export default function Cambridge() {
         <div className="card bg-white border-border-2 p-8 overflow-y-auto max-h-[600px] shadow-sm">
           <h3 className="text-2xl font-serif font-black mb-6 text-blue-secondary">{data.title}</h3>
           <div className="prose prose-slate max-w-none text-sm leading-relaxed text-text-primary space-y-4">
-            {data.passage.split('\n\n').map((p: string, i: number) => <p key={i}>{p}</p>)}
+            {data.passage?.split('\n\n').map((p: string, i: number) => <p key={i}>{p}</p>)}
           </div>
         </div>
         <div className="space-y-6">
@@ -433,7 +394,7 @@ export default function Cambridge() {
             <button 
               onClick={() => setShowResults(true)}
               className="btn btn-primary w-full mt-10"
-              disabled={Object.keys(userAnswers).length < 3}
+              disabled={Object.keys(userAnswers).length < (data?.questions?.length || 0)}
             >
               Check Answers
             </button>
@@ -460,6 +421,11 @@ export default function Cambridge() {
   }
 
   if (activeSkill === "Writing" && activeBook && activeTest) {
+    const data = TEST_DATA[activeTest.id]?.writing || {
+      task1: "The chart below shows the percentage of people who used different modes of transport in a city in 2010 and 2020. Summarize the information by selecting and reporting the main features, and make comparisons where relevant.",
+      task2: "Some people believe that technology has made our lives more complex, while others argue it has simplified them. Discuss both views and give your own opinion."
+    };
+
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -467,20 +433,47 @@ export default function Cambridge() {
             <ArrowLeft size={16} /> Back to {activeTest.label}
           </button>
           <div className="text-[10px] font-bold text-blue-secondary uppercase tracking-widest">
-            {activeBook.title} — {activeTest.label} — Writing Task 2
+            {activeBook.title} — {activeTest.label} — Writing
           </div>
         </div>
 
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="card bg-bg-2 border-blue-primary/30 p-8">
+            <div className="flex items-center gap-2 text-blue-secondary font-bold text-[10px] uppercase tracking-widest mb-4">
+              <PenTool size={14} /> Task 1: Academic Report
+            </div>
+            <p className="text-sm text-text-secondary mb-6 leading-relaxed italic">
+              &quot;{data.task1}&quot;
+            </p>
+            <button 
+              onClick={() => setEssay(prev => prev || "Task 1 Response:\n\n")}
+              className="btn btn-ghost text-[10px] font-bold uppercase tracking-widest"
+            >
+              Practice Task 1
+            </button>
+          </div>
+
+          <div className="card bg-bg-2 border-blue-primary/30 p-8">
+            <div className="flex items-center gap-2 text-blue-secondary font-bold text-[10px] uppercase tracking-widest mb-4">
+              <PenTool size={14} /> Task 2: Argumentative Essay
+            </div>
+            <p className="text-sm text-text-secondary mb-6 leading-relaxed italic">
+              &quot;{data.task2}&quot;
+            </p>
+            <button 
+              onClick={() => setEssay(prev => prev || "Task 2 Response:\n\n")}
+              className="btn btn-ghost text-[10px] font-bold uppercase tracking-widest"
+            >
+              Practice Task 2
+            </button>
+          </div>
+        </div>
+        
         <div className="card bg-bg-2 border-blue-primary/30 p-8">
-          <h3 className="text-xl font-serif font-bold mb-4">Writing Task 2 Practice</h3>
-          <p className="text-sm text-text-secondary mb-6 leading-relaxed italic">
-            &quot;Some people believe that technology has made our lives more complex, while others argue it has simplified them. Discuss both views and give your own opinion.&quot;
-          </p>
-          
           <textarea
             value={essay}
             onChange={(e) => setEssay(e.target.value)}
-            placeholder="Type your essay here (minimum 250 words)..."
+            placeholder="Type your response here..."
             className="w-full bg-bg-1 border border-border-2 rounded-2xl p-6 text-sm text-text-primary focus:border-blue-primary outline-none min-h-[400px] resize-none font-serif leading-relaxed mb-6"
           />
 
@@ -490,7 +483,7 @@ export default function Cambridge() {
             </div>
             <button 
               onClick={handleGradeEssay}
-              disabled={isGrading || essay.length < 100}
+              disabled={isGrading || essay.length < 50}
               className="btn btn-primary px-8"
             >
               {isGrading ? <><Loader2 size={18} className="animate-spin" /> Grading...</> : "Submit for AI Grading"}

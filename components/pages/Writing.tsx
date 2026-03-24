@@ -13,12 +13,24 @@ import {
   Loader2,
   AlertCircle,
   Trophy,
-  MessageSquare
+  MessageSquare,
+  BookOpenCheck
 } from "lucide-react";
 import { getProgress, saveProgress, UserProgress } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { callGroq } from "@/lib/groq";
+import { callGroq, callGroqJSON } from "@/lib/groq";
 import ReactMarkdown from "react-markdown";
+
+const WRITING_SAMPLES = [
+  {
+    id: "ws1",
+    title: "Task 2: Education",
+    type: "Task 2",
+    question: "Some people think that it is better to educate boys and girls in separate schools. Others, however, believe that mixed schools are more beneficial. Discuss both views and give your opinion.",
+    sampleAnswer: "The question of whether single-sex or co-educational schools are more effective for children's development is a subject of ongoing debate. While some argue that separate education allows for better focus and tailored teaching, I believe that mixed schools provide a more realistic and beneficial environment for future success...",
+    analysis: "This essay follows a clear structure: Introduction, Body Paragraph 1 (Separate schools), Body Paragraph 2 (Mixed schools), and Conclusion with Opinion. It uses a wide range of vocabulary (e.g., 'co-educational', 'ongoing debate', 'tailored teaching') and complex sentence structures."
+  }
+];
 import { ChartDisplay } from "@/components/ChartDisplay";
 import { STRUCTURE_TASKS, WRITING_TASKS } from "@/lib/content";
 
@@ -26,7 +38,7 @@ const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#ef4444'
 
 export default function Writing() {
   const [progress, setProgress] = useState<UserProgress | null>(null);
-  const [activeTab, setActiveTab] = useState<"practice" | "structure">("practice");
+  const [activeTab, setActiveTab] = useState<"practice" | "samples" | "ai-test" | "structure">("practice");
   const [activeTask, setActiveTask] = useState<any>(null);
   const [userText, setUserText] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -34,6 +46,7 @@ export default function Writing() {
   const [smartReview, setSmartReview] = useState<any[] | null>(null);
   const [feedbackTab, setFeedbackTab] = useState<"report" | "review">("report");
   const [timeLeft, setTimeLeft] = useState(0);
+  const [isGenerating, setIsGenerating] = useState(false);
   
   // Structure Analysis State
   const [selectedElement, setSelectedElement] = useState<string | null>(null);
@@ -66,6 +79,36 @@ export default function Writing() {
     setUserAnalysis({});
     setSelectedElement(null);
     setTimeLeft(task.mins * 60);
+  };
+
+  const generateAIPractice = async () => {
+    setIsGenerating(true);
+    const schema = {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        type: { type: "string" },
+        prompt: { type: "string" },
+        wordCount: { type: "number" },
+        mins: { type: "number" },
+        difficulty: { type: "string" }
+      },
+      required: ["title", "type", "prompt", "wordCount", "mins", "difficulty"]
+    };
+
+    const prompt = "Generate a unique IELTS Writing Task 2 prompt. The topic should be modern and relevant (e.g., technology, environment, society).";
+
+    try {
+      const result = await callGroqJSON(prompt, schema, "You are an IELTS Writing expert.");
+      startTask({
+        id: "ai-task-" + Date.now(),
+        ...result
+      });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const renderHighlightedText = (text: string, errors: any[]) => {
@@ -484,7 +527,25 @@ export default function Writing() {
               activeTab === "practice" ? "bg-blue-primary text-white shadow-lg shadow-blue-primary/20" : "text-text-muted hover:text-text-primary"
             )}
           >
-            Practice Tasks
+            Practice
+          </button>
+          <button 
+            onClick={() => setActiveTab("samples")}
+            className={cn(
+              "px-4 py-2 rounded-lg text-xs font-bold transition-all",
+              activeTab === "samples" ? "bg-blue-primary text-white shadow-lg shadow-blue-primary/20" : "text-text-muted hover:text-text-primary"
+            )}
+          >
+            Sample Q&A
+          </button>
+          <button 
+            onClick={() => setActiveTab("ai-test")}
+            className={cn(
+              "px-4 py-2 rounded-lg text-xs font-bold transition-all",
+              activeTab === "ai-test" ? "bg-blue-primary text-white shadow-lg shadow-blue-primary/20" : "text-text-muted hover:text-text-primary"
+            )}
+          >
+            AI Practice Test
           </button>
           <button 
             onClick={() => setActiveTab("structure")}
@@ -493,14 +554,14 @@ export default function Writing() {
               activeTab === "structure" ? "bg-blue-primary text-white shadow-lg shadow-blue-primary/20" : "text-text-muted hover:text-text-primary"
             )}
           >
-            Structure Analysis
+            Structure
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {activeTab === "practice" ? (
-          WRITING_TASKS.map((task) => (
+      {activeTab === "practice" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {WRITING_TASKS.map((task) => (
             <button
               key={task.id}
               onClick={() => startTask(task)}
@@ -524,9 +585,67 @@ export default function Writing() {
                 <ChevronRight size={16} className="text-text-muted group-hover:text-blue-primary group-hover:translate-x-1 transition-all" />
               </div>
             </button>
-          ))
-        ) : (
-          STRUCTURE_TASKS.map((task) => (
+          ))}
+        </div>
+      )}
+
+      {activeTab === "samples" && (
+        <div className="space-y-6">
+          {WRITING_SAMPLES.map((sample) => (
+            <div key={sample.id} className="card bg-bg-2 border-border-2 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-text-primary">{sample.title}</h3>
+                <span className="tag tag-blue">{sample.type}</span>
+              </div>
+              <div className="space-y-4">
+                <div className="p-4 bg-bg-1 rounded-xl border border-border-2 text-sm text-text-primary font-bold">
+                  Question: {sample.question}
+                </div>
+                <div className="space-y-2">
+                  <div className="text-[10px] font-bold text-blue-primary uppercase tracking-widest">Model Answer</div>
+                  <div className="p-4 bg-bg-3 rounded-xl text-xs text-text-secondary leading-relaxed border border-border">
+                    {sample.sampleAnswer}
+                  </div>
+                </div>
+                <div className="p-4 bg-blue-dim/10 border border-blue-primary/20 rounded-xl">
+                  <div className="flex items-center gap-2 text-[10px] font-bold text-blue-primary uppercase tracking-widest mb-2">
+                    <Sparkles size={14} /> Analysis
+                  </div>
+                  <div className="text-xs text-text-secondary leading-relaxed">
+                    {sample.analysis}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {activeTab === "ai-test" && (
+        <div className="flex flex-col items-center justify-center py-20 text-center space-y-6">
+          <div className="w-20 h-20 rounded-3xl bg-blue-primary/10 text-blue-primary flex items-center justify-center">
+            <Sparkles size={40} />
+          </div>
+          <div className="max-w-md">
+            <h3 className="text-xl font-bold mb-2">AI-Generated Writing Test</h3>
+            <p className="text-sm text-text-muted">
+              Aria will generate a fresh IELTS Writing prompt and provide expert feedback on your response.
+            </p>
+          </div>
+          <button 
+            onClick={generateAIPractice}
+            disabled={isGenerating}
+            className="btn btn-primary px-8 py-4 flex items-center gap-2"
+          >
+            {isGenerating ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} />}
+            {isGenerating ? "Generating Prompt..." : "Generate New Prompt"}
+          </button>
+        </div>
+      )}
+
+      {activeTab === "structure" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {STRUCTURE_TASKS.map((task) => (
             <button
               key={task.id}
               onClick={() => startTask(task)}
@@ -547,9 +666,9 @@ export default function Writing() {
                 <ChevronRight size={16} className="text-text-muted group-hover:text-violet-accent group-hover:translate-x-1 transition-all" />
               </div>
             </button>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,7 +1,9 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
+
+const apiKey = process.env.GEMINI_API_KEY || "";
 
 export async function callGemini(prompt: string, systemInstruction?: string, model: string = "gemini-3-flash-preview") {
-  const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
+  const genAI = new GoogleGenAI({ apiKey });
   try {
     const response = await genAI.models.generateContent({
       model: model,
@@ -26,8 +28,33 @@ export async function callGemini(prompt: string, systemInstruction?: string, mod
   }
 }
 
+export async function callGeminiJSON(prompt: string, schema: any, systemInstruction?: string, model: string = "gemini-3-flash-preview") {
+  const genAI = new GoogleGenAI({ apiKey });
+  try {
+    const response = await genAI.models.generateContent({
+      model: model,
+      contents: prompt,
+      config: {
+        systemInstruction: systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        temperature: 0.7,
+      },
+    });
+
+    if (!response.text) {
+      throw new Error("Gemini JSON returned an empty response.");
+    }
+
+    return JSON.parse(response.text);
+  } catch (error) {
+    console.error(`Gemini JSON Error (${model}):`, error);
+    throw error;
+  }
+}
+
 export async function callGeminiChat(history: { role: "user" | "model"; parts: { text: string }[] }[], systemInstruction?: string, model: string = "gemini-3-flash-preview") {
-  const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY as string });
+  const genAI = new GoogleGenAI({ apiKey });
   try {
     const response = await genAI.models.generateContent({
       model: model,

@@ -95,6 +95,7 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
     {
       label: "Assessment",
       items: [
+        { id: "practice-library", label: "Practice Library", icon: ClipboardList },
         { id: "cambridge", label: "Cambridge", icon: Book },
         { id: "tests", label: "Mock Tests", icon: FileText },
         { id: "quiz", label: "Daily Quiz", icon: PenTool },

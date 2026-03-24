@@ -25,6 +25,7 @@ import Setup from "../components/pages/Setup";
 import LizHub from "../components/pages/LizHub";
 import Cambridge from "../components/pages/Cambridge";
 import SpeakingLab from "../components/pages/SpeakingLab";
+import PracticeLibrary from "../components/pages/PracticeLibrary";
 import { getProgress, UserProgress } from "../lib/store";
 
 export default function App() {
@@ -67,6 +68,7 @@ export default function App() {
       case "grammar": return <Grammar />;
       case "speaking": return <Speaking />;
       case "speaking-lab": return <SpeakingLab />;
+      case "practice-library": return <PracticeLibrary />;
       case "drills": return <Drills />;
       case "flashcards": return <Flashcards />;
       case "timer": return <StudyTimer />;

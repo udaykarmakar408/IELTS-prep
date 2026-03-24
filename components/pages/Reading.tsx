@@ -12,10 +12,38 @@ import {
   FileText,
   PenTool,
   Trophy,
-  AlertCircle
+  AlertCircle,
+  Sparkles,
+  Loader2,
+  MessageSquare,
+  BookOpenCheck
 } from "lucide-react";
 import { getProgress, saveProgress, UserProgress } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { callGroq, callGroqJSON } from "@/lib/groq";
+import ReactMarkdown from "react-markdown";
+
+const READING_SAMPLES = [
+  {
+    id: "s1",
+    title: "Sample: Multiple Choice Questions",
+    type: "MCQ",
+    passage: "The Great Barrier Reef is the world's largest coral reef system, composed of over 2,900 individual reefs and 900 islands stretching for over 2,300 kilometres over an area of approximately 344,400 square kilometres. The reef is located in the Coral Sea, off the coast of Queensland, Australia.",
+    question: "Where is the Great Barrier Reef located?",
+    options: ["Off the coast of Africa", "Off the coast of Australia", "In the Atlantic Ocean", "In the Mediterranean Sea"],
+    answer: "Off the coast of Australia",
+    explanation: "The passage explicitly states that the reef is located 'off the coast of Queensland, Australia'."
+  },
+  {
+    id: "s2",
+    title: "Sample: True/False/Not Given",
+    type: "TFNG",
+    passage: "Marie Curie was a Polish and naturalized-French physicist and chemist who conducted pioneering research on radioactivity. She was the first woman to win a Nobel Prize, the first person and the only woman to win the Nobel Prize twice, and the only person to win the Nobel Prize in two different scientific fields.",
+    question: "Marie Curie won Nobel Prizes in three different scientific fields.",
+    answer: "False",
+    explanation: "The passage states she won the Nobel Prize in 'two different scientific fields', not three."
+  }
+];
 
 const READING_PASSAGES = [
   {
@@ -274,10 +302,14 @@ const READING_PASSAGES = [
 
 export default function Reading() {
   const [progress, setProgress] = useState<UserProgress | null>(null);
+  const [activeTab, setActiveTab] = useState<"practice" | "samples" | "ai-test">("practice");
   const [activePassage, setActivePassage] = useState<any>(null);
   const [userAnswers, setUserAnswers] = useState<Record<string, number>>({});
   const [showResults, setShowResults] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiFeedback, setAiFeedback] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -297,19 +329,65 @@ export default function Reading() {
     return () => clearInterval(timer);
   }, [activePassage, timeLeft, showResults]);
 
+  const generateAIPractice = async () => {
+    setIsGenerating(true);
+    const schema = {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        difficulty: { type: "string" },
+        mins: { type: "number" },
+        text: { type: "string" },
+        questions: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              type: { type: "string" },
+              q: { type: "string" },
+              options: { type: "array", items: { type: "string" } },
+              answer: { type: "number" }
+            },
+            required: ["id", "type", "q", "options", "answer"]
+          }
+        }
+      },
+      required: ["title", "difficulty", "mins", "text", "questions"]
+    };
+
+    const prompt = "Generate a high-quality IELTS Academic Reading passage (approx 400 words) with 5 multiple-choice questions. The topic should be related to science, history, or environment. Ensure the questions are challenging and follow IELTS standards.";
+
+    try {
+      const result = await callGroqJSON(prompt, schema, "You are an IELTS Reading content creator.");
+      setActivePassage(result);
+      setUserAnswers({});
+      setShowResults(false);
+      setAiFeedback(null);
+      setTimeLeft(result.mins * 60);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const startPassage = (passage: any) => {
     setActivePassage(passage);
     setUserAnswers({});
     setShowResults(false);
+    setAiFeedback(null);
     setTimeLeft(passage.mins * 60);
   };
 
-  const handleCheck = () => {
+  const handleCheck = async () => {
     setShowResults(true);
+    setIsAnalyzing(true);
+    
+    const correctCount = activePassage.questions.filter((q: any, i: number) => userAnswers[i] === q.answer).length;
+    const score = (correctCount / activePassage.questions.length) * 9;
+
     if (progress) {
-      const correctCount = activePassage.questions.filter((q: any, i: number) => userAnswers[i] === q.answer).length;
-      const score = (correctCount / activePassage.questions.length) * 9;
-      
       const updated = { 
         ...progress, 
         studyMinutes: (progress.studyMinutes || 0) + activePassage.mins,
@@ -317,6 +395,25 @@ export default function Reading() {
       };
       saveProgress(updated);
       setProgress(updated);
+    }
+
+    // AI Assessment
+    const prompt = `You are an IELTS Reading tutor. A student has completed a reading task.
+    Passage Title: ${activePassage.title}
+    Passage Text: ${activePassage.text}
+    Questions and Correct Answers: ${JSON.stringify(activePassage.questions)}
+    Student's Answers: ${JSON.stringify(userAnswers)}
+    
+    Provide a detailed assessment. Explain why the correct answers are correct and where the student might have gone wrong. Give tips for improving their reading score.
+    Use markdown for formatting.`;
+
+    try {
+      const feedback = await callGroq(prompt, "You are an IELTS Reading tutor.");
+      setAiFeedback(feedback);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
@@ -382,12 +479,31 @@ export default function Reading() {
             {!showResults ? (
               <button onClick={handleCheck} className="btn btn-primary w-full py-4">Submit Answers</button>
             ) : (
-              <div className="card bg-blue-dim/10 border-blue-primary/20 text-center py-6">
-                <Trophy size={32} className="mx-auto text-yellow-500 mb-2" />
-                <div className="text-xl font-black text-blue-primary">
-                  Band {((activePassage.questions.filter((q: any, i: number) => userAnswers[i] === q.answer).length / activePassage.questions.length) * 9).toFixed(1)}
+              <div className="space-y-6">
+                <div className="card bg-blue-dim/10 border-blue-primary/20 text-center py-6">
+                  <Trophy size={32} className="mx-auto text-yellow-500 mb-2" />
+                  <div className="text-xl font-black text-blue-primary">
+                    Band {((activePassage.questions.filter((q: any, i: number) => userAnswers[i] === q.answer).length / activePassage.questions.length) * 9).toFixed(1)}
+                  </div>
                 </div>
-                <button onClick={() => setActivePassage(null)} className="btn btn-ghost mt-4">Try Another Passage</button>
+
+                <div className="card bg-bg-2 border-border-2 p-6">
+                  <div className="flex items-center gap-2 text-blue-secondary font-bold text-xs uppercase tracking-widest mb-4">
+                    <Sparkles size={16} /> AI Assessment & Explanations
+                  </div>
+                  <div className="prose prose-invert prose-sm max-w-none text-text-secondary leading-relaxed">
+                    {isAnalyzing ? (
+                      <div className="flex flex-col items-center justify-center py-8 gap-3">
+                        <Loader2 size={24} className="animate-spin text-blue-primary" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">Aria is analyzing your performance...</span>
+                      </div>
+                    ) : (
+                      <ReactMarkdown>{aiFeedback}</ReactMarkdown>
+                    )}
+                  </div>
+                </div>
+
+                <button onClick={() => setActivePassage(null)} className="btn btn-ghost w-full">Try Another Passage</button>
               </div>
             )}
           </div>
@@ -398,43 +514,130 @@ export default function Reading() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="font-serif text-2xl font-bold mb-1">📖 Reading Academy</h2>
           <p className="text-sm text-text-muted">Master IELTS reading with academic passages and practice</p>
         </div>
-        <div className="w-12 h-12 rounded-2xl bg-emerald-accent/10 text-emerald-accent flex items-center justify-center">
-          <BookOpen size={24} />
+        <div className="flex bg-bg-2 p-1 rounded-xl border border-border">
+          <button 
+            onClick={() => setActiveTab("practice")}
+            className={cn(
+              "px-4 py-2 rounded-lg text-xs font-bold transition-all",
+              activeTab === "practice" ? "bg-blue-primary text-white shadow-lg" : "text-text-muted hover:text-text-primary"
+            )}
+          >
+            Practice
+          </button>
+          <button 
+            onClick={() => setActiveTab("samples")}
+            className={cn(
+              "px-4 py-2 rounded-lg text-xs font-bold transition-all",
+              activeTab === "samples" ? "bg-blue-primary text-white shadow-lg" : "text-text-muted hover:text-text-primary"
+            )}
+          >
+            Sample Q&A
+          </button>
+          <button 
+            onClick={() => setActiveTab("ai-test")}
+            className={cn(
+              "px-4 py-2 rounded-lg text-xs font-bold transition-all",
+              activeTab === "ai-test" ? "bg-blue-primary text-white shadow-lg" : "text-text-muted hover:text-text-primary"
+            )}
+          >
+            AI Practice Test
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {READING_PASSAGES.map((passage) => (
-          <button
-            key={passage.id}
-            onClick={() => startPassage(passage)}
-            className="card w-full text-left hover:border-blue-primary group"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <span className={cn(
-                "tag",
-                passage.difficulty === "Medium" ? "tag-amber" : "tag-red"
-              )}>{passage.difficulty}</span>
-              <span className="text-[10px] font-bold text-text-muted flex items-center gap-1">
-                <Clock size={10} /> {passage.mins} Mins
-              </span>
+      {activeTab === "practice" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {READING_PASSAGES.map((passage) => (
+            <button
+              key={passage.id}
+              onClick={() => startPassage(passage)}
+              className="card w-full text-left hover:border-blue-primary group"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <span className={cn(
+                  "tag",
+                  passage.difficulty === "Medium" ? "tag-amber" : "tag-red"
+                )}>{passage.difficulty}</span>
+                <span className="text-[10px] font-bold text-text-muted flex items-center gap-1">
+                  <Clock size={10} /> {passage.mins} Mins
+                </span>
+              </div>
+              <h3 className="font-bold text-text-primary mb-2 group-hover:text-blue-primary transition-colors">{passage.title}</h3>
+              <p className="text-xs text-text-muted line-clamp-2 mb-4">
+                {passage.text.substring(0, 150)}...
+              </p>
+              <div className="flex items-center justify-between pt-4 border-t border-border-2">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">{passage.questions.length} Questions</span>
+                <ChevronRight size={16} className="text-text-muted group-hover:text-blue-primary group-hover:translate-x-1 transition-all" />
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {activeTab === "samples" && (
+        <div className="space-y-6">
+          {READING_SAMPLES.map((sample) => (
+            <div key={sample.id} className="card bg-bg-2 border-border-2 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-text-primary">{sample.title}</h3>
+                <span className="tag tag-blue">{sample.type}</span>
+              </div>
+              <div className="space-y-4">
+                <div className="p-4 bg-bg-1 rounded-xl border border-border-2 text-sm text-text-secondary italic">
+                  {sample.passage}
+                </div>
+                <div className="space-y-2">
+                  <div className="text-xs font-bold text-text-primary">Question: {sample.question}</div>
+                  {sample.options && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {sample.options.map((opt, i) => (
+                        <div key={i} className="p-2 bg-bg-3 rounded-lg text-[10px] text-text-muted border border-border">
+                          {opt}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="p-4 bg-green-accent/5 border border-green-accent/20 rounded-xl">
+                  <div className="text-[10px] font-bold text-green-accent uppercase tracking-widest mb-1">Correct Answer</div>
+                  <div className="text-sm font-bold text-text-primary mb-2">{sample.answer}</div>
+                  <div className="text-[10px] text-text-muted leading-relaxed">
+                    <span className="font-bold">Explanation:</span> {sample.explanation}
+                  </div>
+                </div>
+              </div>
             </div>
-            <h3 className="font-bold text-text-primary mb-2 group-hover:text-blue-primary transition-colors">{passage.title}</h3>
-            <p className="text-xs text-text-muted line-clamp-2 mb-4">
-              {passage.text.substring(0, 150)}...
+          ))}
+        </div>
+      )}
+
+      {activeTab === "ai-test" && (
+        <div className="flex flex-col items-center justify-center py-20 text-center space-y-6">
+          <div className="w-20 h-20 rounded-3xl bg-blue-primary/10 text-blue-primary flex items-center justify-center">
+            <Sparkles size={40} />
+          </div>
+          <div className="max-w-md">
+            <h3 className="text-xl font-bold mb-2">AI-Generated Practice Test</h3>
+            <p className="text-sm text-text-muted">
+              Aria will generate a unique IELTS Academic Reading passage and set of questions tailored to your level.
             </p>
-            <div className="flex items-center justify-between pt-4 border-t border-border-2">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">{passage.questions.length} Questions</span>
-              <ChevronRight size={16} className="text-text-muted group-hover:text-blue-primary group-hover:translate-x-1 transition-all" />
-            </div>
+          </div>
+          <button 
+            onClick={generateAIPractice}
+            disabled={isGenerating}
+            className="btn btn-primary px-8 py-4 flex items-center gap-2"
+          >
+            {isGenerating ? <Loader2 size={20} className="animate-spin" /> : <Sparkles size={20} />}
+            {isGenerating ? "Generating Test..." : "Generate New Test"}
           </button>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
