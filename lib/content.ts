@@ -28,6 +28,36 @@ export const GRAMMAR_TIPS = [
     tip: "Keep verbs in the same form when listing activities.",
     bad: "I like swimming, to hike, and running.",
     good: "I like swimming, hiking, and running."
+  },
+  {
+    title: "Articles with Countries",
+    tip: "Most countries don't need 'the', but those with 'Kingdom', 'States', or 'Republic' do.",
+    bad: "I visited the France and United Kingdom.",
+    good: "I visited France and the United Kingdom."
+  },
+  {
+    title: "Fewer vs Less",
+    tip: "Use 'fewer' for countable items and 'less' for uncountable quantities.",
+    bad: "There are less students in the class today.",
+    good: "There are fewer students in the class today."
+  },
+  {
+    title: "Present Perfect vs Past Simple",
+    tip: "Use Present Perfect for unfinished time and Past Simple for finished time.",
+    bad: "I have seen him yesterday.",
+    good: "I saw him yesterday."
+  },
+  {
+    title: "Passive Voice in IELTS",
+    tip: "Use passive voice to sound more objective in Writing Task 1 (Process/Diagram).",
+    bad: "The workers heat the clay in a kiln.",
+    good: "The clay is heated in a kiln."
+  },
+  {
+    title: "Relative Clauses",
+    tip: "Use 'who' for people and 'which' or 'that' for things. Avoid using 'what' as a relative pronoun.",
+    bad: "The book what I read was interesting.",
+    good: "The book that I read was interesting."
   }
 ];
 
@@ -66,6 +96,41 @@ export const WORDS_OF_THE_DAY = [
     band: "6.5+",
     def: "To publicly recommend or support a particular cause or policy.",
     example: "Many environmentalists advocate for a reduction in plastic use."
+  },
+  {
+    word: "ADVERSITY",
+    type: "noun",
+    band: "7.5+",
+    def: "Difficulties; misfortune.",
+    example: "She showed great resilience in the face of adversity."
+  },
+  {
+    word: "BENEVOLENT",
+    type: "adj",
+    band: "8+",
+    def: "Well meaning and kindly.",
+    example: "The company has a benevolent policy towards its employees."
+  },
+  {
+    word: "CONUNDRUM",
+    type: "noun",
+    band: "8+",
+    def: "A confusing and difficult problem or question.",
+    example: "The lack of affordable housing is a major conundrum for the city council."
+  },
+  {
+    word: "DILIGENT",
+    type: "adj",
+    band: "6.5+",
+    def: "Having or showing care and conscientiousness in one's work or duties.",
+    example: "He is a diligent student who always completes his assignments on time."
+  },
+  {
+    word: "ELOQUENT",
+    type: "adj",
+    band: "7.5+",
+    def: "Fluent or persuasive in speaking or writing.",
+    example: "The politician gave an eloquent speech about the importance of education."
   }
 ];
 

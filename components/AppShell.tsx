@@ -135,7 +135,7 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
       </header>
 
       {/* Desktop Sidebar */}
-      <aside id="desktop-sidebar" className="hidden md:flex flex-col w-64 flex-shrink-0 glass-sidebar overflow-hidden">
+      <aside id="desktop-sidebar" className="hidden md:flex flex-col w-72 flex-shrink-0 glass-sidebar overflow-hidden">
         <div id="sidebar-logo-section" className="p-8 border-b border-white/5">
           <div id="sidebar-logo-container" className="flex items-center gap-4 cursor-pointer group" onClick={() => setActivePage("dashboard")}>
             <Logo className="w-12 h-12 group-hover:scale-110 transition-transform duration-500" />
@@ -150,10 +150,10 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
           </div>
         </div>
 
-        <nav id="sidebar-nav" className="flex-1 p-3 flex flex-col gap-6 overflow-y-auto custom-scrollbar">
+        <nav id="sidebar-nav" className="flex-1 p-4 flex flex-col gap-8 overflow-y-auto custom-scrollbar">
           {navCategories.map((category) => (
-            <div key={category.label} id={`nav-category-${category.label.toLowerCase()}`} className="space-y-1">
-              <div className="px-4 text-[9px] font-black text-text-muted uppercase tracking-[0.2em] mb-2">
+            <div key={category.label} id={`nav-category-${category.label.toLowerCase()}`} className="space-y-1.5">
+              <div className="px-4 text-[10px] font-black text-text-muted uppercase tracking-[0.25em] mb-3">
                 {category.label}
               </div>
               {category.items.map((item) => (
@@ -219,16 +219,16 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
         </div>
 
         {/* Page Content */}
-        <div id="page-content-viewport" className="flex-1 overflow-y-auto custom-scrollbar relative bg-gradient-to-b from-bg to-bg-1">
+        <div id="page-content-viewport" className="flex-1 overflow-y-auto custom-scrollbar relative bg-gradient-to-b from-bg to-bg-1 scroll-smooth">
           <AnimatePresence mode="wait">
             <motion.div
               key={activePage}
               id={`page-container-${activePage}`}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              className="p-4 md:p-8 lg:p-12 max-w-7xl mx-auto w-full"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="p-5 md:p-10 lg:p-14 max-w-7xl mx-auto w-full min-h-full"
             >
               {children}
             </motion.div>
@@ -293,22 +293,22 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
                 animate={{ y: 0 }}
                 exit={{ y: "100%" }}
                 transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                className="fixed bottom-0 left-0 right-0 bg-bg-1 border-t border-white/10 rounded-t-[2.5rem] z-[110] flex flex-col max-h-[85vh] md:hidden shadow-2xl"
+                className="fixed bottom-0 left-0 right-0 bg-bg-1 border-t border-white/10 rounded-t-[3rem] z-[110] flex flex-col max-h-[92vh] md:hidden shadow-2xl overflow-hidden"
               >
-                <div className="p-4 flex flex-col items-center">
-                  <div className="w-12 h-1.5 bg-white/10 rounded-full mb-6" />
-                  <div className="w-full flex items-center justify-between mb-6 px-2">
-                    <div className="text-sm font-black text-text-primary uppercase tracking-widest">All Modules</div>
+                <div className="p-6 flex flex-col h-full min-h-0">
+                  <div className="w-12 h-1.5 bg-white/20 rounded-full mb-8 mx-auto shrink-0" />
+                  <div className="w-full flex items-center justify-between mb-8 px-2 shrink-0">
+                    <div className="text-base font-black text-text-primary uppercase tracking-[0.2em]">All Modules</div>
                     <button 
                       onClick={() => setIsDrawerOpen(false)}
-                      className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:text-text-primary"
+                      className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-text-muted hover:text-text-primary active:scale-90 transition-transform"
                     >
-                      <X size={18} />
+                      <X size={20} />
                     </button>
                   </div>
                   
-                  <div className="w-full overflow-y-auto custom-scrollbar pb-12">
-                    <div className="grid grid-cols-3 gap-3 px-2">
+                  <div className="flex-1 overflow-y-auto custom-scrollbar pb-24">
+                    <div className="grid grid-cols-3 gap-4 px-1">
                       {allNavItems.map((item) => (
                         <button
                           key={item.id}
@@ -317,17 +317,17 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
                             setIsDrawerOpen(false);
                           }}
                           className={cn(
-                            "flex flex-col items-center justify-center gap-3 p-4 rounded-3xl transition-all duration-300 border",
+                            "flex flex-col items-center justify-center gap-3 p-4 rounded-[2rem] transition-all duration-300 border",
                             activePage === item.id 
                               ? "bg-blue-primary/10 border-blue-primary/30 text-blue-secondary shadow-lg shadow-blue-primary/5" 
                               : "bg-white/5 border-transparent active:bg-white/10 text-text-muted"
                           )}
                         >
                           <div className={cn(
-                            "w-12 h-12 rounded-2xl flex items-center justify-center transition-transform duration-300",
-                            activePage === item.id ? "bg-blue-primary text-white scale-110" : "bg-bg-2 text-text-muted"
+                            "w-14 h-14 rounded-2xl flex items-center justify-center transition-transform duration-300",
+                            activePage === item.id ? "bg-blue-primary text-white scale-110 shadow-lg shadow-blue-primary/20" : "bg-bg-2 text-text-muted"
                           )}>
-                            <item.icon size={24} />
+                            <item.icon size={28} />
                           </div>
                           <span className={cn(
                             "text-[10px] font-black text-center leading-tight uppercase tracking-widest",

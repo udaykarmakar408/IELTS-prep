@@ -100,26 +100,27 @@ export default function Flashcards() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
         <div>
-          <h2 className="font-serif text-2xl font-bold mb-1">🎴 Flashcards</h2>
-          <p className="text-sm text-text-muted">Master vocabulary with Spaced Repetition (SRS)</p>
+          <div className="text-[10px] font-black text-blue-secondary uppercase tracking-[0.25em] mb-2">Vocabulary Training</div>
+          <h2 className="font-serif text-3xl md:text-4xl font-black text-text-primary tracking-tight">Flashcards</h2>
+          <p className="text-sm text-text-muted mt-1">Master academic vocabulary with Spaced Repetition (SRS)</p>
         </div>
-        <div className="flex bg-bg-2 p-1 rounded-xl border border-border">
+        <div className="flex bg-bg-2 p-1.5 rounded-2xl border border-white/5 shadow-inner">
           <button 
             onClick={() => setView("study")}
             className={cn(
-              "px-4 py-2 rounded-lg text-xs font-bold transition-all",
-              view === "study" ? "bg-blue-primary text-white shadow-lg shadow-blue-primary/20" : "text-text-muted hover:text-text-primary"
+              "px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+              view === "study" ? "bg-blue-primary text-white shadow-xl shadow-blue-primary/20" : "text-text-muted hover:text-text-primary"
             )}
           >
-            Study Now
+            Study
           </button>
           <button 
             onClick={() => setView("list")}
             className={cn(
-              "px-4 py-2 rounded-lg text-xs font-bold transition-all",
-              view === "list" ? "bg-blue-primary text-white shadow-lg shadow-blue-primary/20" : "text-text-muted hover:text-text-primary"
+              "px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
+              view === "list" ? "bg-blue-primary text-white shadow-xl shadow-blue-primary/20" : "text-text-muted hover:text-text-primary"
             )}
           >
             Word List
@@ -131,22 +132,23 @@ export default function Flashcards() {
         <div className="max-w-xl mx-auto space-y-8">
           {reviewCards.length > 0 ? (
             <>
-              <div className="flex items-center justify-between px-2">
-                <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest">
-                  Card {currentIndex + 1} of {reviewCards.length}
+              <div className="flex items-center justify-between px-4">
+                <div className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em]">
+                  Card {currentIndex + 1} <span className="text-blue-secondary">/ {reviewCards.length}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-32 h-1.5 bg-bg-3 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-blue-primary transition-all duration-500" 
-                      style={{ width: `${((currentIndex + 1) / reviewCards.length) * 100}%` }}
+                <div className="flex items-center gap-3">
+                  <div className="w-40 h-2 bg-bg-3 rounded-full overflow-hidden shadow-inner">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${((currentIndex + 1) / reviewCards.length) * 100}%` }}
+                      className="h-full bg-blue-primary shadow-[0_0_10px_rgba(59,130,246,0.4)]" 
                     />
                   </div>
                 </div>
               </div>
 
               <div 
-                className="relative h-80 perspective-1000 cursor-pointer group"
+                className="relative h-[450px] perspective-1000 cursor-pointer group"
                 onClick={() => setIsFlipped(!isFlipped)}
               >
                 <motion.div
@@ -155,25 +157,27 @@ export default function Flashcards() {
                   transition={{ type: "spring", stiffness: 260, damping: 20 }}
                 >
                   {/* Front */}
-                  <div className="absolute inset-0 backface-hidden card border-2 border-blue-primary/20 bg-gradient-to-br from-bg-1 to-bg-2 flex flex-col items-center justify-center p-8 text-center shadow-xl group-hover:border-blue-primary/40 transition-colors">
-                    <div className="text-[10px] font-bold text-blue-secondary uppercase tracking-[0.2em] mb-4">IELTS Vocabulary</div>
-                    <h3 className="text-4xl font-serif font-black text-text-primary mb-2">{currentCard?.word}</h3>
-                    <div className="text-xs text-text-muted mt-8 flex items-center gap-2 opacity-50">
-                      <Sparkles size={12} /> Click to reveal definition
+                  <div className="absolute inset-0 backface-hidden card border-2 border-blue-primary/20 bg-gradient-to-br from-bg-1 to-bg-2 flex flex-col items-center justify-center p-12 text-center shadow-2xl group-hover:border-blue-primary/40 transition-all duration-500">
+                    <div className="text-[10px] font-black text-blue-secondary uppercase tracking-[0.3em] mb-8">Academic Vocabulary</div>
+                    <h3 className="text-5xl md:text-6xl font-serif font-black text-text-primary mb-4 tracking-tighter">{currentCard?.word}</h3>
+                    <div className="mt-12 p-4 bg-blue-primary/5 rounded-2xl border border-blue-primary/10 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="text-[10px] font-bold text-blue-secondary uppercase tracking-widest flex items-center gap-2">
+                        <Sparkles size={12} /> Click to flip
+                      </div>
                     </div>
                   </div>
 
                   {/* Back */}
                   <div 
-                    className="absolute inset-0 backface-hidden card border-2 border-green-accent/20 bg-gradient-to-br from-bg-1 to-bg-2 flex flex-col items-center justify-center p-8 text-center shadow-xl rotate-y-180"
+                    className="absolute inset-0 backface-hidden card border-2 border-green-accent/20 bg-gradient-to-br from-bg-1 to-bg-2 flex flex-col items-center justify-center p-12 text-center shadow-2xl rotate-y-180"
                   >
-                    <div className="text-[10px] font-bold text-green-accent uppercase tracking-[0.2em] mb-4">Definition</div>
-                    <p className="text-lg font-medium text-text-primary mb-6 leading-relaxed">
+                    <div className="text-[10px] font-black text-green-accent uppercase tracking-[0.3em] mb-8">Definition</div>
+                    <p className="text-xl md:text-2xl font-serif font-medium text-text-primary mb-10 leading-relaxed">
                       {currentCard?.definition}
                     </p>
-                    <div className="w-full h-px bg-border my-4" />
-                    <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2">Example</div>
-                    <p className="text-sm italic text-text-secondary">
+                    <div className="w-full h-px bg-white/5 my-8" />
+                    <div className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mb-4">Example Usage</div>
+                    <p className="text-base italic text-text-secondary leading-relaxed bg-bg-2/50 p-6 rounded-2xl border border-white/5">
                       &quot;{currentCard?.example}&quot;
                     </p>
                   </div>
@@ -185,21 +189,21 @@ export default function Flashcards() {
                   <motion.div 
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="grid grid-cols-2 gap-4"
+                    className="grid grid-cols-2 gap-6"
                   >
                     <button 
                       onClick={(e) => { e.stopPropagation(); handleLevelUpdate(currentCard!.id, false); }}
-                      className="btn bg-red-accent/10 border-red-accent/20 text-red-accent hover:bg-red-accent hover:text-white py-4 flex flex-col items-center gap-1"
+                      className="btn bg-red-accent/10 border-red-accent/20 text-red-accent hover:bg-red-accent hover:text-white py-6 flex flex-col items-center gap-2 transition-all active:scale-95"
                     >
-                      <XCircle size={20} />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">Hard / Forgot</span>
+                      <XCircle size={24} />
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em]">Forgot</span>
                     </button>
                     <button 
                       onClick={(e) => { e.stopPropagation(); handleLevelUpdate(currentCard!.id, true); }}
-                      className="btn bg-green-accent/10 border-green-accent/20 text-green-accent hover:bg-green-accent hover:text-white py-4 flex flex-col items-center gap-1"
+                      className="btn bg-green-accent/10 border-green-accent/20 text-green-accent hover:bg-green-accent hover:text-white py-6 flex flex-col items-center gap-2 transition-all active:scale-95"
                     >
-                      <CheckCircle2 size={20} />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">Easy / Remembered</span>
+                      <CheckCircle2 size={24} />
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em]">Remembered</span>
                     </button>
                   </motion.div>
                 )}

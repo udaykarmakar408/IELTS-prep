@@ -227,26 +227,53 @@ export default function SpeakingLab() {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-4 md:gap-6">
-            <div className="md:col-span-2 space-y-4 md:space-y-6">
-              <div className="card border-blue-primary/30 bg-bg-2 p-6 md:p-8">
-                <div className="text-[9px] md:text-[10px] text-blue-secondary font-black uppercase tracking-[0.2em] mb-3 md:mb-4">IELTS Speaking Part 2</div>
-                <h3 className="font-serif text-2xl md:text-3xl font-black text-text-primary mb-4 md:mb-6 leading-tight">
-                  {cueCardData.topic}
-                </h3>
-                <div className="space-y-3 md:space-y-4">
-                  <p className="text-[10px] md:text-sm font-bold text-text-muted uppercase tracking-widest">You should say:</p>
-                  <ul className="space-y-2 md:space-y-3">
-                    {cueCardData.bullets.map((bullet: string, i: number) => (
-                      <li key={i} className="flex items-start gap-3 text-text-secondary">
-                        <div className="w-5 h-5 rounded-full bg-blue-secondary/10 flex items-center justify-center text-blue-secondary text-[10px] font-bold mt-0.5">{i+1}</div>
-                        <span className="text-xs md:text-sm font-medium">{bullet}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="text-[10px] md:text-xs text-text-muted italic mt-4 md:mt-6 pt-4 md:pt-6 border-t border-border/50">
-                    And explain why this was significant to you.
-                  </p>
+          <div id="speaking-lab-main-grid" className="grid md:grid-cols-3 gap-6 md:gap-8">
+            <div id="cue-card-section" className="md:col-span-2 space-y-6 md:space-y-8">
+              <div id="cue-card-display" className="card border-blue-primary/30 bg-gradient-to-br from-blue-primary/5 to-bg-1 p-8 md:p-12 relative overflow-hidden min-h-[400px] flex flex-col">
+                <div className="absolute top-0 right-0 p-6 md:p-10">
+                  <div className="tag tag-blue">Part 2</div>
+                </div>
+                
+                <div className="flex-1">
+                  <div className="text-[10px] md:text-sm text-blue-secondary font-black uppercase tracking-[0.25em] mb-6 md:mb-8">IELTS Speaking Topic</div>
+                  <h3 id="cue-card-topic" className="font-serif text-3xl md:text-5xl font-black text-text-primary mb-8 md:mb-12 leading-tight tracking-tight">
+                    {cueCardData.topic}
+                  </h3>
+                  
+                  <div className="space-y-6 md:space-y-8">
+                    <p className="text-xs md:text-sm font-bold text-text-muted uppercase tracking-widest">You should say:</p>
+                    <ul id="cue-card-points" className="space-y-4 md:space-y-6">
+                      {cueCardData.bullets.map((bullet: string, i: number) => (
+                        <li key={i} className="flex items-start gap-4 md:gap-6 text-text-secondary group">
+                          <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-blue-secondary/10 flex items-center justify-center text-blue-secondary text-[10px] md:text-xs font-black mt-0.5 group-hover:bg-blue-secondary group-hover:text-white transition-colors">
+                            {i+1}
+                          </div>
+                          <span className="text-sm md:text-lg font-medium leading-relaxed">{bullet}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="mt-12 pt-8 border-t border-white/5 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-bg-2 flex items-center justify-center">
+                      <Clock size={20} className="text-text-muted" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Preparation</p>
+                      <p className="text-sm font-black text-text-primary">1 Minute</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-bg-2 flex items-center justify-center">
+                      <Mic size={20} className="text-text-muted" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Speaking</p>
+                      <p className="text-sm font-black text-text-primary">2 Minutes</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -319,21 +346,26 @@ export default function SpeakingLab() {
               )}
             </div>
 
-            <div className="space-y-6">
-              <div className="card bg-bg-2 border-border">
-                <div className="flex items-center gap-2 text-blue-secondary font-bold text-xs uppercase tracking-widest mb-4">
-                  <Lightbulb size={14} /> Quick Tips
+            <div id="speaking-feedback-section" className="space-y-8">
+              <div id="speaking-tips-card" className="card p-8 bg-gradient-to-br from-bg-1 to-bg-2 border-white/5">
+                <div className="flex items-center gap-2 text-blue-secondary font-bold text-[10px] uppercase tracking-[0.25em] mb-8">
+                  <Lightbulb size={16} /> Pro Tips
                 </div>
-                <ul className="space-y-4">
+                <ul className="space-y-8">
                   {[
-                    "Use all 1 minute of prep time to write keywords.",
-                    "Don't just answer the bullets; tell a story.",
-                    "Use a variety of tenses (past, present, future).",
-                    "Keep speaking until the examiner stops you.",
+                    { title: "Use All Prep Time", desc: "Use the full 1 minute of prep time to write down keywords and structure your answer." },
+                    { title: "Tell a Story", desc: "Don't just answer the bullets; weave them into a coherent personal narrative." },
+                    { title: "Vary Your Tenses", desc: "Try to use a variety of tenses (past, present, future) to show grammatical range." },
+                    { title: "Keep Speaking", desc: "Keep speaking until the examiner stops you. Fluency is key to a high band." },
                   ].map((tip, i) => (
-                    <li key={i} className="flex gap-3 text-[11px] text-text-secondary leading-relaxed">
-                      <div className="w-1 h-1 rounded-full bg-blue-secondary mt-1.5 flex-shrink-0" />
-                      {tip}
+                    <li key={i} className="space-y-2 group">
+                      <div className="flex items-center gap-3">
+                        <div className="w-1 h-1 rounded-full bg-blue-secondary group-hover:scale-150 transition-transform" />
+                        <p className="text-xs font-black text-text-primary uppercase tracking-widest">{tip.title}</p>
+                      </div>
+                      <p className="text-[11px] text-text-muted leading-relaxed pl-4">
+                        {tip.desc}
+                      </p>
                     </li>
                   ))}
                 </ul>
@@ -341,17 +373,18 @@ export default function SpeakingLab() {
 
               {feedback && (
                 <motion.div 
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="card bg-gradient-to-br from-violet-accent/10 to-bg-1 border-violet-accent/30"
+                  id="speaking-feedback-display"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="card p-8 bg-gradient-to-br from-violet-accent/10 to-bg-1 border-violet-accent/30 shadow-2xl shadow-violet-accent/5"
                 >
-                  <div className="flex items-center gap-2 text-violet-accent font-bold text-xs uppercase tracking-widest mb-4">
-                    <MessageSquare size={14} /> AI Analysis
+                  <div className="flex items-center gap-2 text-violet-accent font-bold text-[10px] uppercase tracking-[0.25em] mb-6">
+                    <MessageSquare size={16} /> AI Analysis
                   </div>
-                  <div className="prose prose-invert prose-sm max-w-none text-text-secondary leading-relaxed">
-                  <ReactMarkdown>{feedback}</ReactMarkdown>
-                </div>
-                  <button onClick={() => setCueCardData(null)} className="btn btn-ghost w-full mt-6 border-violet-accent/20 text-violet-accent">
+                  <div className="prose prose-invert prose-sm max-w-none text-text-secondary leading-relaxed markdown-body">
+                    <ReactMarkdown>{feedback}</ReactMarkdown>
+                  </div>
+                  <button onClick={() => setCueCardData(null)} className="btn btn-ghost w-full mt-8 border-violet-accent/20 text-violet-accent hover:bg-violet-accent hover:text-white transition-all">
                     Try Another Topic
                   </button>
                 </motion.div>
