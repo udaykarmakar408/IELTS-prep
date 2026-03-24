@@ -16,10 +16,10 @@
     </filter>
   </defs>
   
-  {/* Background Shape */}
+  <!-- Background Shape -->
   <rect x="10" y="10" width="80" height="80" rx="24" fill="url(#logo-grad)" />
   
-  {/* Stylized 'U' */}
+  <!-- Stylized 'U' -->
   <path 
     d="M35 35V55C35 63.2843 41.7157 70 50 70C58.2843 70 65 63.2843 65 55V35" 
     stroke="white" 
@@ -27,14 +27,14 @@
     strokeLinecap="round" 
   />
   
-  {/* Graduation Cap Tassel/Top */}
+  <!-- Graduation Cap Tassel/Top -->
   <path 
     d="M25 35L50 20L75 35L50 50L25 35Z" 
     fill="white" 
     fillOpacity="0.9"
   />
   
-  {/* AI Node */}
+  <!-- AI Node -->
   <circle cx="75" cy="35" r="6" fill="#10b981" filter="url(#logo-glow)" />
   <path d="M75 35L65 45" stroke="white" strokeWidth="2" strokeDasharray="2 2" />
 </svg>
