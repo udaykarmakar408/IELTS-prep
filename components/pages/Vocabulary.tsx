@@ -267,9 +267,9 @@ export default function Vocabulary() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="card w-full max-w-md bg-bg-1 border-border-2 shadow-2xl p-0 overflow-hidden"
+              className="card w-full max-w-lg bg-bg-1 border-border-2 shadow-2xl p-0 overflow-hidden flex flex-col max-h-[90vh]"
             >
-              <div className="p-6 bg-gradient-to-br from-blue-dim/30 to-bg-1 border-b border-border">
+              <div className="p-6 bg-gradient-to-br from-blue-dim/30 to-bg-1 border-b border-border flex-shrink-0">
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-baseline gap-3">
                     <h3 className="font-serif text-3xl font-black text-text-primary uppercase tracking-tighter">{selectedWord.w}</h3>
@@ -288,7 +288,7 @@ export default function Vocabulary() {
                 </div>
               </div>
 
-              <div className="p-6 space-y-6">
+              <div className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
                 <div>
                   <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2">Definition</div>
                   <p className="text-text-primary leading-relaxed">{selectedWord.def}</p>
@@ -322,7 +322,7 @@ export default function Vocabulary() {
                         value={testSentence}
                         onChange={(e) => setTestSentence(e.target.value)}
                         placeholder={`Write a sentence using "${selectedWord.w}"...`}
-                        className="w-full bg-bg-2 border border-border-2 rounded-xl p-3 text-sm text-text-primary focus:border-blue-primary outline-none min-h-[80px] resize-none"
+                        className="w-full bg-bg-1 border border-border-2 rounded-xl p-3 text-sm text-text-primary focus:border-blue-primary outline-none min-h-[100px] resize-none"
                       />
                       <button
                         onClick={checkSentence}
@@ -332,7 +332,7 @@ export default function Vocabulary() {
                         {isTesting ? <Loader2 size={16} className="animate-spin" /> : "Check My Sentence"}
                       </button>
                       {testFeedback && (
-                        <div className="card bg-bg-3 border-border-2 p-4 text-left">
+                        <div className="card bg-bg-2 border-border-2 p-4 text-left">
                           <div className="text-[10px] font-bold text-blue-secondary uppercase tracking-widest mb-2">Feedback</div>
                           <div className="prose prose-invert prose-sm max-w-none markdown-body">
                             <ReactMarkdown>{testFeedback}</ReactMarkdown>
@@ -343,7 +343,7 @@ export default function Vocabulary() {
                   </div>
                 )}
 
-                <div className="flex gap-3 pt-2">
+                <div className="flex gap-3 pt-4 border-t border-border-2 sticky bottom-0 bg-bg-1 mt-auto pb-2">
                   <button 
                     onClick={() => toggleKnown(selectedWord.w)}
                     className={cn(
