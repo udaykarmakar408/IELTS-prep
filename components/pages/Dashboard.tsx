@@ -38,6 +38,7 @@ interface DashboardProps {
 export default function Dashboard({ setActivePage }: DashboardProps) {
   const [progress, setProgress] = useState<UserProgress | null>(null);
   const [isGeneratingBriefing, setIsGeneratingBriefing] = useState(false);
+  const [briefingError, setBriefingError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -58,6 +59,7 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
     if (!force && p.dailyBriefing && p.dailyBriefing.date === today) return;
     
     setIsGeneratingBriefing(true);
+    setBriefingError(null);
     try {
       const avgBand = Object.values(p.bands).filter(v => v > 0).reduce((a, b, _, arr) => a + b / arr.length, 0).toFixed(1);
       
@@ -72,12 +74,13 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
       
       Keep it under 60 words total. Use bold for emphasis.`;
       
-      const content = await callGroq(prompt);
+      const content = await callGroq(prompt, "You are Aria, an expert IELTS tutor.");
       const updated = { ...p, dailyBriefing: { date: today, content } };
       setProgress(updated);
       await saveProgress(updated);
     } catch (e) {
       console.error("Briefing generation failed:", e);
+      setBriefingError("Aria is currently unavailable. Please try again later.");
     } finally {
       setIsGeneratingBriefing(false);
     }
@@ -427,6 +430,11 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
               <div className="w-2 h-2 bg-blue-primary rounded-full animate-bounce [animation-delay:0.2s]" />
               <div className="w-2 h-2 bg-blue-primary rounded-full animate-bounce [animation-delay:0.4s]" />
               <span className="text-xs text-text-muted font-medium ml-2">Aria is analyzing your progress...</span>
+            </div>
+          ) : briefingError ? (
+            <div className="py-4 text-xs text-red-accent/80 font-medium flex items-center gap-2">
+              <Sparkles size={14} className="text-red-accent" />
+              {briefingError}
             </div>
           ) : (
             <div className="prose prose-invert prose-sm max-w-none text-text-secondary leading-relaxed font-medium">

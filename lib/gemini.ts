@@ -2,6 +2,10 @@ import { GoogleGenAI, GenerateContentResponse, Type } from "@google/genai";
 
 const apiKey = process.env.GEMINI_API_KEY || "";
 
+if (!apiKey && typeof window !== "undefined") {
+  console.warn("GEMINI_API_KEY is missing. Gemini-powered features will not work.");
+}
+
 export async function callGemini(prompt: string, systemInstruction?: string, model: string = "gemini-3-flash-preview") {
   const genAI = new GoogleGenAI({ apiKey });
   try {
