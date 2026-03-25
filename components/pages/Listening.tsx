@@ -411,13 +411,22 @@ export default function Listening() {
     setAudioError(null);
     try {
       if (!text) throw new Error("No script provided for audio generation");
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
+      
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error("Gemini API key is missing. Please check your environment variables.");
+      }
+
+      const ai = new GoogleGenAI({ apiKey });
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text: `Read the following IELTS listening script in its entirety, clearly and at a natural pace. Ensure you read every single word from start to finish without stopping early: ${text}` }] }],
+        contents: [{ 
+          parts: [{ 
+            text: `Read the following IELTS listening script clearly and at a natural pace. Ensure you read the entire text: ${text}` 
+          }] 
+        }],
         config: {
-          responseModalities: [Modality.AUDIO],
-          maxOutputTokens: 4096, // Increased to ensure longer scripts are not cut off
+          responseModalities: ["AUDIO"],
           speechConfig: {
             voiceConfig: {
               prebuiltVoiceConfig: { voiceName: 'Kore' },
@@ -426,30 +435,45 @@ export default function Listening() {
         },
       });
 
-      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      // Find the audio part in the response
+      let base64Audio = "";
+      const parts = response.candidates?.[0]?.content?.parts;
+      if (parts) {
+        for (const part of parts) {
+          if (part.inlineData?.data) {
+            base64Audio = part.inlineData.data;
+            break;
+          }
+        }
+      }
+
       if (base64Audio) {
-        // Gemini TTS returns raw PCM 16-bit mono at 24kHz
-        const binaryString = atob(base64Audio);
+        // Remove any whitespace from base64 string
+        const cleanBase64 = base64Audio.replace(/\s/g, '');
+        const binaryString = atob(cleanBase64);
         const len = binaryString.length;
-        // Ensure even length for 16-bit samples to avoid Int16Array alignment issues
-        const evenLen = len % 2 === 0 ? len : len - 1;
-        const bytes = new Uint8Array(evenLen);
-        for (let i = 0; i < evenLen; i++) {
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
           bytes[i] = binaryString.charCodeAt(i);
         }
-        const pcmData = new Int16Array(bytes.buffer);
+        
+        // Ensure we have an even number of bytes for Int16Array
+        const evenLen = len % 2 === 0 ? len : len - 1;
+        const pcmData = new Int16Array(bytes.buffer, 0, evenLen / 2);
+        
         const wavBlob = pcmToWav(pcmData, 24000);
         const url = URL.createObjectURL(wavBlob);
+        
         setAudioUrl(prev => {
           if (prev) URL.revokeObjectURL(prev);
           return url;
         });
       } else {
-        throw new Error("Failed to generate audio data");
+        throw new Error("No audio data returned from Gemini TTS");
       }
     } catch (error) {
       console.error("Audio generation error:", error);
-      setAudioError("Could not generate audio. Please try again.");
+      setAudioError(error instanceof Error ? error.message : "Could not generate audio. Please try again.");
     } finally {
       setIsGeneratingAudio(false);
     }
