@@ -120,5 +120,35 @@ export const GRAMMAR_DATA: GrammarTopic[] = [
         content: "SEMICOLONS: To connect two closely related independent clauses.\n'The economy is growing; however, unemployment remains high.'\n\nCOLONS: To introduce a list or an explanation.\n'There are three main causes: poverty, lack of education, and unemployment.'"
       }
     ]
+  },
+  {
+    title: "Advanced Sentence Structures",
+    sections: [
+      {
+        heading: "Participle Clauses",
+        content: "A concise way to provide extra information.\n\nPRESENT PARTICIPLE (-ing) for active meanings:\n'Having finished the research, the scientists published their findings.'\n'Working from home, many people find it difficult to separate work and life.'\n\nPAST PARTICIPLE (-ed) for passive meanings:\n'Built in the 19th century, the bridge is now a historical monument.'\n'Faced with rising costs, the company decided to cut its workforce.'"
+      },
+      {
+        heading: "The Subjunctive Mood",
+        content: "Used for suggestions, requirements, or hypothetical situations. Highly academic.\n\n'It is essential that the government take action immediately.' (Note: 'take' not 'takes')\n'I suggest that he be informed of the decision.'\n'If I were you, I would invest in renewable energy.'"
+      },
+      {
+        heading: "Parallel Structure",
+        content: "Ensuring that parts of a sentence are grammatically consistent.\n\nINCORRECT: 'The study involved collecting data, analyzing results, and to write a report.'\nCORRECT: 'The study involved collecting data, analyzing results, and writing a report.'\n\nParallelism makes your writing clearer and more professional."
+      }
+    ]
+  },
+  {
+    title: "Common IELTS Grammar Pitfalls",
+    sections: [
+      {
+        heading: "Subject-Verb Agreement with Complex Subjects",
+        content: "The verb must agree with the true subject, not the nearest noun.\n\n'The number of people who smoke IS increasing.' (Subject is 'The number')\n'A range of factors HAS contributed to the crisis.' (Subject is 'A range')\n'The impact of these policies ON THE POOR IS significant.'"
+      },
+      {
+        heading: "Countable vs Uncountable Nouns",
+        content: "Common mistakes in IELTS:\n• Advice (uncountable) - 'He gave me some advice.' (NOT 'an advice')\n• Information (uncountable) - 'The information IS useful.' (NOT 'are')\n• Research (uncountable) - 'Much research HAS been done.'\n• Knowledge (uncountable) - 'His knowledge OF the subject IS vast.'"
+      }
+    ]
   }
 ];
