@@ -26,6 +26,7 @@ export default function Tutor() {
   const [essay, setEssay] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState<UserProgress | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -83,6 +84,14 @@ Your mission is to provide high-impact, practical coaching that bridges the gap 
 Respond in a way that makes the student feel they are getting a premium, one-on-one tutoring session.`;
   };
 
+  const QUICK_PROMPTS = [
+    { label: "Check Grammar", prompt: "Can you check the grammar of this sentence: " },
+    { label: "Explain Word", prompt: "What does this word mean in an IELTS context: " },
+    { label: "Speaking Practice", prompt: "Let's practice a Part 1 Speaking topic about " },
+    { label: "Writing Tips", prompt: "Give me 3 tips to improve my Coherence and Cohesion in Task 2." },
+    { label: "Vocabulary", prompt: "Give me 5 academic synonyms for the word " }
+  ];
+
   const handleSend = async (text: string = input) => {
     if (!text.trim() || isLoading || !progress) return;
 
@@ -139,195 +148,236 @@ Respond in a way that makes the student feel they are getting a premium, one-on-
     }
   };
 
+  if (!progress) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-blue-primary/20 border-t-blue-primary rounded-full animate-spin" />
+          <p className="text-text-muted font-bold uppercase tracking-widest text-xs">Loading Aria...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <motion.div 
-      id="tutor-root" 
-      className="flex flex-col h-[calc(100vh-140px)] md:h-[calc(100vh-100px)] bg-bg-1/50 backdrop-blur-xl rounded-3xl border border-white/5 overflow-hidden shadow-2xl"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      {/* Chat Header */}
-      <div id="tutor-header" className="px-6 py-4 bg-white/5 border-b border-white/5 flex items-center justify-between">
-        <div id="tutor-header-info" className="flex items-center gap-3">
-          <div id="tutor-logo-container" className="w-10 h-10 rounded-2xl bg-violet-accent flex items-center justify-center text-white shadow-lg shadow-violet-accent/20">
-            <Bot size={20} />
-          </div>
-          <div>
-            <div id="tutor-name" className="text-sm font-serif font-black text-text-primary tracking-tight">Aria <span className="text-violet-accent">AI</span></div>
-            <div id="tutor-subtitle" className="text-[10px] text-text-muted font-bold uppercase tracking-widest">Expert IELTS Coach</div>
-          </div>
+    <div className="flex flex-col min-h-full space-y-8 pb-4">
+      {/* Tutor Hero Section */}
+      <div className="relative overflow-hidden rounded-[3rem] recipe-atmospheric-bg p-10 md:p-16 text-white shadow-2xl shadow-blue-primary/20 shrink-0 border border-blue-primary/20">
+        <div className="absolute top-0 right-0 p-16 opacity-10 pointer-events-none transform translate-x-1/4 -translate-y-1/4 scale-150">
+          <Bot size={300} />
         </div>
-        <div id="tutor-header-actions" className="flex items-center gap-2">
-          <motion.button 
-            id="btn-clear-history" 
-            onClick={clearHistory} 
-            whileHover={{ scale: 1.1, color: "#ef4444" }}
-            whileTap={{ scale: 0.9 }}
-            className="p-2.5 rounded-xl bg-white/5 text-text-muted hover:text-red-accent hover:bg-red-accent/10 transition-all" 
-            title="Clear History"
-          >
-            <Trash2 size={16} />
-          </motion.button>
+        <div className="relative z-10 space-y-8 max-w-4xl">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/20">
+              <Sparkles size={20} className="text-blue-secondary animate-pulse" />
+            </div>
+            <div className="recipe-editorial-label text-blue-secondary">AI Personal Mentor</div>
+          </div>
+          <div className="space-y-4">
+            <h3 className="recipe-editorial-h1 text-white leading-[0.85]">
+              MEET ARIA
+            </h3>
+            <p className="text-xl md:text-2xl font-medium leading-relaxed opacity-80 max-w-2xl">
+              Your elite IELTS coach. Master grammar, expand your vocabulary, and receive expert feedback on every task.
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Mode Tabs */}
-      <div id="tutor-mode-tabs" className="flex items-center gap-1.5 p-3 bg-white/5 border-b border-white/5 overflow-x-auto no-scrollbar">
-        {[
-          { id: "chat", label: "Chat", icon: Bot },
-          { id: "writing", label: "Writing", icon: PenTool },
-          { id: "speaking", label: "Speaking", icon: Mic },
-          { id: "tips", label: "Tips", icon: Lightbulb },
-        ].map((t) => (
-          <motion.button
-            key={t.id}
-            id={`tutor-mode-tab-${t.id}`}
-            onClick={() => setMode(t.id as any)}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className={cn(
-              "flex items-center gap-2 px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
-              mode === t.id ? "bg-blue-primary text-white shadow-lg shadow-blue-primary/20" : "text-text-muted hover:bg-white/10 hover:text-text-primary"
-            )}
-          >
-            <t.icon size={14} /> {t.label}
-          </motion.button>
-        ))}
-      </div>
+      <div className="flex-1 flex flex-col lg:flex-row gap-8 min-h-0">
+        {/* Chat Sidebar/Modes */}
+        <div className="w-full lg:w-72 flex flex-row lg:flex-col gap-3 shrink-0 overflow-x-auto lg:overflow-y-auto no-scrollbar pb-2 lg:pb-0">
+          {(["chat", "writing", "speaking", "tips"] as const).map((m) => (
+            <button
+              key={m}
+              onClick={() => setMode(m)}
+              className={cn(
+                "flex items-center gap-4 px-6 py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-widest transition-all border whitespace-nowrap lg:whitespace-normal group",
+                mode === m 
+                  ? "bg-blue-primary text-white border-blue-primary shadow-xl shadow-blue-primary/30 scale-[1.02]" 
+                  : "bg-bg-2 text-text-muted border-border hover:bg-bg-3 hover:border-blue-primary/30"
+              )}
+            >
+              <div className={cn(
+                "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                mode === m ? "bg-white/20" : "bg-bg-3 text-text-muted group-hover:text-blue-secondary"
+              )}>
+                {m === "chat" && <Bot size={20} />}
+                {m === "writing" && <PenTool size={20} />}
+                {m === "speaking" && <Mic size={20} />}
+                {m === "tips" && <Lightbulb size={20} />}
+              </div>
+              <span className="flex-1 text-left">{m.charAt(0).toUpperCase() + m.slice(1)}</span>
+              {mode === m && <ChevronRight size={16} className="opacity-50" />}
+            </button>
+          ))}
+          
+          <div className="hidden lg:block mt-auto p-8 recipe-hardware-widget border-blue-primary/10">
+            <div className="recipe-editorial-label text-blue-secondary mb-3">Target Objective</div>
+            <div className="text-4xl font-black text-text-primary tracking-tighter">Band {progress?.target || "7.5"}</div>
+            <div className="flex items-center gap-2 mt-4">
+              <div className="w-2 h-2 rounded-full bg-green-accent animate-pulse" />
+              <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Aria is active</div>
+            </div>
+          </div>
+        </div>
 
-      {/* Panels */}
-      <AnimatePresence mode="wait">
-        {mode === "writing" && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="bg-white/5 border-b border-white/5 p-6 space-y-4 overflow-hidden"
-          >
-            <div className="text-[10px] font-black text-blue-secondary uppercase tracking-[0.2em]">AI Essay Grader</div>
-            <textarea
-              value={essay}
-              onChange={(e) => setEssay(e.target.value)}
-              placeholder="Paste your Task 1 or Task 2 essay here..."
-              className="w-full bg-bg/50 border border-white/10 rounded-2xl p-4 text-sm text-text-primary focus:border-blue-primary outline-none min-h-[160px] resize-none font-serif leading-relaxed transition-all"
-            />
-            <div className="flex gap-3">
-              <button onClick={handleAnalyzeEssay} className="btn btn-primary flex-1">Analyze Essay</button>
-              <button onClick={() => setMode("chat")} className="btn btn-ghost">Cancel</button>
+        {/* Chat Main Area */}
+        <div className="flex-1 flex flex-col bg-bg-2 border border-border rounded-[3rem] overflow-hidden shadow-2xl shadow-black/5 min-h-[600px] relative">
+          <div className="bg-bg-3/80 backdrop-blur-xl px-8 py-6 border-b border-border flex items-center justify-between shrink-0 relative z-20">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-blue-primary/10 flex items-center justify-center text-blue-primary border border-blue-primary/20 shadow-inner">
+                <Bot size={28} />
+              </div>
+              <div>
+                <div className="text-lg font-bold text-text-primary">Aria</div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-green-accent animate-pulse" />
+                  <span className="text-[10px] text-green-accent font-black uppercase tracking-widest">Expert Mode</span>
+                </div>
+              </div>
             </div>
-          </motion.div>
-        )}
-
-        {mode === "speaking" && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="bg-bg-2 border-b border-border p-4 space-y-4 overflow-hidden"
-          >
-            <div className="text-xs font-bold text-violet-accent uppercase tracking-wider">Speaking Practice</div>
-            <div className="p-3 bg-bg-1 border border-border-2 rounded-xl italic text-sm text-text-secondary leading-relaxed">
-              &quot;Describe a book or film that had a significant impact on you. You should say: what it was about, when you read/watched it, and why it affected you.&quot;
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => { setMode("chat"); handleSend("I want to practice the speaking cue card about a book or film."); }} className="btn btn-primary btn-sm flex-1 bg-violet-accent hover:bg-violet-accent/80">Start Practice</button>
-              <button onClick={() => setMode("chat")} className="btn btn-ghost btn-sm">Cancel</button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Chat Messages */}
-      <div id="chat-messages-container" ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-        {progress?.chatHistory.length === 0 && (
-          <div id="chat-empty-state" className="h-full flex flex-col items-center justify-center text-center p-8 space-y-4 opacity-60">
-            <Bot size={48} className="text-blue-secondary" />
-            <div>
-              <h4 id="empty-state-title" className="font-serif text-xl font-bold mb-2">Hello! I&apos;m Aria.</h4>
-              <p id="empty-state-desc" className="text-sm text-text-muted max-w-xs">I&apos;m your personal IELTS coach. Ask me anything about the exam, or paste an essay for feedback.</p>
-            </div>
-            <div id="empty-state-suggestions" className="grid grid-cols-1 gap-2 w-full max-w-xs">
-              {[
-                "How can I improve my Reading score?",
-                "Explain Task 2 essay structure",
-                "Give me 10 academic words for Environment",
-              ].map((q, i) => (
-                <button key={i} id={`suggestion-btn-${i}`} onClick={() => handleSend(q)} className="text-xs p-2.5 rounded-lg border border-border hover:bg-bg-2 transition-colors text-left flex justify-between items-center group">
-                  {q} <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
+            <div className="flex items-center gap-3">
+              {showClearConfirm ? (
+                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2">
+                  <button 
+                    onClick={() => setShowClearConfirm(false)}
+                    className="px-4 py-2 rounded-xl bg-bg-1 text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-text-primary border border-border transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={() => {
+                      const newP = { ...progress, chatHistory: [] };
+                      setProgress(newP);
+                      saveProgress(newP);
+                      setShowClearConfirm(false);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-red-500/10 text-[10px] font-black uppercase tracking-widest text-red-accent hover:bg-red-500/20 border border-red-500/20 transition-all"
+                  >
+                    Confirm Clear
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => setShowClearConfirm(true)}
+                  className="w-12 h-12 rounded-2xl bg-bg-1 text-text-muted hover:text-red-accent border border-border transition-all flex items-center justify-center hover:bg-red-500/5 hover:border-red-500/20"
+                  title="Clear Chat"
+                >
+                  <Trash2 size={20} />
                 </button>
-              ))}
+              )}
             </div>
           </div>
-        )}
 
-        {progress?.chatHistory.map((msg, i) => (
-          <div key={i} id={`chat-message-${i}`} className={cn("flex items-start gap-4", msg.role === "user" ? "flex-row-reverse" : "")}>
-            <div id={`message-avatar-${i}`} className={cn(
-              "w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg",
-              msg.role === "assistant" ? "bg-violet-accent text-white" : "bg-blue-primary text-white"
-            )}>
-              {msg.role === "assistant" ? <Bot size={20} /> : <User size={20} />}
+          <div 
+            ref={scrollRef}
+            className="flex-1 overflow-y-auto p-8 md:p-12 space-y-10 custom-scrollbar relative z-10"
+          >
+            {progress?.chatHistory.length === 0 && !isLoading && (
+              <div className="h-full flex flex-col items-center justify-center text-center space-y-10 max-w-xl mx-auto py-20">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-blue-primary/20 blur-[60px] rounded-full animate-pulse" />
+                  <div className="relative w-28 h-28 rounded-[2.5rem] bg-blue-dim/10 flex items-center justify-center text-blue-primary border border-blue-primary/20 rotate-6 shadow-2xl">
+                    <Bot size={56} />
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <h4 className="recipe-editorial-h1 text-4xl">How can I help you today?</h4>
+                  <p className="text-lg text-text-muted leading-relaxed font-medium">
+                    I can help you with grammar, vocabulary, or practice specific IELTS tasks. Choose a suggestion below or type your own question.
+                  </p>
+                </div>
+                <div className="flex flex-wrap justify-center gap-3">
+                  {QUICK_PROMPTS.map((qp, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleSend(qp.prompt)}
+                      className="px-6 py-4 bg-bg-1 border border-border rounded-2xl text-[11px] font-black uppercase tracking-widest text-text-muted hover:text-blue-secondary hover:border-blue-primary/30 hover:bg-bg-3 transition-all shadow-sm active:scale-95"
+                    >
+                      {qp.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {progress?.chatHistory.map((msg, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={cn(
+                  "flex gap-6 max-w-[90%] md:max-w-[80%]",
+                  msg.role === "user" ? "ml-auto flex-row-reverse" : ""
+                )}
+              >
+                <div className={cn(
+                  "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 mt-1 shadow-lg",
+                  msg.role === "user" ? "bg-blue-primary text-white shadow-blue-primary/20" : "bg-bg-3 text-blue-secondary border border-border"
+                )}>
+                  {msg.role === "user" ? <User size={18} /> : <Bot size={18} />}
+                </div>
+                <div className={cn(
+                  "p-6 md:p-8 rounded-[2.5rem] text-base leading-relaxed font-medium",
+                  msg.role === "user" 
+                    ? "bg-blue-primary text-white rounded-tr-none shadow-2xl shadow-blue-primary/20" 
+                    : "bg-bg-1 border border-border rounded-tl-none text-text-primary shadow-xl shadow-black/5"
+                )}>
+                  <div className="prose prose-invert prose-lg max-w-none markdown-body">
+                    <Markdown>{msg.content}</Markdown>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+
+            {isLoading && (
+              <div className="flex gap-6 max-w-[80%]">
+                <div className="w-10 h-10 rounded-2xl bg-bg-3 text-blue-secondary border border-border flex items-center justify-center shrink-0 mt-1">
+                  <Bot size={18} />
+                </div>
+                <div className="p-6 bg-bg-1 border border-border rounded-[2.5rem] rounded-tl-none shadow-xl shadow-black/5">
+                  <div className="flex gap-2">
+                    <div className="w-2 h-2 bg-blue-secondary/40 rounded-full animate-bounce" />
+                    <div className="w-2 h-2 bg-blue-secondary/40 rounded-full animate-bounce [animation-delay:0.2s]" />
+                    <div className="w-2 h-2 bg-blue-secondary/40 rounded-full animate-bounce [animation-delay:0.4s]" />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="p-8 md:p-10 bg-bg-3/80 backdrop-blur-xl border-t border-border shrink-0 relative z-20">
+            <div className="relative group max-w-5xl mx-auto">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                placeholder="Ask Aria anything..."
+                className="w-full bg-bg-1 border border-border rounded-[2rem] pl-8 pr-20 py-6 text-lg text-text-primary focus:border-blue-primary focus:ring-8 focus:ring-blue-primary/5 outline-none transition-all shadow-inner group-hover:bg-bg-2"
+              />
+              <button
+                onClick={() => handleSend()}
+                disabled={!input.trim() || isLoading}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-14 h-14 rounded-2xl bg-blue-primary text-white flex items-center justify-center hover:bg-blue-secondary transition-all disabled:opacity-50 disabled:scale-90 shadow-xl shadow-blue-primary/20 active:scale-95"
+              >
+                <Send size={24} />
+              </button>
             </div>
-            <div className={cn(
-              "max-w-[85%] p-5 rounded-3xl text-sm leading-relaxed shadow-xl backdrop-blur-sm",
-              msg.role === "assistant" 
-                ? "bg-white/5 rounded-tl-none text-text-primary border border-white/5" 
-                : "bg-blue-primary/10 rounded-tr-none text-text-primary border border-blue-primary/20"
-            )}>
-              <div className="prose prose-invert prose-sm max-w-none font-medium">
-                <Markdown>{msg.content}</Markdown>
+            <div className="flex items-center justify-between mt-6 px-4 max-w-5xl mx-auto">
+              <div className="flex items-center gap-2 text-[10px] text-text-muted font-black uppercase tracking-widest">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-primary/40" />
+                AI-Powered Tutoring Session
+              </div>
+              <div className="flex items-center gap-6">
+                <button className="text-[10px] font-black text-text-muted hover:text-blue-secondary transition-colors uppercase tracking-widest">Help Center</button>
+                <button className="text-[10px] font-black text-text-muted hover:text-blue-secondary transition-colors uppercase tracking-widest">Keyboard Shortcuts</button>
               </div>
             </div>
           </div>
-        ))}
-
-        {isLoading && (
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-violet-accent text-white flex items-center justify-center flex-shrink-0 animate-pulse">
-              <Bot size={16} />
-            </div>
-            <div className="bg-bg-2 p-4 rounded-2xl rounded-tl-none flex items-center gap-2">
-              <Loader2 size={16} className="animate-spin text-blue-secondary" />
-              <span className="text-xs text-text-muted font-medium">Aria is thinking...</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Input Area */}
-      <div id="tutor-input-area" className="p-3 bg-bg border-t border-border">
-        <div id="tutor-input-container" className="flex items-end gap-2 max-w-4xl mx-auto">
-          <textarea
-            id="tutor-input-field"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-            placeholder="Ask Aria anything about IELTS..."
-            className="flex-1 bg-bg-2 border border-border-2 rounded-2xl px-4 py-3 text-sm text-text-primary focus:border-blue-primary outline-none resize-none max-h-32 min-h-[48px] custom-scrollbar"
-            rows={1}
-            style={{ height: "auto" }}
-            onInput={(e) => {
-              const target = e.target as HTMLTextAreaElement;
-              target.style.height = "auto";
-              target.style.height = `${Math.min(target.scrollHeight, 128)}px`;
-            }}
-          />
-          <button
-            id="btn-send-message"
-            onClick={() => handleSend()}
-            disabled={!input.trim() || isLoading}
-            className="w-12 h-12 rounded-2xl bg-blue-primary text-white flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-primary/20 hover:bg-blue-secondary transition-colors flex-shrink-0"
-          >
-            <Send size={20} />
-          </button>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

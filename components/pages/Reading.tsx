@@ -42,6 +42,15 @@ const READING_SAMPLES = [
     question: "Marie Curie won Nobel Prizes in three different scientific fields.",
     answer: "False",
     explanation: "The passage states she won the Nobel Prize in 'two different scientific fields', not three."
+  },
+  {
+    id: "s3",
+    title: "Sample: Matching Headings",
+    type: "Matching",
+    passage: "Paragraph A: The transition to renewable energy is essential for a sustainable future. Paragraph B: Solar power is a leading source of renewable energy. Paragraph C: Wind energy is also growing rapidly.",
+    question: "Match the following headings to the paragraphs: i. Solar Power, ii. Wind Energy, iii. Sustainable Future",
+    answer: "A-iii, B-i, C-ii",
+    explanation: "Paragraph A discusses the sustainable future, B discusses solar power, and C discusses wind energy."
   }
 ];
 
@@ -240,6 +249,30 @@ const READING_PASSAGES = [
   },
   {
     id: "p17",
+    title: "The Psychology of Motivation",
+    difficulty: "Hard",
+    mins: 25,
+    text: "Motivation is a complex psychological phenomenon that drives human behavior and determines the direction and intensity of our actions. Psychologists distinguish between intrinsic motivation, which comes from within, and extrinsic motivation, which is driven by external rewards. Intrinsic motivation is often associated with higher levels of creativity and persistence, while extrinsic motivation can be effective in the short term but may sometimes undermine internal interest.\n\nAnother key concept is self-efficacy, which refers to an individual's belief in their capacity to execute behaviors necessary to produce specific performance attainments. People with high self-efficacy are more likely to take on challenging tasks and persist in the face of obstacles. Goal setting also plays a crucial role, as specific and challenging goals can significantly enhance performance by providing direction and a benchmark for progress.",
+    questions: [
+      { id: "q1", type: "mcq", q: "What is intrinsic motivation?", options: ["Driven by external rewards", "Comes from within", "A type of goal setting", "A form of self-efficacy"], answer: 1 },
+      { id: "q2", type: "tf", q: "Extrinsic motivation always improves long-term interest.", options: ["True", "False", "Not Given"], answer: 1 },
+      { id: "q3", type: "mcq", q: "What does self-efficacy refer to?", options: ["External rewards", "Belief in one's own abilities", "Setting easy goals", "Social recognition"], answer: 1 }
+    ]
+  },
+  {
+    id: "p18",
+    title: "The History of Architecture",
+    difficulty: "Medium",
+    mins: 20,
+    text: "Architecture is the art and science of designing and constructing buildings, reflecting the values and aspirations of societies. In ancient Greece, architecture focused on harmony and proportion, using classical orders like Doric and Ionic. The Romans introduced the arch, vault, and dome, allowing for massive structures like the Colosseum.\n\nDuring the Middle Ages, Gothic architecture emerged with pointed arches and flying buttresses, leading to taller, light-filled cathedrals. The Industrial Revolution introduced materials like iron and steel, paving the way for modern architecture that emphasized functionality and simplicity. Today, architecture continues to evolve with a focus on sustainability and technology.",
+    questions: [
+      { id: "q1", type: "mcq", q: "What was a key focus of ancient Greek architecture?", options: ["Functionality", "Harmony and proportion", "Industrial materials", "Sustainability"], answer: 1 },
+      { id: "q2", type: "tf", q: "The Romans invented the flying buttress.", options: ["True", "False", "Not Given"], answer: 1 },
+      { id: "q3", type: "mcq", q: "What did the Industrial Revolution introduce to architecture?", options: ["Pointed arches", "Classical orders", "Iron and steel", "The dome"], answer: 2 }
+    ]
+  },
+  {
+    id: "p19",
     title: "The Benefits of Reading",
     difficulty: "Medium",
     mins: 20,
@@ -251,7 +284,7 @@ const READING_PASSAGES = [
     ]
   },
   {
-    id: "p18",
+    id: "p20",
     title: "The History of the Printing Press",
     difficulty: "Hard",
     mins: 25,
@@ -263,7 +296,7 @@ const READING_PASSAGES = [
     ]
   },
   {
-    id: "p19",
+    id: "p21",
     title: "The Importance of Water Conservation",
     difficulty: "Medium",
     mins: 20,
@@ -275,7 +308,7 @@ const READING_PASSAGES = [
     ]
   },
   {
-    id: "p20",
+    id: "p22",
     title: "The Future of Space Travel",
     difficulty: "Hard",
     mins: 30,
@@ -287,7 +320,43 @@ const READING_PASSAGES = [
     ]
   },
   {
-    id: "p21",
+    id: "p23",
+    title: "The Importance of Biodiversity",
+    difficulty: "Hard",
+    mins: 30,
+    text: "Biodiversity refers to the variety of life on Earth, including the different species of plants, animals, and microorganisms, as well as the ecosystems they form. Biodiversity is essential for maintaining the health and stability of our planet, providing us with vital resources such as food, medicine, and clean water.\n\nHowever, biodiversity is currently under threat from human activities such as habitat destruction, pollution, and climate change. The loss of biodiversity can have far-reaching consequences, including the collapse of ecosystems and the loss of essential services that support human life. Protecting and restoring biodiversity is crucial for ensuring a sustainable future for all.",
+    questions: [
+      { id: "q1", type: "mcq", q: "What does biodiversity refer to?", options: ["Only animals", "The variety of life on Earth", "Only plants", "A single ecosystem"], answer: 1 },
+      { id: "q2", type: "tf", q: "Biodiversity is not important for human health.", options: ["True", "False", "Not Given"], answer: 1 },
+      { id: "q3", type: "mcq", q: "What is one threat to biodiversity mentioned?", options: ["Increased conservation", "Habitat destruction", "More clean water", "Stable ecosystems"], answer: 1 }
+    ]
+  },
+  {
+    id: "p24",
+    title: "The Psychology of Learning",
+    difficulty: "Medium",
+    mins: 20,
+    text: "Learning is a complex process that involves acquiring new knowledge, skills, behaviors, or values. Psychologists have developed various theories to explain how people learn, including behaviorism, cognitivism, and constructivism. Behaviorism focuses on observable behaviors and the role of reinforcement, while cognitivism emphasizes the mental processes involved in learning, such as memory and problem-solving.\n\nConstructivism, on the other hand, suggests that learners actively construct their own understanding of the world based on their experiences and interactions. Effective learning often involves a combination of these different approaches, as well as factors such as motivation, attention, and the use of effective study strategies. Understanding the psychology of learning can help individuals and educators develop more effective ways to acquire and share knowledge.",
+    questions: [
+      { id: "q1", type: "mcq", q: "What does behaviorism focus on?", options: ["Mental processes", "Observable behaviors", "Social interactions", "Emotional states"], answer: 1 },
+      { id: "q2", type: "tf", q: "Cognitivism emphasizes the role of memory in learning.", options: ["True", "False", "Not Given"], answer: 0 },
+      { id: "q3", type: "mcq", q: "What does constructivism suggest about learners?", options: ["They are passive recipients of information", "They actively construct their own understanding", "They only learn through imitation", "They are born with all knowledge"], answer: 1 }
+    ]
+  },
+  {
+    id: "p25",
+    title: "The Impact of Social Media",
+    difficulty: "Medium",
+    mins: 20,
+    text: "Social media has revolutionized the way we communicate, share information, and interact with others. Platforms like Facebook, Twitter, and Instagram have billions of users around the world, allowing people to connect with friends and family, share their thoughts and experiences, and stay informed about current events.\n\nHowever, social media also has its downsides, including concerns about privacy, the spread of misinformation, and the impact on mental health. The constant pressure to present a perfect image of oneself and the fear of missing out (FOMO) can lead to anxiety and low self-esteem. As social media continues to evolve, it is important for individuals to be mindful of their usage and for platforms to take steps to address these challenges.",
+    questions: [
+      { id: "q1", type: "mcq", q: "What is one benefit of social media mentioned?", options: ["Increased privacy", "Connecting with friends and family", "Less misinformation", "Better self-esteem"], answer: 1 },
+      { id: "q2", type: "tf", q: "Social media has no impact on mental health.", options: ["True", "False", "Not Given"], answer: 1 },
+      { id: "q3", type: "mcq", q: "What is one downside of social media mentioned?", options: ["More communication", "Spread of misinformation", "Better information sharing", "Increased connectivity"], answer: 1 }
+    ]
+  },
+  {
+    id: "p26",
     title: "The Impact of Urbanization",
     difficulty: "Medium",
     mins: 20,
@@ -512,8 +581,42 @@ export default function Reading() {
     );
   }
 
-  return (
+    return (
     <div className="space-y-8">
+      {/* Reading Hero Section */}
+      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-500 p-8 md:p-12 text-white shadow-2xl shadow-emerald-500/20">
+        <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none">
+          <BookOpen size={200} />
+        </div>
+        <div className="relative z-10 space-y-6">
+          <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] opacity-80">
+            <Sparkles size={14} className="animate-pulse" /> Reading Mastery
+          </div>
+          <div className="space-y-2">
+            <h3 className="font-serif text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none">
+              ACADEMIC READING
+            </h3>
+            <p className="text-lg md:text-xl font-medium max-w-2xl leading-relaxed opacity-90">
+              Master skimming, scanning, and detailed reading with our curated collection of IELTS-style passages.
+            </p>
+          </div>
+          
+          <div className="flex flex-wrap gap-4 pt-4">
+            <div className="flex items-center gap-6 px-6 py-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Avg. Speed</span>
+                <span className="text-xl font-black">240 wpm</span>
+              </div>
+              <div className="w-px h-8 bg-white/20" />
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Accuracy</span>
+                <span className="text-xl font-black">84%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="font-serif text-2xl font-bold mb-1">📖 Reading Academy</h2>
@@ -551,29 +654,33 @@ export default function Reading() {
       </div>
 
       {activeTab === "practice" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {READING_PASSAGES.map((passage) => (
             <button
               key={passage.id}
               onClick={() => startPassage(passage)}
-              className="card w-full text-left hover:border-blue-primary group"
+              className="group relative flex flex-col text-left bg-bg-2 border border-border rounded-[2rem] overflow-hidden transition-all hover:border-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/5 active:scale-[0.98]"
             >
-              <div className="flex items-center justify-between mb-3">
-                <span className={cn(
-                  "tag",
-                  passage.difficulty === "Medium" ? "tag-amber" : "tag-red"
-                )}>{passage.difficulty}</span>
-                <span className="text-[10px] font-bold text-text-muted flex items-center gap-1">
-                  <Clock size={10} /> {passage.mins} Mins
-                </span>
-              </div>
-              <h3 className="font-bold text-text-primary mb-2 group-hover:text-blue-primary transition-colors">{passage.title}</h3>
-              <p className="text-xs text-text-muted line-clamp-2 mb-4">
-                {passage.text.substring(0, 150)}...
-              </p>
-              <div className="flex items-center justify-between pt-4 border-t border-border-2">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">{passage.questions.length} Questions</span>
-                <ChevronRight size={16} className="text-text-muted group-hover:text-blue-primary group-hover:translate-x-1 transition-all" />
+              <div className="p-8 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className={cn(
+                    "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest",
+                    passage.difficulty === "Medium" ? "bg-amber-dim text-amber-600" : "bg-red-dim text-red-accent"
+                  )}>{passage.difficulty}</span>
+                  <span className="text-[10px] font-bold text-text-muted flex items-center gap-1">
+                    <Clock size={12} /> {passage.mins} Mins
+                  </span>
+                </div>
+                <h3 className="font-serif text-2xl font-black text-text-primary group-hover:text-emerald-600 transition-colors">{passage.title}</h3>
+                <p className="text-sm text-text-muted line-clamp-2 mb-4 leading-relaxed">
+                  {passage.text.substring(0, 150)}...
+                </p>
+                <div className="flex items-center justify-between pt-4 border-t border-border">
+                  <span className="text-[10px] font-black text-text-muted uppercase tracking-widest">{passage.questions.length} Questions</span>
+                  <div className="w-10 h-10 rounded-full bg-bg-1 border border-border flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                    <ChevronRight size={20} />
+                  </div>
+                </div>
               </div>
             </button>
           ))}

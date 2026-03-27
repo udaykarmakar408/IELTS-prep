@@ -26,6 +26,7 @@ export interface UserProgress {
   essaysWritten: number;
   courseXP: number;
   errorLog: { cat: string; error: string; correction: string; note: string; date: string; resolved: boolean }[];
+  mistakeAnalysis: { date: string; insight: string; recommendations: string[] } | null;
   writingHistory: { task: string; text: string; feedback: string; band: number | null; words: number; date: string }[];
   grammarHistory: { sentence: string; analysis: string; date: string }[];
   studyMinutes: number;
@@ -34,6 +35,7 @@ export interface UserProgress {
   studyLog: Record<string, number>;
   examDate: string | null;
   dailyBriefing: { date: string; content: string } | null;
+  achievements: { id: string; title: string; description: string; unlocked: boolean; date?: string }[];
 }
 
 const STORAGE_KEY = "ielts_pro_v1";
@@ -59,6 +61,7 @@ export const defaultProgress: UserProgress = {
   essaysWritten: 0,
   courseXP: 0,
   errorLog: [],
+  mistakeAnalysis: null,
   writingHistory: [],
   grammarHistory: [],
   studyMinutes: 0,
@@ -67,6 +70,13 @@ export const defaultProgress: UserProgress = {
   studyLog: {},
   examDate: null,
   dailyBriefing: null,
+  achievements: [
+    { id: "first_step", title: "First Step", description: "Complete your first lesson", unlocked: false },
+    { id: "streak_3", title: "Consistency is Key", description: "Maintain a 3-day streak", unlocked: false },
+    { id: "band_7", title: "High Achiever", description: "Reach Band 7 in any skill", unlocked: false },
+    { id: "vocab_100", title: "Word Master", description: "Learn 100 new words", unlocked: false },
+    { id: "mock_test", title: "Test Ready", description: "Complete your first full mock test", unlocked: false }
+  ],
 };
 
 import { supabase } from "./supabase";

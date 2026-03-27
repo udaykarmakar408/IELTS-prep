@@ -14,7 +14,10 @@ import {
   Clock,
   Lightbulb,
   MessageSquare,
-  Trophy
+  Trophy,
+  AlertCircle,
+  CheckCircle2,
+  Volume2
 } from "lucide-react";
 import { callGroq } from "@/lib/groq";
 import { cn } from "@/lib/utils";
@@ -45,6 +48,8 @@ export default function SpeakingLab() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [transcription, setTranscription] = useState("");
   const [recognition, setRecognition] = useState<any>(null);
+  const [pronunciationFeedback, setPronunciationFeedback] = useState<any>(null);
+  const [isAnalyzingPronunciation, setIsAnalyzingPronunciation] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined" && (window.webkitSpeechRecognition || window.SpeechRecognition)) {
@@ -133,6 +138,7 @@ export default function SpeakingLab() {
 
   const getAIAnalysis = async () => {
     setIsAnalyzing(true);
+    setIsAnalyzingPronunciation(true);
     try {
       const prompt = `Simulate an IELTS Speaking Part 2 feedback for the topic: "${cueCardData.topic}".
       The student's transcribed response was: "${transcription || "No response recorded."}"
@@ -148,11 +154,29 @@ export default function SpeakingLab() {
       
       const result = await callGroq(prompt, "You are a senior IELTS examiner.");
       setFeedback(result);
+      
+      // Separate Pronunciation Analysis
+      const pronPrompt = `Analyze the following transcript for potential pronunciation challenges common for IELTS students. 
+      Transcript: "${transcription}"
+      
+      Identify 3-5 specific words from the transcript that are often mispronounced or could be improved.
+      For each word, provide:
+      1. The word
+      2. Phonetic transcription (IPA)
+      3. A tip for better pronunciation.
+      
+      Return in JSON format: { "score": 0-100, "words": [{ "word": "...", "ipa": "...", "tip": "..." }] }`;
+      
+      const pronResult = await callGroq(pronPrompt, "You are a pronunciation coach.");
+      const pronData = JSON.parse(pronResult.replace(/```json\n?|\n?```/g, ''));
+      setPronunciationFeedback(pronData);
+      
       setPhase("feedback");
     } catch (error) {
       console.error(error);
     } finally {
       setIsAnalyzing(false);
+      setIsAnalyzingPronunciation(false);
     }
   };
 
@@ -372,22 +396,98 @@ export default function SpeakingLab() {
               </div>
 
               {feedback && (
-                <motion.div 
-                  id="speaking-feedback-display"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="card p-8 bg-gradient-to-br from-violet-accent/10 to-bg-1 border-violet-accent/30 shadow-2xl shadow-violet-accent/5"
-                >
-                  <div className="flex items-center gap-2 text-violet-accent font-bold text-[10px] uppercase tracking-[0.25em] mb-6">
-                    <MessageSquare size={16} /> AI Analysis
-                  </div>
-                  <div className="prose prose-invert prose-sm max-w-none text-text-secondary leading-relaxed markdown-body">
-                    <ReactMarkdown>{feedback}</ReactMarkdown>
-                  </div>
-                  <button onClick={() => setCueCardData(null)} className="btn btn-ghost w-full mt-8 border-violet-accent/20 text-violet-accent hover:bg-violet-accent hover:text-white transition-all">
-                    Try Another Topic
-                  </button>
-                </motion.div>
+                <div className="space-y-6">
+                  {pronunciationFeedback && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="card p-8 bg-gradient-to-br from-blue-primary/10 to-bg-1 border-blue-primary/30 shadow-xl shadow-blue-primary/5"
+                    >
+                      <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center gap-2 text-blue-secondary font-bold text-[10px] uppercase tracking-[0.25em]">
+                          <Mic size={16} /> Pronunciation Analysis
+                        </div>
+                        <div className="relative w-16 h-16 flex items-center justify-center">
+                          <svg className="w-full h-full transform -rotate-90">
+                            <circle
+                              cx="32"
+                              cy="32"
+                              r="28"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                              fill="transparent"
+                              className="text-bg-3"
+                            />
+                            <motion.circle
+                              cx="32"
+                              cy="32"
+                              r="28"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                              fill="transparent"
+                              strokeDasharray={175.9}
+                              initial={{ strokeDashoffset: 175.9 }}
+                              animate={{ strokeDashoffset: 175.9 - (175.9 * pronunciationFeedback.score) / 100 }}
+                              transition={{ duration: 1.5, ease: "easeOut" }}
+                              className="text-blue-primary"
+                            />
+                          </svg>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <span className="text-sm font-black text-text-primary">{pronunciationFeedback.score}</span>
+                            <span className="text-[6px] font-bold text-text-muted uppercase">Score</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="text-[10px] font-black text-text-muted uppercase tracking-widest mb-2">Focus Words</div>
+                        {pronunciationFeedback.words.map((item: any, i: number) => (
+                          <motion.div 
+                            key={i} 
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: 0.3 + i * 0.1 }}
+                            className="p-4 bg-bg-2/50 rounded-2xl border border-border-2 group hover:border-blue-primary/30 transition-all hover:bg-bg-1"
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-black text-text-primary">{item.word}</span>
+                                <button className="p-1 text-text-muted hover:text-blue-primary transition-colors">
+                                  <Volume2 size={12} />
+                                </button>
+                              </div>
+                              <span className="text-[10px] font-mono text-blue-secondary bg-blue-secondary/10 px-2 py-0.5 rounded-md border border-blue-secondary/20">{item.ipa}</span>
+                            </div>
+                            <div className="flex gap-2">
+                              <div className="mt-1">
+                                <Sparkles size={10} className="text-amber-accent" />
+                              </div>
+                              <p className="text-[11px] text-text-muted leading-relaxed italic">{item.tip}</p>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+
+                  <motion.div 
+                    id="speaking-feedback-display"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="card p-8 bg-gradient-to-br from-violet-accent/10 to-bg-1 border-violet-accent/30 shadow-2xl shadow-violet-accent/5"
+                  >
+                    <div className="flex items-center gap-2 text-violet-accent font-bold text-[10px] uppercase tracking-[0.25em] mb-6">
+                      <MessageSquare size={16} /> AI Analysis
+                    </div>
+                    <div className="prose prose-invert prose-sm max-w-none text-text-secondary leading-relaxed markdown-body">
+                      <ReactMarkdown>{feedback}</ReactMarkdown>
+                    </div>
+                    <button onClick={() => { setCueCardData(null); setFeedback(null); setPronunciationFeedback(null); }} className="btn btn-ghost w-full mt-8 border-violet-accent/20 text-violet-accent hover:bg-violet-accent hover:text-white transition-all">
+                      Try Another Topic
+                    </button>
+                  </motion.div>
+                </div>
               )}
             </div>
           </div>

@@ -161,7 +161,7 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
             visible: {
               opacity: 1,
               transition: {
-                staggerChildren: 0.05
+                staggerChildren: 0.03
               }
             }
           }}
@@ -170,13 +170,13 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
             <motion.div 
               key={category.label} 
               id={`nav-category-${category.label.toLowerCase()}`} 
-              className="space-y-1.5"
+              className="space-y-1"
               variants={{
                 hidden: { opacity: 0, x: -10 },
                 visible: { opacity: 1, x: 0 }
               }}
             >
-              <div className="px-4 text-[10px] font-black text-text-muted uppercase tracking-[0.25em] mb-3">
+              <div className="px-4 text-[9px] font-black text-text-muted uppercase tracking-[0.3em] mb-3 opacity-50">
                 {category.label}
               </div>
               {category.items.map((item) => (
@@ -184,31 +184,31 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
                   key={item.id}
                   id={`nav-item-${item.id}`}
                   onClick={() => setActivePage(item.id)}
-                  whileHover={{ x: 4 }}
+                  whileHover={{ x: 4, backgroundColor: "rgba(255, 255, 255, 0.05)" }}
                   whileTap={{ scale: 0.98 }}
                   className={cn(
-                    "w-full px-4 py-2.5 rounded-xl flex items-center gap-3 transition-all duration-300 text-left group relative overflow-hidden",
+                    "w-full px-4 py-2 rounded-xl flex items-center gap-3 transition-all duration-200 text-left group relative",
                     activePage === item.id 
-                      ? "bg-blue-primary/10 text-blue-secondary shadow-sm" 
-                      : "text-text-muted hover:bg-white/5 hover:text-text-primary"
+                      ? "bg-blue-primary/10 text-blue-secondary" 
+                      : "text-text-muted hover:text-text-primary"
                   )}
                 >
                   {activePage === item.id && (
                     <motion.div 
                       layoutId="active-pill"
-                      className="absolute left-0 top-0 bottom-0 w-1 bg-blue-primary"
+                      className="absolute left-0 top-2 bottom-2 w-1 bg-blue-primary rounded-full"
                       transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     />
                   )}
                   <item.icon 
-                    size={18} 
+                    size={16} 
                     className={cn(
-                      "transition-transform duration-300 group-hover:scale-110",
-                      activePage === item.id ? "text-blue-secondary" : "text-text-muted group-hover:text-blue-secondary"
+                      "transition-all duration-300",
+                      activePage === item.id ? "text-blue-secondary scale-110" : "text-text-muted group-hover:text-blue-secondary"
                     )} 
                   />
                   <span className={cn(
-                    "text-[11px] font-bold uppercase tracking-widest transition-colors duration-300",
+                    "text-[10px] font-bold uppercase tracking-[0.15em] transition-colors duration-300",
                     activePage === item.id ? "text-blue-secondary" : "text-text-muted group-hover:text-text-primary"
                   )}>
                     {item.label}

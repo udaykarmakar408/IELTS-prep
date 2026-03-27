@@ -58,6 +58,24 @@ export const GRAMMAR_TIPS = [
     tip: "Use 'who' for people and 'which' or 'that' for things. Avoid using 'what' as a relative pronoun.",
     bad: "The book what I read was interesting.",
     good: "The book that I read was interesting."
+  },
+  {
+    title: "Prepositions of Time",
+    tip: "Use 'in' for months/years, 'on' for days/dates, and 'at' for specific times.",
+    bad: "I will meet you in Monday at July.",
+    good: "I will meet you on Monday in July."
+  },
+  {
+    title: "Used to vs Be used to",
+    tip: "'Used to' is for past habits; 'be used to' is for things you are accustomed to.",
+    bad: "I am used to wake up early every day.",
+    good: "I am used to waking up early every day."
+  },
+  {
+    title: "Adverbs vs Adjectives",
+    tip: "Use adverbs to modify verbs and adjectives to modify nouns.",
+    bad: "He speaks English very good.",
+    good: "He speaks English very well."
   }
 ];
 
@@ -131,6 +149,27 @@ export const WORDS_OF_THE_DAY = [
     band: "7.5+",
     def: "Fluent or persuasive in speaking or writing.",
     example: "The politician gave an eloquent speech about the importance of education."
+  },
+  {
+    word: "METICULOUS",
+    type: "adj",
+    band: "8+",
+    def: "Showing great attention to detail; very careful and precise.",
+    example: "The researcher was meticulous in her data collection process."
+  },
+  {
+    word: "REDUNDANT",
+    type: "adj",
+    band: "6.5+",
+    def: "Not or no longer needed or useful; superfluous.",
+    example: "The new automation system made several manual tasks redundant."
+  },
+  {
+    word: "SUBSTANTIATE",
+    type: "verb",
+    band: "8+",
+    def: "Provide evidence to support or prove the truth of.",
+    example: "They had found nothing to substantiate the allegations."
   }
 ];
 

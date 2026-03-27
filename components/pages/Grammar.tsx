@@ -123,67 +123,68 @@ Use **Markdown** for formatting. Be encouraging but precise.`;
         </div>
       </div>
 
-      {/* Grammar Lab - Enhanced Section */}
-      <div className="card bg-gradient-to-br from-blue-primary/10 to-bg-1 border-blue-primary/20 p-5 md:p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2 text-blue-secondary font-bold text-xs uppercase tracking-widest">
-            <Sparkles size={14} /> Grammar Lab (AI Checker)
-          </div>
-          {userSentence && (
-            <button 
-              onClick={() => { setUserSentence(""); setCheckResult(null); }}
-              className="text-[10px] font-bold text-text-muted hover:text-red-accent flex items-center gap-1 transition-colors"
-            >
-              <Trash2 size={12} /> Clear
-            </button>
-          )}
+      {/* Grammar Lab - Hero Section */}
+      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-blue-primary via-blue-primary/90 to-blue-secondary p-8 md:p-12 text-white shadow-2xl shadow-blue-primary/20">
+        <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none">
+          <Book size={200} />
         </div>
-        
-        <p className="text-[11px] md:text-xs text-text-secondary mb-4 leading-relaxed">
-          Paste a sentence from your essay or speaking practice. Aria will analyze it for accuracy, IELTS suitability, and suggest 7.5+ improvements.
-        </p>
-
-        <div className="space-y-4">
-          <div className="relative">
-            <textarea
-              value={userSentence}
-              onChange={(e) => setUserSentence(e.target.value)}
-              placeholder="e.g., Technology have many benefits for the people."
-              className="w-full bg-bg-1 border border-border-2 rounded-2xl p-4 text-sm text-text-primary focus:border-blue-primary outline-none min-h-[120px] resize-none font-serif leading-relaxed"
-            />
-            {!userSentence && (
-              <div className="absolute bottom-4 left-4 right-4 flex flex-wrap gap-2">
-                <span className="text-[9px] font-bold text-text-muted uppercase tracking-widest w-full mb-1">Try an example:</span>
-                {GRAMMAR_EXAMPLES.slice(0, 3).map((ex, i) => (
-                  <button 
-                    key={i}
-                    onClick={() => setUserSentence(ex)}
-                    className="px-2 py-1 bg-bg-2 border border-border-2 rounded-lg text-[10px] text-text-muted hover:text-blue-secondary hover:border-blue-primary/30 transition-all"
-                  >
-                    {ex.length > 30 ? ex.substring(0, 30) + "..." : ex}
-                  </button>
-                ))}
-              </div>
-            )}
+        <div className="relative z-10 space-y-6">
+          <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] opacity-80">
+            <Sparkles size={14} className="animate-pulse" /> Grammar Lab (AI Checker)
           </div>
+          <div className="space-y-2">
+            <h3 className="font-serif text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none">
+              UPGRADE TO 7.5+
+            </h3>
+            <p className="text-lg md:text-xl font-medium max-w-2xl leading-relaxed opacity-90">
+              Paste your sentences below. Aria will analyze them for accuracy, IELTS suitability, and suggest high-band improvements.
+            </p>
+          </div>
+          
+          <div className="space-y-4 pt-4">
+            <div className="relative group">
+              <textarea
+                value={userSentence}
+                onChange={(e) => setUserSentence(e.target.value)}
+                placeholder="e.g., Technology have many benefits for the people."
+                className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-6 text-lg text-white placeholder:text-white/40 focus:border-white/40 outline-none min-h-[160px] resize-none font-serif leading-relaxed transition-all group-hover:bg-white/15"
+              />
+              {!userSentence && (
+                <div className="absolute bottom-6 left-6 right-6 flex flex-wrap gap-2 pointer-events-none">
+                  <span className="text-[9px] font-black text-white/40 uppercase tracking-widest w-full mb-1">Try an example:</span>
+                  {GRAMMAR_EXAMPLES.slice(0, 3).map((ex, i) => (
+                    <button 
+                      key={i}
+                      onClick={(e) => { e.preventDefault(); setUserSentence(ex); }}
+                      className="pointer-events-auto px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-[10px] text-white/60 hover:text-white hover:bg-white/10 transition-all"
+                    >
+                      {ex.length > 30 ? ex.substring(0, 30) + "..." : ex}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
-          <button
-            onClick={checkGrammar}
-            disabled={!userSentence.trim() || isChecking}
-            className="btn btn-primary w-full py-4 disabled:opacity-50 text-sm shadow-lg shadow-blue-primary/20"
-          >
-            {isChecking ? (
-              <div className="flex items-center gap-2">
-                <Loader2 size={18} className="animate-spin" />
-                <span>Analyzing Sentence...</span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <Sparkles size={18} />
-                <span>Check Grammar & Upgrade to 7.5+</span>
-              </div>
-            )}
-          </button>
+            <button
+              onClick={checkGrammar}
+              disabled={!userSentence.trim() || isChecking}
+              className="w-full py-5 bg-white text-blue-primary rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white/90 transition-all active:scale-95 shadow-xl shadow-black/10 disabled:opacity-50"
+            >
+              {isChecking ? (
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 size={18} className="animate-spin" />
+                  <span>Analyzing Sentence...</span>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center gap-2">
+                  <Sparkles size={18} />
+                  <span>Check Grammar & Upgrade to 7.5+</span>
+                </div>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
 
           <AnimatePresence>
             {checkResult && (
@@ -227,8 +228,6 @@ Use **Markdown** for formatting. Be encouraging but precise.`;
               </div>
             </div>
           )}
-        </div>
-      </div>
 
       <div className="space-y-6">
         {GRAMMAR_DATA.map((group, groupIdx) => (

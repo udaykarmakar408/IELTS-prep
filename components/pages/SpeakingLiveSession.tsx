@@ -81,6 +81,9 @@ export default function SpeakingLiveSession({ onClose, topic, mode = "full" }: S
     
     source.onended = () => {
       isPlayingRef.current = false;
+      if (audioQueueRef.current.length === 0) {
+        setIsSpeaking(false);
+      }
       playNextChunk();
     };
 
@@ -94,7 +97,7 @@ export default function SpeakingLiveSession({ onClose, topic, mode = "full" }: S
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
       
       const session = await ai.live.connect({
-        model: "gemini-2.5-flash-native-audio-preview-12-2025",
+        model: "gemini-3.1-flash-live-preview",
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: {
@@ -123,6 +126,7 @@ export default function SpeakingLiveSession({ onClose, topic, mode = "full" }: S
           },
           onmessage: async (message: LiveServerMessage) => {
             if (message.serverContent?.modelTurn?.parts) {
+              setIsSpeaking(true);
               for (const part of message.serverContent.modelTurn.parts) {
                 if (part.inlineData?.data) {
                   // Decode base64 to Int16Array
@@ -141,6 +145,7 @@ export default function SpeakingLiveSession({ onClose, topic, mode = "full" }: S
             if (message.serverContent?.interrupted) {
               audioQueueRef.current = [];
               isPlayingRef.current = false;
+              setIsSpeaking(false);
             }
 
             if (message.serverContent?.modelTurn?.parts?.[0]?.text) {
@@ -205,134 +210,192 @@ export default function SpeakingLiveSession({ onClose, topic, mode = "full" }: S
 
   return (
     <motion.div 
+      id="speaking-live-container"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] bg-bg/95 backdrop-blur-xl flex items-center justify-center p-4 md:p-8"
+      className="fixed inset-0 z-[200] bg-bg/95 backdrop-blur-xl flex items-center justify-center p-4 md:p-8"
     >
-      <div className="w-full max-w-2xl bg-bg-1 border border-border-2 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-[80vh] max-h-[700px]">
+      <div className="w-full max-w-4xl h-full max-h-[800px] bg-bg-2 border border-border rounded-[40px] shadow-2xl flex flex-col overflow-hidden relative">
         {/* Header */}
-        <div className="p-6 border-b border-border-2 flex items-center justify-between bg-bg-2/50">
+        <div className="px-8 py-6 border-b border-border flex items-center justify-between bg-bg-3/50">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full bg-blue-primary/10 flex items-center justify-center text-blue-primary">
-              <Sparkles size={24} />
+            <div className="w-12 h-12 rounded-2xl bg-blue-primary/10 text-blue-primary flex items-center justify-center">
+              <Phone size={24} />
             </div>
             <div>
-              <h3 className="font-serif text-xl font-black text-text-primary">Aria Live</h3>
+              <h3 className="font-serif text-xl font-bold text-text-primary">Aria Live</h3>
               <div className="flex items-center gap-2">
                 <div className={cn(
                   "w-2 h-2 rounded-full",
-                  status === "active" ? "bg-green-500 animate-pulse" : "bg-text-muted"
+                  status === "active" ? "bg-green-accent animate-pulse" : 
+                  status === "connecting" ? "bg-amber-accent animate-pulse" : "bg-red-accent"
                 )} />
-                <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">
-                  {status === "connecting" ? "Connecting..." : status === "active" ? "Live Session" : "Disconnected"}
+                <span className="text-[10px] font-black uppercase tracking-widest text-text-muted">
+                  {status === "active" ? "Live Session" : status === "connecting" ? "Connecting..." : "Disconnected"}
                 </span>
               </div>
             </div>
           </div>
           <button 
             onClick={onClose}
-            className="w-10 h-10 rounded-full bg-bg-2 hover:bg-bg-3 flex items-center justify-center text-text-muted transition-colors"
+            className="p-3 rounded-2xl bg-bg-1 text-text-muted hover:text-red-accent hover:bg-red-accent/10 transition-all active:scale-95"
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 p-8 flex flex-col items-center justify-center text-center space-y-8 overflow-y-auto custom-scrollbar">
-          {status === "connecting" && (
-            <div className="space-y-4">
-              <Loader2 size={48} className="text-blue-primary animate-spin mx-auto" />
-              <p className="text-text-secondary font-medium">Initializing secure voice channel...</p>
-            </div>
-          )}
+        <div className="flex-1 flex flex-col items-center justify-center p-8 space-y-12 relative overflow-hidden">
+          {/* Background Glow */}
+          <div className="absolute inset-0 pointer-events-none">
+            <div className={cn(
+              "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full blur-[120px] transition-all duration-1000",
+              isSpeaking ? "bg-blue-primary/20 scale-110" : "bg-violet-accent/10 scale-100"
+            )} />
+          </div>
 
-          {status === "error" && (
-            <div className="space-y-6 max-w-sm">
-              <div className="w-16 h-16 bg-red-accent/10 rounded-full flex items-center justify-center text-red-accent mx-auto">
-                <AlertCircle size={32} />
-              </div>
-              <div className="space-y-2">
-                <h4 className="font-bold text-text-primary">Connection Failed</h4>
-                <p className="text-sm text-text-muted leading-relaxed">{error}</p>
-              </div>
-              <button 
-                onClick={() => { setError(null); startSession(); }}
-                className="btn btn-primary w-full"
+          {/* AI Avatar / Waveform */}
+          <div className="relative z-10 flex flex-col items-center space-y-8">
+            <div className="relative">
+              <motion.div 
+                animate={{ 
+                  scale: isSpeaking ? [1, 1.1, 1] : 1,
+                  rotate: isSpeaking ? [0, 5, -5, 0] : 0
+                }}
+                transition={{ repeat: Infinity, duration: 2 }}
+                className={cn(
+                  "w-48 h-48 rounded-[60px] flex items-center justify-center shadow-2xl relative z-10 transition-all duration-500",
+                  isSpeaking ? "bg-blue-primary text-white scale-105" : "bg-violet-accent text-white"
+                )}
               >
-                Try Again
-              </button>
+                <Sparkles size={64} className={cn(isSpeaking ? "animate-pulse" : "")} />
+              </motion.div>
+              
+              {/* Animated Rings */}
+              <AnimatePresence>
+                {isSpeaking && (
+                  <>
+                    <motion.div 
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1.5, opacity: 0.2 }}
+                      exit={{ scale: 2, opacity: 0 }}
+                      transition={{ repeat: Infinity, duration: 2 }}
+                      className="absolute inset-0 border-2 border-blue-primary rounded-[60px]"
+                    />
+                    <motion.div 
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1.8, opacity: 0.1 }}
+                      exit={{ scale: 2.5, opacity: 0 }}
+                      transition={{ repeat: Infinity, duration: 2, delay: 0.5 }}
+                      className="absolute inset-0 border-2 border-blue-primary rounded-[60px]"
+                    />
+                  </>
+                )}
+              </AnimatePresence>
             </div>
-          )}
 
-          {status === "active" && (
-            <div className="w-full space-y-12">
-              {/* Visualizer Placeholder */}
-              <div className="flex items-center justify-center gap-1 h-24">
-                {[...Array(12)].map((_, i) => (
-                  <motion.div
-                    key={i}
-                    animate={{ 
-                      height: isPlayingRef.current ? [20, 60, 20] : [10, 15, 10]
-                    }}
-                    transition={{ 
-                      duration: 0.5, 
-                      repeat: Infinity, 
-                      delay: i * 0.05,
-                      ease: "easeInOut"
-                    }}
-                    className="w-2 rounded-full bg-blue-primary/40"
-                  />
-                ))}
-              </div>
-
-              <div className="space-y-4">
-                <h4 className="font-serif text-2xl font-black text-text-primary">
-                  {topic ? `Practicing: ${topic}` : "Free Conversation"}
-                </h4>
-                <p className="text-text-secondary text-sm max-w-md mx-auto leading-relaxed">
-                  Speak naturally. Aria is listening and will respond in real-time.
-                </p>
-              </div>
-
-              {/* Transcription Area */}
-              <div className="w-full bg-bg-2/50 rounded-2xl p-6 border border-border-2 text-left space-y-4 min-h-[120px]">
-                <div className="flex items-center gap-2 text-[10px] font-bold text-text-muted uppercase tracking-widest">
-                  <MessageSquare size={12} /> Live Transcription
-                </div>
-                <p className="text-sm text-text-secondary italic leading-relaxed">
-                  {aiTranscription || "Aria will start speaking shortly..."}
-                </p>
-              </div>
+            <div className="text-center space-y-2">
+              <h4 className="font-serif text-2xl font-bold text-text-primary">
+                {isSpeaking ? "Aria is speaking..." : "Aria is listening..."}
+              </h4>
+              <p className="text-sm text-text-muted font-medium max-w-xs mx-auto">
+                {status === "active" ? "Speak naturally as you would in a real IELTS interview." : "Please wait while we establish a secure connection."}
+              </p>
             </div>
-          )}
+
+            {/* Simulated Waveform */}
+            <div className="flex items-center gap-1 h-12">
+              {Array.from({ length: 20 }).map((_, i) => (
+                <motion.div
+                  key={i}
+                  animate={{ 
+                    height: isSpeaking ? [10, Math.random() * 40 + 10, 10] : [4, Math.random() * 8 + 4, 4]
+                  }}
+                  transition={{ repeat: Infinity, duration: 0.5, delay: i * 0.05 }}
+                  className={cn(
+                    "w-1 rounded-full transition-colors duration-500",
+                    isSpeaking ? "bg-blue-primary" : "bg-text-muted/30"
+                  )}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Transcriptions */}
+          <div className="w-full max-w-2xl space-y-4 relative z-10">
+            <AnimatePresence mode="wait">
+              {aiTranscription && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-6 rounded-3xl bg-white/5 border border-white/10 backdrop-blur-md shadow-xl"
+                >
+                  <div className="flex items-center gap-2 text-[10px] font-black text-violet-accent uppercase tracking-[0.2em] mb-2">
+                    <MessageSquare size={12} /> Aria
+                  </div>
+                  <p className="text-sm text-text-secondary leading-relaxed line-clamp-3">
+                    {aiTranscription}
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
 
         {/* Controls */}
-        <div className="p-8 bg-bg-2/50 border-t border-border-2 flex items-center justify-center gap-6">
-          <button 
-            onClick={() => setIsMuted(!isMuted)}
-            className={cn(
-              "w-16 h-16 rounded-full flex items-center justify-center transition-all shadow-lg",
-              isMuted ? "bg-red-accent text-white" : "bg-bg-1 text-text-primary hover:bg-bg-3 border border-border-2"
-            )}
-          >
-            {isMuted ? <MicOff size={28} /> : <Mic size={28} />}
-          </button>
-
-          <button 
-            onClick={onClose}
-            className="w-20 h-20 rounded-full bg-red-accent text-white flex items-center justify-center shadow-xl shadow-red-accent/20 hover:scale-105 transition-transform"
-          >
-            <PhoneOff size={32} />
-          </button>
-
-          <button 
-            className="w-16 h-16 rounded-full bg-bg-1 text-text-primary hover:bg-bg-3 border border-border-2 flex items-center justify-center transition-all shadow-lg"
-          >
-            <Volume2 size={28} />
-          </button>
+        <div className="px-8 py-10 border-t border-border bg-bg-3/50 flex flex-col items-center space-y-6">
+          <div className="flex items-center gap-6">
+            <button 
+              onClick={() => setIsMuted(!isMuted)}
+              className={cn(
+                "w-16 h-16 rounded-3xl flex items-center justify-center transition-all shadow-lg active:scale-90",
+                isMuted ? "bg-red-accent text-white shadow-red-accent/20" : "bg-bg-1 text-text-muted border border-border hover:bg-bg-2"
+              )}
+            >
+              {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
+            </button>
+            <button 
+              onClick={onClose}
+              className="w-20 h-20 rounded-[32px] bg-red-accent text-white flex items-center justify-center shadow-2xl shadow-red-accent/40 hover:scale-105 active:scale-95 transition-all"
+            >
+              <PhoneOff size={32} />
+            </button>
+            <button 
+              className="w-16 h-16 rounded-3xl bg-bg-1 text-text-muted border border-border flex items-center justify-center hover:bg-bg-2 transition-all active:scale-90"
+            >
+              <Volume2 size={24} />
+            </button>
+          </div>
+          
+          <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.2em] text-text-muted">
+            <span>Topic: {topic || "General"}</span>
+            <div className="w-1 h-1 bg-border rounded-full" />
+            <span>Mode: {mode.toUpperCase()}</span>
+          </div>
         </div>
+
+        {/* Error Overlay */}
+        {status === "error" && (
+          <div className="absolute inset-0 z-50 bg-bg/90 backdrop-blur-md flex items-center justify-center p-8">
+            <div className="max-w-sm text-center space-y-6">
+              <div className="w-16 h-16 rounded-2xl bg-red-accent/10 text-red-accent flex items-center justify-center mx-auto">
+                <AlertCircle size={32} />
+              </div>
+              <div>
+                <h4 className="text-xl font-bold mb-2">Connection Failed</h4>
+                <p className="text-sm text-text-muted leading-relaxed">{error || "We couldn't connect to the AI examiner. Please check your internet and try again."}</p>
+              </div>
+              <button 
+                onClick={() => { setStatus("connecting"); startSession(); }}
+                className="btn btn-primary w-full py-4"
+              >
+                Try Again
+              </button>
+              <button onClick={onClose} className="btn btn-ghost w-full">Close Session</button>
+            </div>
+          </div>
+        )}
       </div>
     </motion.div>
   );

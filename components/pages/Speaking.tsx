@@ -449,14 +449,15 @@ export default function Speaking() {
 
   const endSimulation = async () => {
     setIsTyping(true);
-    const systemPrompt = `Analyze the following IELTS speaking test transcript. 
+    const systemPrompt = `You are a certified IELTS Speaking Examiner. Analyze the following IELTS speaking test transcript. 
     Provide a detailed band score (0-9) and feedback on:
-    1. Fluency and Coherence
-    2. Lexical Resource (Vocabulary)
-    3. Grammatical Range and Accuracy
-    4. Pronunciation (estimate based on text/flow)
-    Provide specific examples from the transcript and tips for improvement.
-    Format your response with clear headings and an Overall Band score.`;
+    1. Fluency and Coherence: (e.g., hesitation, repetition, use of connectives)
+    2. Lexical Resource: (e.g., range of vocabulary, precision, collocations)
+    3. Grammatical Range and Accuracy: (e.g., complex structures, error frequency)
+    4. Pronunciation Analysis: (Analyze potential pronunciation issues based on the transcript's flow, rhythm, and word choice. Suggest specific phonemes or stress patterns to practice.)
+    
+    Provide specific examples from the transcript for each category.
+    Format your response with clear headings and an Overall Band score at the end.`;
 
     const transcript = messages.map(m => `${m.role === "user" ? "Student" : "Examiner"}: ${m.text}`).join("\n");
 
@@ -738,6 +739,73 @@ export default function Speaking() {
         )}
       </AnimatePresence>
 
+      {/* Topic of the Day */}
+      <div className="card bg-gradient-to-br from-blue-dim/20 to-bg-1 border-blue-primary/30 p-5 md:p-6">
+        <div className="flex items-center gap-2 text-blue-secondary font-bold text-xs uppercase tracking-widest mb-4">
+          <Sparkles size={14} /> Speaking Topic of the Day
+        </div>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6">
+          <div>
+            <h3 className="font-serif text-2xl md:text-3xl font-black text-text-primary uppercase tracking-tighter mb-1">Describe a person who has influenced you.</h3>
+            <p className="text-xs md:text-sm text-text-muted italic mb-3 md:mb-4">Part 2 Cue Card · High Priority</p>
+            <div className="flex flex-wrap gap-2 mb-4">
+              <span className="tag tag-blue">Inspirational</span>
+              <span className="tag tag-blue">Role Model</span>
+              <span className="tag tag-blue">Resilience</span>
+            </div>
+          </div>
+          <button 
+            onClick={() => setActiveTopic(SPEAKING_TOPICS[0])}
+            className="btn btn-primary bg-blue-primary hover:bg-blue-primary/80 shadow-blue-primary/20 w-full md:w-auto text-xs md:text-sm"
+          >
+            Practice Now <ChevronRight size={18} />
+          </button>
+        </div>
+      </div>
+
+      {/* Vocabulary Booster & Idioms */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="card bg-bg-2 border-border-2 p-5">
+          <div className="flex items-center gap-2 text-amber-accent font-bold text-[10px] uppercase tracking-widest mb-4">
+            <Sparkles size={14} /> Vocabulary Booster
+          </div>
+          <div className="space-y-3">
+            {[
+              { word: "Ubiquitous", meaning: "Present, appearing, or found everywhere.", band: "8.5" },
+              { word: "Mitigate", meaning: "Make less severe, serious, or painful.", band: "8.0" },
+              { word: "Pragmatic", meaning: "Dealing with things sensibly and realistically.", band: "8.0" }
+            ].map((v, i) => (
+              <div key={i} className="flex items-center justify-between p-3 bg-bg-1 rounded-xl border border-border">
+                <div>
+                  <div className="text-sm font-bold text-text-primary">{v.word}</div>
+                  <div className="text-[10px] text-text-muted">{v.meaning}</div>
+                </div>
+                <div className="bg-amber-dim text-amber-accent px-2 py-1 rounded text-[10px] font-black">Band {v.band}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card bg-bg-2 border-border-2 p-5">
+          <div className="flex items-center gap-2 text-violet-accent font-bold text-[10px] uppercase tracking-widest mb-4">
+            <MessageSquare size={14} /> Common Idioms
+          </div>
+          <div className="space-y-3">
+            {[
+              { idiom: "A piece of cake", meaning: "Something very easy to do.", usage: "The exam was a piece of cake." },
+              { idiom: "Break the ice", meaning: "Do or say something to relieve tension.", usage: "He told a joke to break the ice." },
+              { idiom: "Under the weather", meaning: "Feeling slightly unwell.", usage: "I'm feeling a bit under the weather today." }
+            ].map((id, i) => (
+              <div key={i} className="p-3 bg-bg-1 rounded-xl border border-border">
+                <div className="text-sm font-bold text-text-primary">{id.idiom}</div>
+                <div className="text-[10px] text-text-muted mb-1">{id.meaning}</div>
+                <div className="text-[9px] text-violet-accent italic">"{id.usage}"</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {activeModuleTab === "practice" && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -787,6 +855,56 @@ export default function Speaking() {
                 </div>
               </div>
             ))}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="card bg-bg-2 border-border-2 p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2 text-blue-secondary font-bold text-[10px] uppercase tracking-widest">
+                  <Lightbulb size={14} /> Vocabulary Booster
+                </div>
+                <button className="text-[10px] font-bold text-blue-primary uppercase tracking-widest hover:underline">View All</button>
+              </div>
+              <div className="space-y-3">
+                {[
+                  { word: "Resilient", def: "Able to withstand or recover quickly from difficult conditions.", band: "8.5" },
+                  { word: "Inquisitive", def: "Having or showing an interest in learning things; curious.", band: "8.0" },
+                  { word: "Profound", def: "Very great or intense; having or showing great knowledge.", band: "8.0" }
+                ].map((v, i) => (
+                  <div key={i} className="flex items-center justify-between p-2 bg-bg-1 rounded-lg border border-border">
+                    <div>
+                      <div className="text-xs font-bold text-text-primary">{v.word}</div>
+                      <div className="text-[10px] text-text-muted truncate max-w-[180px]">{v.def}</div>
+                    </div>
+                    <span className="tag tag-blue text-[9px]">{v.band}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="card bg-bg-2 border-border-2 p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2 text-violet-accent font-bold text-[10px] uppercase tracking-widest">
+                  <MessageSquare size={14} /> Common Idioms
+                </div>
+                <button className="text-[10px] font-bold text-violet-accent uppercase tracking-widest hover:underline">View All</button>
+              </div>
+              <div className="space-y-3">
+                {[
+                  { idiom: "Once in a blue moon", usage: "Very rarely.", band: "7.5" },
+                  { idiom: "Piece of cake", usage: "Something very easy.", band: "7.0" },
+                  { idiom: "Break the ice", usage: "Start a conversation.", band: "7.5" }
+                ].map((v, i) => (
+                  <div key={i} className="flex items-center justify-between p-2 bg-bg-1 rounded-lg border border-border">
+                    <div>
+                      <div className="text-xs font-bold text-text-primary italic">"{v.idiom}"</div>
+                      <div className="text-[10px] text-text-muted">{v.usage}</div>
+                    </div>
+                    <span className="tag tag-violet text-[9px]">{v.band}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="space-y-4">

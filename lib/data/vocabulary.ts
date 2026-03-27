@@ -195,4 +195,104 @@ export const VOCAB_DATA: Word[] = [
   { w: "disseminate", pos: "v", def: "to spread or disperse widely", ex: "The information was disseminated via the internet.", band: "8+", category: "Academic" },
   { w: "dormant", pos: "adj", def: "having normal physical functions suspended or slowed down for a period", ex: "The volcano has been dormant for hundreds of years.", band: "8+", category: "Academic" },
   { w: "ebullient", pos: "adj", def: "cheerful and full of energy", ex: "She was in an ebullient mood after hearing the news.", band: "9", category: "Academic" },
+  
+  // Idioms & Phrasal Verbs
+  { w: "once in a blue moon", pos: "idiom", def: "very rarely", ex: "I only see my distant relatives once in a blue moon.", band: "7.5", category: "Idioms" },
+  { w: "piece of cake", pos: "idiom", def: "something very easy", ex: "The exam was a piece of cake for someone as prepared as him.", band: "7.0", category: "Idioms" },
+  { w: "break the ice", pos: "idiom", def: "to start a conversation in a social situation", ex: "He told a joke to break the ice at the beginning of the meeting.", band: "7.5", category: "Idioms" },
+  { w: "burn the midnight oil", pos: "idiom", def: "to work late into the night", ex: "I had to burn the midnight oil to finish the report on time.", band: "8.0", category: "Idioms" },
+  { w: "cut to the chase", pos: "idiom", def: "to get to the point without wasting time", ex: "Let's cut to the chase and discuss the main issue.", band: "7.5", category: "Idioms" },
+  { w: "hit the nail on the head", pos: "idiom", def: "to describe exactly what is causing a situation", ex: "You hit the nail on the head when you said the problem was lack of communication.", band: "8.0", category: "Idioms" },
+  { w: "keep an eye on", pos: "phrasal verb", def: "to watch carefully", ex: "Please keep an eye on the kids while I'm out.", band: "6.5", category: "Phrasal Verbs" },
+  { w: "look forward to", pos: "phrasal verb", def: "to be excited about something in the future", ex: "I'm looking forward to our holiday next month.", band: "6.5", category: "Phrasal Verbs" },
+  { w: "put off", pos: "phrasal verb", def: "to postpone", ex: "The meeting has been put off until next week.", band: "7.0", category: "Phrasal Verbs" },
+  { w: "run out of", pos: "phrasal verb", def: "to have no more of something", ex: "We've run out of milk, so I need to go to the shop.", band: "6.5", category: "Phrasal Verbs" },
+  { w: "take up", pos: "phrasal verb", def: "to start a new hobby or activity", ex: "I've decided to take up yoga to improve my flexibility.", band: "7.0", category: "Phrasal Verbs" },
+  
+  // Work & Career
+  { w: "lucrative", pos: "adj", def: "producing a great deal of profit", ex: "The company secured a lucrative contract with a major retailer.", band: "8+", category: "Work" },
+  { w: "redundancy", pos: "n", def: "the state of being no longer needed or useful", ex: "The factory closure led to hundreds of redundancies.", band: "7+", category: "Work" },
+  { w: "remuneration", pos: "n", def: "money paid for work or a service", ex: "The job offers a competitive remuneration package.", band: "9", category: "Work" },
+  { w: "stagnant", pos: "adj", def: "not growing or changing", ex: "Wages have remained stagnant for several years.", band: "8+", category: "Work" },
+  { w: "vocational", pos: "adj", def: "relating to an occupation or employment", ex: "Vocational training is essential for many manual jobs.", band: "7+", category: "Work" },
+
+  // Science & Research
+  { w: "hypothesis", pos: "n", def: "a proposed explanation made on the basis of limited evidence", ex: "The researchers are testing their hypothesis in a series of experiments.", band: "8+", category: "Science" },
+  { w: "methodology", pos: "n", def: "a system of methods used in a particular area of study", ex: "The report outlines the methodology used in the study.", band: "8+", category: "Science" },
+  { w: "paradigm", pos: "n", def: "a typical example or pattern of something", ex: "The discovery led to a paradigm shift in the field of physics.", band: "9", category: "Science" },
+  { w: "quantitative", pos: "adj", def: "relating to, measuring, or measured by the quantity of something", ex: "The study involved a quantitative analysis of the data.", band: "8+", category: "Science" },
+  { w: "qualitative", pos: "adj", def: "relating to, measuring, or measured by the quality of something", ex: "The researchers used qualitative methods to gather information.", band: "8+", category: "Science" },
+
+  // Abstract Concepts
+  { w: "ambiguity", pos: "n", def: "the quality of being open to more than one interpretation", ex: "The ambiguity of the law has led to several legal challenges.", band: "8+", category: "Abstract" },
+  { w: "complexity", pos: "n", def: "the state or quality of being intricate or complicated", ex: "The complexity of the issue makes it difficult to find a solution.", band: "7+", category: "Abstract" },
+  { w: "dichotomy", pos: "n", def: "a division or contrast between two things that are represented as being opposed", ex: "There is a clear dichotomy between the two approaches.", band: "9", category: "Abstract" },
+  { w: "feasibility", pos: "n", def: "the state or degree of being easily or conveniently done", ex: "The committee is assessing the feasibility of the project.", band: "8+", category: "Abstract" },
+  { w: "implication", pos: "n", def: "the conclusion that can be drawn from something although it is not explicitly stated", ex: "The implications of the study are far-reaching.", band: "7+", category: "Abstract" },
+
+  // Government & Politics
+  { w: "bureaucracy", pos: "n", def: "a system of government in which most of the important decisions are taken by state officials", ex: "The new policy aims to reduce unnecessary bureaucracy.", band: "8+", category: "Politics" },
+  { w: "constituency", pos: "n", def: "a body of voters in a specified area who elect a representative to a legislative body", ex: "The politician is popular in his local constituency.", band: "8+", category: "Politics" },
+  { w: "hegemony", pos: "n", def: "leadership or dominance, especially by one state or social group over others", ex: "The country is seeking to maintain its economic hegemony.", band: "9", category: "Politics" },
+  { w: "ideology", pos: "n", def: "a system of ideas and ideals, especially one which forms the basis of economic or political theory", ex: "The two parties have very different ideologies.", band: "8+", category: "Politics" },
+  { w: "referendum", pos: "n", def: "a general vote by the electorate on a single political question", ex: "The government has promised to hold a referendum on the issue.", band: "7+", category: "Politics" },
+
+  // Art & Literature
+  { w: "aesthetic", pos: "adj/n", def: "concerned with beauty or the appreciation of beauty", ex: "The building has a unique aesthetic appeal.", band: "8+", category: "Art" },
+  { w: "avant-garde", pos: "adj/n", def: "new and experimental ideas and methods in art, music, or literature", ex: "The artist is known for his avant-garde style.", band: "9", category: "Art" },
+  { w: "genre", pos: "n", def: "a style or category of art, music, or literature", ex: "Science fiction is a popular genre of literature.", band: "7+", category: "Art" },
+  { w: "metaphor", pos: "n", def: "a figure of speech in which a word or phrase is applied to an object or action to which it is not literally applicable", ex: "The author uses the sea as a metaphor for life.", band: "8+", category: "Art" },
+  { w: "protagonist", pos: "n", def: "the leading character or one of the major characters in a play, film, novel, etc.", ex: "The protagonist of the story is a young girl.", band: "7+", category: "Art" },
+
+  // Psychology & Behavior
+  { w: "cognitive", pos: "adj", def: "relating to the mental action or process of acquiring knowledge and understanding", ex: "Cognitive development is a key area of psychology.", band: "8+", category: "Psychology" },
+  { w: "empathy", pos: "n", def: "the ability to understand and share the feelings of another", ex: "Empathy is essential for building strong relationships.", band: "7+", category: "Psychology" },
+  { w: "intrinsic", pos: "adj", def: "belonging naturally; essential", ex: "Intrinsic motivation is more effective than extrinsic motivation.", band: "8+", category: "Psychology" },
+  { w: "nurture", pos: "v/n", def: "care for and encourage the growth or development of", ex: "The debate over nature versus nurture is ongoing.", band: "7+", category: "Psychology" },
+  { w: "subconscious", pos: "adj/n", def: "concerning the part of the mind of which one is not fully aware", ex: "Our dreams often reflect our subconscious fears.", band: "8+", category: "Psychology" },
+
+  // More Idioms & Phrasal Verbs
+  { w: "barking up the wrong tree", pos: "idiom", def: "looking in the wrong place or accusing the wrong person", ex: "If you think I stole your wallet, you're barking up the wrong tree.", band: "8.0", category: "Idioms" },
+  { w: "beat around the bush", pos: "idiom", def: "to avoid getting to the point of an issue", ex: "Stop beating around the bush and tell me what you really think.", band: "7.5", category: "Idioms" },
+  { w: "cry over spilled milk", pos: "idiom", def: "to worry about something that has already happened and cannot be changed", ex: "It's no use crying over spilled milk; we just have to move on.", band: "7.0", category: "Idioms" },
+  { w: "get out of hand", pos: "idiom", def: "to become difficult to control", ex: "The situation quickly got out of hand.", band: "7.0", category: "Idioms" },
+  { w: "under the weather", pos: "idiom", def: "feeling slightly unwell", ex: "I'm feeling a bit under the weather today, so I'm staying home.", band: "6.5", category: "Idioms" },
+  { w: "bring up", pos: "phrasal verb", def: "to mention a topic", ex: "She brought up the issue of funding during the meeting.", band: "7.0", category: "Phrasal Verbs" },
+  { w: "carry out", pos: "phrasal verb", def: "to perform a task", ex: "The researchers carried out a series of experiments.", band: "7.0", category: "Phrasal Verbs" },
+  { w: "fall through", pos: "phrasal verb", def: "to fail to happen", ex: "The deal fell through at the last minute.", band: "7.5", category: "Phrasal Verbs" },
+  { w: "give up", pos: "phrasal verb", def: "to stop doing something", ex: "He decided to give up smoking for his health.", band: "6.5", category: "Phrasal Verbs" },
+  { w: "make up for", pos: "phrasal verb", def: "to compensate for something", ex: "I hope this gift makes up for my being late.", band: "7.5", category: "Phrasal Verbs" },
+  
+  // Environment & Sustainability
+  { w: "biodiversity", pos: "n", def: "the variety of life in the world or in a particular habitat or ecosystem", ex: "The Amazon rainforest is known for its incredible biodiversity.", band: "8.0", category: "Environment" },
+  { w: "carbon footprint", pos: "n", def: "the amount of carbon dioxide and other carbon compounds emitted due to the consumption of fossil fuels by a particular person, group, etc.", ex: "We should all strive to reduce our carbon footprint.", band: "7.5", category: "Environment" },
+  { w: "deforestation", pos: "n", def: "the action of clearing a wide area of trees", ex: "Deforestation is a major contributor to climate change.", band: "7.0", category: "Environment" },
+  { w: "ecosystem", pos: "n", def: "a biological community of interacting organisms and their physical environment", ex: "The coral reef is a fragile ecosystem.", band: "7.5", category: "Environment" },
+  { w: "renewable energy", pos: "n", def: "energy from a source that is not depleted when used, such as wind or solar power", ex: "The government is investing heavily in renewable energy.", band: "7.0", category: "Environment" },
+  { w: "sustainability", pos: "n", def: "the ability to be maintained at a certain rate or level", ex: "Sustainability is a key consideration in modern urban planning.", band: "8.0", category: "Environment" },
+
+  // Technology & Innovation
+  { w: "artificial intelligence", pos: "n", def: "the theory and development of computer systems able to perform tasks that normally require human intelligence", ex: "Artificial intelligence is transforming many industries.", band: "8.0", category: "Technology" },
+  { w: "automation", pos: "n", def: "the use of largely automatic equipment in a system of manufacturing or other production process", ex: "Automation has led to increased efficiency in factories.", band: "7.5", category: "Technology" },
+  { w: "cybersecurity", pos: "n", def: "the state of being protected against the criminal or unauthorized use of electronic data", ex: "Cybersecurity is a top priority for businesses today.", band: "8.5", category: "Technology" },
+  { w: "digital literacy", pos: "n", def: "the ability to find, evaluate, and communicate information through various digital platforms", ex: "Digital literacy is an essential skill in the 21st century.", band: "8.0", category: "Technology" },
+  { w: "innovation", pos: "n", def: "the action or process of innovating", ex: "Innovation is the key to staying competitive in the market.", band: "7.5", category: "Technology" },
+  { w: "technological advancement", pos: "n", def: "the process of improving technology", ex: "Technological advancement has changed the way we live.", band: "7.5", category: "Technology" },
+
+  // Education & Learning
+  { w: "academic achievement", pos: "n", def: "the extent to which a student, teacher or institution has achieved their short or long-term educational goals", ex: "Academic achievement is highly valued in many cultures.", band: "7.5", category: "Education" },
+  { w: "curriculum", pos: "n", def: "the subjects comprising a course of study in a school or college", ex: "The school is revising its curriculum to include more practical skills.", band: "8.0", category: "Education" },
+  { w: "distance learning", pos: "n", def: "a method of studying in which lectures are broadcast or classes are conducted by correspondence or over the internet", ex: "Distance learning has become increasingly popular in recent years.", band: "7.0", category: "Education" },
+  { w: "higher education", pos: "n", def: "education at university or a similar level", ex: "Many students pursue higher education to improve their career prospects.", band: "7.0", category: "Education" },
+  { w: "literacy rate", pos: "n", def: "the percentage of people who are able to read and write", ex: "The country has seen a significant increase in its literacy rate.", band: "7.5", category: "Education" },
+  { w: "pedagogy", pos: "n", def: "the method and practice of teaching, especially as an academic subject or theoretical concept", ex: "The teacher's pedagogy is based on student-centered learning.", band: "9.0", category: "Education" },
+  { w: "work-life balance", pos: "n", def: "the division of one's time and focus between working and family or leisure activities", ex: "Maintaining a healthy work-life balance is essential for mental well-being.", band: "7.5", category: "Work" },
+  { w: "urban sprawl", pos: "n", def: "the uncontrolled expansion of urban areas", ex: "Urban sprawl has led to the destruction of many natural habitats.", band: "8.0", category: "Society" },
+  { w: "digital transformation", pos: "n", def: "the integration of digital technology into all areas of a business", ex: "Digital transformation is essential for companies to stay competitive.", band: "8.5", category: "Technology" },
+  { w: "socio-economic", pos: "adj", def: "relating to or concerned with the interaction of social and economic factors", ex: "The socio-economic impact of the pandemic has been profound.", band: "8.0", category: "Academic" },
+  { w: "paradigm shift", pos: "n", def: "a fundamental change in approach or underlying assumptions", ex: "The discovery of DNA led to a paradigm shift in biology.", band: "9.0", category: "Academic" },
+  { w: "ubiquity", pos: "n", def: "the fact of appearing everywhere or of being very common", ex: "The ubiquity of smartphones has changed how we communicate.", band: "9.0", category: "Technology" },
+  { w: "mitigation", pos: "n", def: "the action of reducing the severity, seriousness, or painfulness of something", ex: "Mitigation strategies are needed to address the effects of climate change.", band: "8.0", category: "Environment" },
+  { w: "proliferation", pos: "n", def: "rapid increase in numbers", ex: "The proliferation of fake news is a major concern.", band: "8.5", category: "Society" },
+  { w: "sustainability", pos: "n", def: "the ability to be maintained at a certain rate or level", ex: "Sustainability is at the heart of the new urban development plan.", band: "8.0", category: "Environment" },
 ];

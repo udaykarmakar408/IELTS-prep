@@ -412,21 +412,25 @@ export default function Listening() {
     try {
       if (!text) throw new Error("No script provided for audio generation");
       
+      // Use process.env.GEMINI_API_KEY as per guidelines
       const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) {
-        throw new Error("Gemini API key is missing. Please check your environment variables.");
+      
+      if (!apiKey || apiKey === "undefined") {
+        throw new Error("Gemini API key is missing or invalid. Please ensure GEMINI_API_KEY is set in your environment variables.");
       }
 
+      console.log("Initializing GoogleGenAI for TTS...");
       const ai = new GoogleGenAI({ apiKey });
+      
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
         contents: [{ 
           parts: [{ 
-            text: `Read the following IELTS listening script clearly and at a natural pace. Ensure you read the entire text: ${text}` 
+            text: `Read the following IELTS listening script clearly and at a natural pace: ${text}` 
           }] 
         }],
         config: {
-          responseModalities: ["AUDIO"],
+          responseModalities: [Modality.AUDIO],
           speechConfig: {
             voiceConfig: {
               prebuiltVoiceConfig: { voiceName: 'Kore' },
@@ -437,39 +441,56 @@ export default function Listening() {
 
       // Find the audio part in the response
       let base64Audio = "";
-      const parts = response.candidates?.[0]?.content?.parts;
-      if (parts) {
-        for (const part of parts) {
-          if (part.inlineData?.data) {
-            base64Audio = part.inlineData.data;
-            break;
+      const candidates = response.candidates;
+      if (candidates && candidates.length > 0) {
+        const parts = candidates[0].content?.parts;
+        if (parts) {
+          for (const part of parts) {
+            if (part.inlineData?.data) {
+              base64Audio = part.inlineData.data;
+              break;
+            }
           }
         }
       }
 
       if (base64Audio) {
-        // Remove any whitespace from base64 string
-        const cleanBase64 = base64Audio.replace(/\s/g, '');
-        const binaryString = atob(cleanBase64);
-        const len = binaryString.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
+        try {
+          // Remove any whitespace and ensure proper padding
+          const cleanBase64 = base64Audio.replace(/[\s\r\n]/g, '');
+          
+          const binaryString = atob(cleanBase64);
+          const len = binaryString.length;
+          const bytes = new Uint8Array(len);
+          for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          
+          // 16-bit PCM (2 bytes per sample)
+          const evenLen = len - (len % 2);
+          const pcmBuffer = new ArrayBuffer(evenLen);
+          const pcmBytes = new Uint8Array(pcmBuffer);
+          pcmBytes.set(bytes.subarray(0, evenLen));
+          
+          const pcmData = new Int16Array(pcmBuffer);
+          
+          if (pcmData.length === 0) {
+            throw new Error("Decoded PCM data is empty");
+          }
+          
+          const wavBlob = pcmToWav(pcmData, 24000);
+          const url = URL.createObjectURL(wavBlob);
+          
+          setAudioUrl(prev => {
+            if (prev) URL.revokeObjectURL(prev);
+            return url;
+          });
+        } catch (decodeError) {
+          console.error("Audio decoding error:", decodeError);
+          throw new Error(`Failed to decode audio data: ${decodeError instanceof Error ? decodeError.message : String(decodeError)}`);
         }
-        
-        // Ensure we have an even number of bytes for Int16Array
-        const evenLen = len % 2 === 0 ? len : len - 1;
-        const pcmData = new Int16Array(bytes.buffer, 0, evenLen / 2);
-        
-        const wavBlob = pcmToWav(pcmData, 24000);
-        const url = URL.createObjectURL(wavBlob);
-        
-        setAudioUrl(prev => {
-          if (prev) URL.revokeObjectURL(prev);
-          return url;
-        });
       } else {
-        throw new Error("No audio data returned from Gemini TTS");
+        throw new Error("The AI model did not return any audio data. This might be a temporary service issue.");
       }
     } catch (error) {
       console.error("Audio generation error:", error);
@@ -810,8 +831,42 @@ export default function Listening() {
     );
   }
 
-  return (
+    return (
     <div className="space-y-8">
+      {/* Listening Hero Section */}
+      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-indigo-600 via-indigo-500 to-purple-500 p-8 md:p-12 text-white shadow-2xl shadow-indigo-500/20">
+        <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none">
+          <Headphones size={200} />
+        </div>
+        <div className="relative z-10 space-y-6">
+          <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] opacity-80">
+            <Sparkles size={14} className="animate-pulse" /> Listening Mastery
+          </div>
+          <div className="space-y-2">
+            <h3 className="font-serif text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none">
+              IMMERSIVE AUDIO
+            </h3>
+            <p className="text-lg md:text-xl font-medium max-w-2xl leading-relaxed opacity-90">
+              Train your ears for various accents and speeds with our high-fidelity IELTS listening practice.
+            </p>
+          </div>
+          
+          <div className="flex flex-wrap gap-4 pt-4">
+            <div className="flex items-center gap-6 px-6 py-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Avg. Score</span>
+                <span className="text-xl font-black">7.5</span>
+              </div>
+              <div className="w-px h-8 bg-white/20" />
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Practice Time</span>
+                <span className="text-xl font-black">12.4h</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="font-serif text-2xl font-bold mb-1">🎧 Listening Lab</h2>
@@ -849,21 +904,34 @@ export default function Listening() {
       </div>
 
       {activeModuleTab === "practice" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {LISTENING_SECTIONS.map((section) => (
             <button
               key={section.id}
               onClick={() => { setActiveSection(section); setUserAnswers({}); setShowResults(false); setFeedback(null); }}
-              className="card w-full text-left hover:border-blue-primary group"
+              className="group relative flex flex-col text-left bg-bg-2 border border-border rounded-[2rem] overflow-hidden transition-all hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/5 active:scale-[0.98]"
             >
-              <div className="flex items-center justify-between mb-3">
-                <span className="tag tag-blue">{section.type}</span>
-                <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Section {section.id.split('-')[1]}</span>
-              </div>
-              <h3 className="font-bold text-text-primary mb-2 group-hover:text-blue-primary transition-colors">{section.title}</h3>
-              <div className="flex items-center justify-between pt-4 border-t border-border-2">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-text-muted">{section.questions.length} Questions</span>
-                <ChevronRight size={16} className="text-text-muted group-hover:text-blue-primary group-hover:translate-x-1 transition-all" />
+              <div className="p-8 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className={cn(
+                    "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest",
+                    section.difficulty === "Easy" ? "bg-emerald-dim text-emerald-600" : 
+                    section.difficulty === "Medium" ? "bg-amber-dim text-amber-600" : "bg-red-dim text-red-accent"
+                  )}>{section.difficulty}</span>
+                  <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">
+                    {section.type}
+                  </span>
+                </div>
+                <h3 className="font-serif text-2xl font-black text-text-primary group-hover:text-indigo-600 transition-colors">{section.title}</h3>
+                <p className="text-sm text-text-muted line-clamp-2 mb-4 leading-relaxed">
+                  {section.script.substring(0, 150)}...
+                </p>
+                <div className="flex items-center justify-between pt-4 border-t border-border">
+                  <span className="text-[10px] font-black text-text-muted uppercase tracking-widest">{section.questions.length} Questions</span>
+                  <div className="w-10 h-10 rounded-full bg-bg-1 border border-border flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                    <ChevronRight size={20} />
+                  </div>
+                </div>
               </div>
             </button>
           ))}

@@ -81,22 +81,41 @@ export default function Analytics() {
         }
       }}
     >
-      <motion.div 
-        className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
-        variants={{
-          hidden: { opacity: 0, y: 20 },
-          visible: { opacity: 1, y: 0 }
-        }}
-      >
-        <div>
-          <h2 className="font-serif text-2xl font-bold mb-1">📊 Analytics</h2>
-          <p className="text-sm text-text-muted">Your complete IELTS progress dashboard</p>
+      {/* Analytics Hero Section */}
+      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-8 md:p-12 text-white shadow-2xl shadow-slate-900/20">
+        <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none">
+          <BarChart2 size={200} />
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-green-accent/10 border border-green-accent/20 rounded-full">
-          <Calendar size={14} className="text-green-accent" />
-          <span className="text-[10px] font-bold text-green-accent uppercase tracking-widest">Active Streak: {progress.streak} Days</span>
+        <div className="relative z-10 space-y-6">
+          <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] opacity-80">
+            <TrendingUp size={14} className="animate-pulse" /> Performance Insights
+          </div>
+          <div className="space-y-2">
+            <h3 className="font-serif text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none">
+              ESTIMATED BAND: {avgBand}
+            </h3>
+            <p className="text-lg md:text-xl font-medium max-w-2xl leading-relaxed opacity-90">
+              Your current performance across all modules indicates a strong Band {avgBand} capability. Keep practicing to reach your target!
+            </p>
+          </div>
+          
+          <div className="flex flex-wrap gap-4 pt-4">
+            <div className="flex items-center gap-6 px-6 py-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Target Band</span>
+                <span className="text-xl font-black">{progress.target || "7.5"}</span>
+              </div>
+              <div className="w-px h-8 bg-white/20" />
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Gap</span>
+                <span className="text-xl font-black text-blue-primary">
+                  {Math.max(0, (progress.target || 7.5) - parseFloat(avgBand)).toFixed(1)}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Band Score Hero */}
       <motion.div 
