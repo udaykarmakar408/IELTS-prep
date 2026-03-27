@@ -19,13 +19,15 @@ const COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'
 
 export const ChartDisplay = ({ type, data }: { type: string; data: any[] }) => {
   if (type === "line") {
-    const keys = Object.keys(data[0]).filter(k => k !== 'year' && k !== 'month');
+    const headers = Object.keys(data[0]);
+    const xAxisKey = headers.find(k => ['year', 'month', 'date', 'time', 'period'].includes(k.toLowerCase())) || headers[0];
+    const keys = headers.filter(k => k !== xAxisKey);
     return (
       <div className="h-[300px] w-full mt-4 bg-bg-1 p-4 rounded-2xl border border-border/50">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-            <XAxis dataKey={data[0].year ? 'year' : 'month'} stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+            <XAxis dataKey={xAxisKey} stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
             <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
             <Tooltip 
               contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px' }}
@@ -42,13 +44,15 @@ export const ChartDisplay = ({ type, data }: { type: string; data: any[] }) => {
   }
   
   if (type === "bar") {
-    const keys = Object.keys(data[0]).filter(k => k !== 'area' && k !== 'category' && k !== 'sport' && k !== 'country');
+    const headers = Object.keys(data[0]);
+    const xAxisKey = headers.find(k => ['area', 'category', 'sport', 'country', 'region', 'item', 'group'].includes(k.toLowerCase())) || headers[0];
+    const keys = headers.filter(k => k !== xAxisKey);
     return (
       <div className="h-[300px] w-full mt-4 bg-bg-1 p-4 rounded-2xl border border-border/50">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data}>
             <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-            <XAxis dataKey={data[0].area ? 'area' : data[0].category ? 'category' : data[0].sport ? 'sport' : 'country'} stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+            <XAxis dataKey={xAxisKey} stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
             <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
             <Tooltip 
               contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px' }}

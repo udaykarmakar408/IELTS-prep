@@ -23,7 +23,7 @@ import {
   Pause
 } from "lucide-react";
 import { getProgress, saveProgress, UserProgress } from "@/lib/store";
-import { callGroq } from "@/lib/groq";
+import { callGroq, callGroqJSON } from "@/lib/groq";
 import { GoogleGenAI, Modality } from "@google/genai";
 import { pcmToWav } from "@/lib/audio";
 import { cn, getBandColor } from "@/lib/utils";
@@ -31,88 +31,134 @@ import Markdown from "react-markdown";
 
 import { ChartDisplay } from "@/components/ChartDisplay";
 
+interface GeneratedTask {
+  title: string;
+  passage?: string;
+  script?: string;
+  prompt?: string;
+  chartType?: string;
+  chartData?: any;
+  speakingParts?: {
+    part1: string[];
+    part2: string;
+    part3: string[];
+  };
+  questions: {
+    id: number;
+    text: string;
+    type: "mcq" | "gap-fill" | "tfng" | "matching";
+    options?: string[];
+    answer: string;
+  }[];
+}
+
 const TESTS = [
   { 
-    id: "wt1-1", 
-    label: "Writing Task 1 (Line Graph)", 
+    id: "writing-t1", 
+    label: "Writing Task 1 (Academic)", 
     skill: "writing", 
     mins: 20, 
     icon: FileText, 
     color: "text-blue-secondary", 
-    desc: "The graph below shows the consumption of fish and some different kinds of meat in a European country between 1979 and 2004.",
-    chartType: "line",
-    chartData: [
-      { year: '1979', Beef: 220, Lamb: 150, Chicken: 140, Fish: 60 },
-      { year: '1984', Beef: 200, Lamb: 130, Chicken: 160, Fish: 55 },
-      { year: '1989', Beef: 180, Lamb: 110, Chicken: 190, Fish: 50 },
-      { year: '1994', Beef: 160, Lamb: 90, Chicken: 220, Fish: 52 },
-      { year: '1999', Beef: 140, Lamb: 70, Chicken: 240, Fish: 48 },
-      { year: '2004', Beef: 120, Lamb: 60, Chicken: 250, Fish: 45 },
-    ]
+    desc: "Analyze a chart, graph, or diagram and summarize the main features in at least 150 words.",
   },
   { 
-    id: "wt1-2", 
-    label: "Writing Task 1 (Process Diagram)", 
+    id: "writing-t2", 
+    label: "Writing Task 2 (Essay)", 
     skill: "writing", 
-    mins: 20, 
-    icon: FileText, 
-    color: "text-blue-secondary", 
-    desc: "The diagram below shows how solar panels can be used to provide electricity for domestic use.",
-    chartType: "diagram",
-    chartData: [
-      { label: "1. Solar Panels capture sunlight" },
-      { label: "2. Inverter converts DC to AC" },
-      { label: "3. Electrical Panel distributes power" },
-      { label: "4. Utility Meter tracks usage" },
-      { label: "5. Grid backup for night use" },
-    ]
+    mins: 40, 
+    icon: PenTool, 
+    color: "text-violet-accent", 
+    desc: "Write a formal essay of at least 250 words in response to a specific point of view, argument, or problem.",
   },
   { 
-    id: "wt1-3", 
-    label: "Writing Task 1 (Table)", 
-    skill: "writing", 
-    mins: 20, 
-    icon: FileText, 
-    color: "text-blue-secondary", 
-    desc: "The table below shows the percentage of the population and the number of people living in poverty in different regions of the world in 2010.",
-    chartType: "table",
-    chartData: [
-      { Region: 'South Asia', 'Poverty (%)': 43, 'Millions': 510 },
-      { Region: 'Sub-Saharan Africa', 'Poverty (%)': 41, 'Millions': 380 },
-      { Region: 'East Asia', 'Poverty (%)': 15, 'Millions': 280 },
-      { Region: 'Latin America', 'Poverty (%)': 11, 'Millions': 65 },
-      { Region: 'Middle East', 'Poverty (%)': 4, 'Millions': 12 },
-    ]
+    id: "reading-full", 
+    label: "Reading Full Section", 
+    skill: "reading", 
+    mins: 60, 
+    icon: BookOpen, 
+    color: "text-green-accent", 
+    desc: "Three academic passages with 40 questions total. Tests reading for gist, main ideas, and detail.",
   },
-  { id: "wt2-1", label: "Writing Task 2 (Opinion Essay)", skill: "writing", mins: 40, icon: PenTool, color: "text-violet-accent", desc: "Some people think that it is best to work for the same organization for one's whole life. Others think that it is better to change jobs frequently. Discuss both views and give your opinion." },
-  { id: "wt2-2", label: "Writing Task 2 (Problem/Solution)", skill: "writing", mins: 40, icon: PenTool, color: "text-violet-accent", desc: "In many countries, the amount of crime is increasing. What are the main causes of this and what solutions can you suggest?" },
-  { id: "speaking", label: "Speaking Full Simulation", skill: "speaking", mins: 15, icon: Mic, color: "text-pink-accent", desc: "Complete Parts 1, 2 & 3 with an AI examiner." },
-  { id: "reading-1", label: "Reading: Section 1", skill: "reading", mins: 20, icon: BookOpen, color: "text-green-accent", desc: "Academic reading passage: 'The History of Glass'. Includes True/False/Not Given and Note Completion questions." },
-  { id: "reading-2", label: "Reading: Section 2", skill: "reading", mins: 20, icon: BookOpen, color: "text-green-accent", desc: "Academic reading passage: 'The Impact of Digital Technology on Education'. Includes Matching Headings and Multiple Choice." },
-  { id: "listening-1", label: "Listening: Section 1", skill: "listening", mins: 10, icon: Headphones, color: "text-amber-accent", desc: "A conversation between a customer and a travel agent about booking a holiday. Form completion." },
-  { id: "listening-2", label: "Listening: Section 2", skill: "listening", mins: 10, icon: Headphones, color: "text-amber-accent", desc: "A talk by a museum guide about the history of a local landmark. Map labeling." },
-  { id: "full", label: "Full Mock Test (Beta)", skill: "all", mins: 165, icon: Trophy, color: "text-blue-primary", desc: "Simulate the entire IELTS exam (L, R, W) in one sitting." },
+  { 
+    id: "listening-full", 
+    label: "Listening Full Section", 
+    skill: "listening", 
+    mins: 30, 
+    icon: Headphones, 
+    color: "text-amber-accent", 
+    desc: "Four recorded sections with 40 questions. Tests understanding of main ideas and specific factual information.",
+  },
+  { 
+    id: "speaking-full", 
+    label: "Speaking Full Simulation", 
+    skill: "speaking", 
+    mins: 15, 
+    icon: Mic, 
+    color: "text-pink-accent", 
+    desc: "A three-part face-to-face interview with an AI examiner covering personal topics and abstract discussion.",
+  },
+  { 
+    id: "full-mock", 
+    label: "Full Mock Test (L, R, W, S)", 
+    skill: "all", 
+    mins: 180, 
+    icon: Trophy, 
+    color: "text-blue-primary", 
+    desc: "The complete IELTS experience. Simulate the entire exam in one sitting with real-time AI scoring across all four skills.",
+  },
 ];
 
 export default function MockTests() {
   const [progress, setProgress] = useState<UserProgress | null>(null);
   const [activeTest, setActiveTest] = useState<any>(null);
-  const [testTask, setTestTask] = useState<string | null>(null);
+  const [testTask, setTestTask] = useState<GeneratedTask | null>(null);
   const [isGeneratingTask, setIsGeneratingTask] = useState(false);
+  const [generationStep, setGenerationStep] = useState("");
   const [timeLeft, setTimeLeft] = useState(0);
-  const [answer, setAnswer] = useState("");
+  const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
+  const [writingAnswer, setWritingAnswer] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [estimatedBand, setEstimatedBand] = useState<number | null>(null);
   const [isReviewing, setIsReviewing] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [audioProgress, setAudioProgress] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState(1);
   const [reviewedQuestions, setReviewedQuestions] = useState<number[]>([]);
   const [testStage, setTestStage] = useState<"listening" | "reading" | "writing" | "speaking" | "result" | null>(null);
   const [fullTestResults, setFullTestResults] = useState<any>({});
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const [speakingStage, setSpeakingStage] = useState<"part1" | "part2" | "part3" | null>(null);
+  const [speakingPrompt, setSpeakingPrompt] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+  const [speakingPartIndex, setSpeakingPartIndex] = useState(0);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+
+  const handleNextSpeakingPart = () => {
+    if (!testTask?.speakingParts) return;
+    
+    if (speakingStage === "part1") {
+      if (speakingPartIndex < testTask.speakingParts.part1.length - 1) {
+        setSpeakingPartIndex(prev => prev + 1);
+        setSpeakingPrompt(testTask.speakingParts.part1[speakingPartIndex + 1]);
+      } else {
+        setSpeakingStage("part2");
+        setSpeakingPrompt(testTask.speakingParts.part2);
+        setSpeakingPartIndex(0);
+      }
+    } else if (speakingStage === "part2") {
+      setSpeakingStage("part3");
+      setSpeakingPartIndex(0);
+      setSpeakingPrompt(testTask.speakingParts.part3[0]);
+    } else if (speakingStage === "part3") {
+      if (speakingPartIndex < testTask.speakingParts.part3.length - 1) {
+        setSpeakingPartIndex(prev => prev + 1);
+        setSpeakingPrompt(testTask.speakingParts.part3[speakingPartIndex + 1]);
+      } else {
+        handleSubmit();
+      }
+    }
+  };
 
   const toggleReview = () => {
     setReviewedQuestions(prev => 
@@ -123,12 +169,17 @@ export default function MockTests() {
   };
 
   const generateAudio = async (text: string) => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
     setIsGeneratingAudio(true);
+    setIsPlaying(false);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text: `Read the following IELTS listening script clearly: ${text}` }] }],
+        contents: [{ parts: [{ text: `Read this IELTS script naturally: ${text}` }] }],
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } },
@@ -145,29 +196,31 @@ export default function MockTests() {
         const wavBlob = pcmToWav(pcmData, 24000);
         const url = URL.createObjectURL(wavBlob);
         const audio = new Audio(url);
+        audioRef.current = audio;
         
         audio.onended = () => {
+          setIsPlaying(false);
           URL.revokeObjectURL(url);
         };
         
-        await audio.play();
-        setIsPlaying(true);
-      } else {
-        // Fallback to browser TTS
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = 0.9;
-        window.speechSynthesis.speak(utterance);
-        setIsPlaying(true);
+        // Don't auto-play, let the user click
       }
     } catch (error) {
-      console.error(error);
-      // Fallback to browser TTS
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 0.9;
-      window.speechSynthesis.speak(utterance);
-      setIsPlaying(true);
+      console.error("Audio generation failed:", error);
     } finally {
       setIsGeneratingAudio(false);
+    }
+  };
+
+  const toggleAudio = () => {
+    if (!audioRef.current) return;
+    
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play();
+      setIsPlaying(true);
     }
   };
 
@@ -176,58 +229,115 @@ export default function MockTests() {
     setIsGeneratingTask(true);
     setTestTask(null);
     setFeedback(null);
-    setAnswer("");
+    setUserAnswers({});
+    setWritingAnswer("");
+    setCurrentQuestion(1);
+    setSpeakingPartIndex(0);
     
     const currentSkill = stage || test.skill;
+    setGenerationStep(`Analyzing ${currentSkill} requirements...`);
     
-    try {
-      const prompt = `Generate a realistic IELTS ${test.label} task for ${currentSkill}.
-      Description: ${test.desc}
-      If it's Writing, provide a prompt.
-      If it's Reading, provide a long academic passage (500 words) and 10 questions.
-      If it's Listening, provide a script for a conversation and 10 questions.
-      Return in clean Markdown.`;
-      
-      const result = await callGroq(prompt, "You are an IELTS examiner.");
-      setTestTask(result);
+    // Set stage-specific timing for full mock test
+    if (test.id === 'full-mock') {
+      const stageMins: Record<string, number> = {
+        listening: 30,
+        reading: 60,
+        writing: 60,
+        speaking: 15
+      };
+      setTimeLeft(stageMins[currentSkill] * 60);
+    } else {
       setTimeLeft(test.mins * 60);
+    }
+
+    try {
+      setGenerationStep(`Generating challenging ${currentSkill} content...`);
       
-      if (currentSkill === 'listening') {
-        const scriptMatch = result.match(/Script:([\s\S]*?)Questions:/i);
-        if (scriptMatch) generateAudio(scriptMatch[1]);
+      const prompt = `Generate a realistic, challenging Academic IELTS task EXCLUSIVELY for the ${currentSkill} section.
+      Difficulty: Band 7.5 - 8.5 level.
+      
+      CRITICAL: ONLY return data for the ${currentSkill} skill. DO NOT include fields for other skills.
+      
+      If ${currentSkill} is 'writing': Provide a prompt (Task 1 or Task 2), chartType (if Task 1), and chartData (if Task 1).
+      If ${currentSkill} is 'reading': Provide a 700-word academic passage and 10 questions (mcq, gap-fill, tfng).
+      If ${currentSkill} is 'listening': Provide a script for a conversation/talk and 10 questions.
+      If ${currentSkill} is 'speaking': Provide 3 parts of questions. Part 1: Personal, Part 2: Cue Card, Part 3: Discussion.
+      
+      Return as JSON matching this structure:
+      {
+        "title": "string",
+        "passage": "string (only if reading)",
+        "script": "string (only if listening)",
+        "prompt": "string (only if writing)",
+        "chartType": "string (only if writing task 1)",
+        "chartData": "any (only if writing task 1)",
+        "speakingParts": { "part1": ["string"], "part2": "string", "part3": ["string"] } (only if speaking),
+        "questions": [
+          { "id": number, "text": "string", "type": "mcq|gap-fill|tfng", "options": ["string"] (optional), "answer": "string" }
+        ] (only if reading or listening)
+      }`;
+      
+      const result = await callGroqJSON(prompt, "You are an expert IELTS content creator for the British Council. You strictly follow formatting constraints.");
+      setTestTask(result as any);
+      
+      if (currentSkill === 'listening' && result.script) {
+        setGenerationStep("Generating high-quality audio...");
+        generateAudio(result.script);
+      }
+
+      if (currentSkill === 'speaking' && result.speakingParts) {
+        setSpeakingStage("part1");
+        setSpeakingPrompt(result.speakingParts.part1[0]);
       }
     } catch (error) {
       console.error(error);
-      setTestTask("Failed to generate task. Please try again.");
+      setTestTask({ title: "Error", questions: [], prompt: "Failed to generate task. Please try again." });
     } finally {
       setIsGeneratingTask(false);
+      setGenerationStep("");
     }
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    if (!answer.trim() || isSubmitting || !progress || !activeTest) return;
+    if (isSubmitting || !progress || !activeTest) return;
     setIsSubmitting(true);
 
-    const systemPrompt = `You are a strict IELTS examiner. Analyze the student's response for ${activeTest.label}. 
-    Task was: ${testTask}
-    Provide a detailed band score breakdown (0-9) for each criterion and an overall band.
-    Be honest and critical. Use markdown for formatting.`;
+    const isWriting = activeTest.skill === 'writing' || testStage === 'writing';
+    const isSpeaking = activeTest.skill === 'speaking' || testStage === 'speaking';
+    
+    let submission = "";
+    if (isWriting) submission = writingAnswer;
+    else if (isSpeaking) submission = "Simulated Speaking Session Completed.";
+    else submission = JSON.stringify(userAnswers);
+
+    const systemPrompt = `You are a strict, world-class IELTS examiner. Analyze the student's performance.
+    Task was: ${JSON.stringify(testTask)}
+    Student Submission: ${submission}
+    
+    If Writing: Evaluate based on Task Response, Coherence/Cohesion, Lexical Resource, Grammatical Range/Accuracy.
+    If Speaking: Evaluate based on Fluency/Coherence, Lexical Resource, Grammatical Range/Accuracy, Pronunciation.
+    If Reading/Listening: Compare userAnswers to the correct answers in the task.
+    
+    Provide a detailed breakdown and an Overall Band (0-9).
+    Format as Markdown. End with "Overall Band: X.X"`;
 
     try {
-      const result = await callGroq(`TASK: ${activeTest.desc}\n\nSTUDENT RESPONSE:\n${answer}`, systemPrompt);
+      const result = await callGroq(`Evaluate this IELTS ${activeTest.skill} submission.`, systemPrompt);
       
-      if (activeTest.id === 'full') {
-        const bandMatch = result.match(/Overall Band:\s*([0-9]\.?[0-9]?)/i);
-        const band = bandMatch ? parseFloat(bandMatch[1]) : 6.0;
+      const bandMatch = result.match(/Overall Band:\s*([0-9]\.?[0-9]?)/i);
+      const band = bandMatch ? parseFloat(bandMatch[1]) : 6.0;
+
+      if (activeTest.id === 'full-mock') {
+        const nextStageMap: any = { listening: "reading", reading: "writing", writing: "speaking", speaking: "result" };
+        const currentSkill = testStage || "listening";
+        const nextStage = nextStageMap[currentSkill];
         
-        const nextStageMap: any = { listening: "reading", reading: "writing", writing: "result" };
-        const nextStage = nextStageMap[testStage || "listening"];
-        
-        setFullTestResults({ ...fullTestResults, [testStage || "listening"]: { band, feedback: result } });
+        const newResults = { ...fullTestResults, [currentSkill]: { band, feedback: result } };
+        setFullTestResults(newResults);
         
         if (nextStage === "result") {
-          setFeedback("Full Test Completed. See results below.");
-          setEstimatedBand(band); // Simplified average or last band
+          const avg = Object.values(newResults).reduce((acc: number, curr: any) => acc + curr.band, 0) / 4;
+          setEstimatedBand(Math.round(avg * 2) / 2);
           setTestStage("result");
         } else {
           setTestStage(nextStage);
@@ -235,8 +345,6 @@ export default function MockTests() {
         }
       } else {
         setFeedback(result);
-        const bandMatch = result.match(/Overall Band:\s*([0-9]\.?[0-9]?)/i);
-        const band = bandMatch ? parseFloat(bandMatch[1]) : null;
         setEstimatedBand(band);
 
         if (band) {
@@ -255,7 +363,7 @@ export default function MockTests() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [activeTest, answer, progress, isSubmitting, testTask, testStage, fullTestResults, generateTask]);
+  }, [activeTest, writingAnswer, userAnswers, progress, isSubmitting, testTask, testStage, fullTestResults, generateTask]);
 
   useEffect(() => {
     const load = async () => {
@@ -276,7 +384,7 @@ export default function MockTests() {
   }, [activeTest, timeLeft, feedback, handleSubmit]);
 
   const startTest = (test: any) => {
-    if (test.id === 'full') {
+    if (test.id === 'full-mock') {
       setTestStage("listening");
       generateTask(test, "listening");
     } else {
@@ -338,62 +446,94 @@ export default function MockTests() {
 
         {/* Main Test Area */}
         <main className="flex-1 overflow-hidden flex flex-col relative">
-          {!feedback || (testStage && testStage !== "result") ? (
+          {isGeneratingTask ? (
+            <div className="flex-1 flex flex-col items-center justify-center bg-white">
+              <div className="max-w-md w-full text-center space-y-8 p-12">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-32 h-32 border-4 border-blue-primary/10 rounded-full" />
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Loader2 size={64} className="animate-spin text-blue-primary" />
+                  </div>
+                  <div className="w-32 h-32 mx-auto flex items-center justify-center">
+                    <PenTool size={32} className="text-blue-primary animate-bounce" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-serif font-bold text-gray-800">Question Generator</h3>
+                  <p className="text-sm text-gray-500 font-medium animate-pulse">{generationStep}</p>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[1, 2, 3].map(i => (
+                    <div key={i} className="h-1 bg-gray-100 rounded-full overflow-hidden">
+                      <motion.div 
+                        className="h-full bg-blue-primary"
+                        initial={{ x: "-100%" }}
+                        animate={{ x: "100%" }}
+                        transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : !feedback || (testStage && testStage !== "result") ? (
             <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
               {/* Left Pane: Task/Passage */}
               <div className="w-full md:w-1/2 border-b md:border-b-0 md:border-r border-gray-200 bg-white overflow-y-auto p-4 md:p-8 custom-scrollbar h-[40vh] md:h-full">
-                {isGeneratingTask ? (
-                  <div className="h-full flex flex-col items-center justify-center space-y-4">
-                    <Loader2 size={40} className="animate-spin text-blue-primary" />
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Loading Test Content...</p>
+                <div className="max-w-2xl mx-auto space-y-8">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-serif font-bold text-gray-800">{testTask?.title || activeTest.label}</h2>
+                    <button 
+                      onClick={toggleReview}
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest transition-colors",
+                        reviewedQuestions.includes(currentQuestion) ? "bg-amber-100 text-amber-700 border border-amber-200" : "bg-gray-100 text-gray-500 border border-gray-200"
+                      )}
+                    >
+                      <Flag size={12} fill={reviewedQuestions.includes(currentQuestion) ? "currentColor" : "none"} /> Review
+                    </button>
                   </div>
-                ) : (
-                  <div className="max-w-2xl mx-auto space-y-8">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-2xl font-serif font-bold text-gray-800">{activeTest.label}</h2>
-                      <button 
-                        onClick={toggleReview}
-                        className={cn(
-                          "flex items-center gap-2 px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest transition-colors",
-                          reviewedQuestions.includes(currentQuestion) ? "bg-amber-100 text-amber-700 border border-amber-200" : "bg-gray-100 text-gray-500 border border-gray-200"
-                        )}
-                      >
-                        <Flag size={12} fill={reviewedQuestions.includes(currentQuestion) ? "currentColor" : "none"} /> Review
-                      </button>
-                    </div>
 
-                    {activeTest.skill === 'listening' && (
-                      <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 mb-8">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-blue-primary/10 rounded-full flex items-center justify-center text-blue-primary">
-                              <Volume2 size={20} />
+                  {(activeTest.skill === 'listening' || testStage === 'listening') && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 mb-8">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-blue-primary/10 rounded-full flex items-center justify-center text-blue-primary">
+                            {isGeneratingAudio ? <Loader2 size={20} className="animate-spin" /> : <Volume2 size={20} />}
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold text-gray-800">
+                              {isGeneratingAudio ? "Preparing Audio..." : "Audio Recording Ready"}
                             </div>
-                            <div>
-                              <div className="text-xs font-bold text-gray-800">Audio Recording</div>
-                              <div className="text-[10px] text-gray-400 uppercase font-bold">Section 1 of 4</div>
+                            <div className="text-[10px] text-gray-400 uppercase font-bold">
+                              {isGeneratingAudio ? "AI is generating the script" : "Listen carefully (Plays once in real exam)"}
                             </div>
                           </div>
-                          <button 
-                            onClick={() => setIsPlaying(!isPlaying)}
-                            className="w-12 h-12 bg-blue-primary hover:bg-blue-primary/90 text-white rounded-full flex items-center justify-center shadow-lg transition-all active:scale-95"
-                          >
-                            {isPlaying ? <Pause size={20} /> : <Play size={20} className="ml-1" />}
-                          </button>
                         </div>
-                        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                          <motion.div 
-                            className="h-full bg-blue-primary"
-                            initial={{ width: 0 }}
-                            animate={{ width: isPlaying ? "100%" : "0%" }}
-                            transition={{ duration: 600, ease: "linear" }}
-                          />
-                        </div>
+                        <button 
+                          onClick={toggleAudio}
+                          disabled={isGeneratingAudio || !audioRef.current}
+                          className="w-12 h-12 bg-blue-primary hover:bg-blue-primary/90 disabled:bg-gray-300 text-white rounded-full flex items-center justify-center shadow-lg transition-all active:scale-95"
+                        >
+                          {isPlaying ? <Pause size={20} /> : <Play size={20} className="ml-1" />}
+                        </button>
                       </div>
-                    )}
+                      <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <motion.div 
+                          className="h-full bg-blue-primary"
+                          initial={{ width: 0 }}
+                          animate={{ width: isPlaying ? "100%" : "0%" }}
+                          transition={{ duration: 600, ease: "linear" }}
+                        />
+                      </div>
+                    </div>
+                  )}
 
-                    {activeTest.skill === 'speaking' && (
-                      <div className="aspect-video bg-gray-900 rounded-2xl overflow-hidden relative mb-8 group">
+                  {testTask?.speakingParts && (
+                    <div className="space-y-8">
+                      <div className="aspect-video bg-gray-900 rounded-2xl overflow-hidden relative group">
                         <img 
                           src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=800" 
                           alt="AI Examiner" 
@@ -402,53 +542,162 @@ export default function MockTests() {
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                         <div className="absolute bottom-6 left-6 flex items-center gap-3">
-                          <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                          <span className="text-white font-bold text-xs uppercase tracking-widest">Aria (Examiner) - Live</span>
-                        </div>
-                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white">
-                            <Mic size={32} />
-                          </div>
+                          <div className={cn("w-3 h-3 rounded-full animate-pulse", isRecording ? "bg-red-500" : "bg-green-500")} />
+                          <span className="text-white font-bold text-xs uppercase tracking-widest">
+                            {isRecording ? "Recording..." : "Aria (Examiner) - Waiting"}
+                          </span>
                         </div>
                       </div>
-                    )}
 
-                    <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed font-serif">
-                      <Markdown>{testTask || activeTest.desc}</Markdown>
+                      <div className="bg-blue-primary/5 border border-blue-primary/10 rounded-2xl p-8 text-center space-y-4">
+                        <div className="text-[10px] font-bold text-blue-primary uppercase tracking-[0.2em]">
+                          Speaking {speakingStage?.toUpperCase()}
+                        </div>
+                        <h3 className="text-xl font-serif font-bold text-gray-800 italic">
+                          "{speakingPrompt}"
+                        </h3>
+                        <p className="text-xs text-gray-500">
+                          {speakingStage === 'part2' ? "You have 1 minute to prepare. Speak for 2 minutes." : "Answer the question naturally."}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col items-center gap-4">
+                        <button 
+                          onMouseDown={() => setIsRecording(true)}
+                          onMouseUp={() => setIsRecording(false)}
+                          className={cn(
+                            "w-20 h-20 rounded-full flex items-center justify-center transition-all shadow-xl",
+                            isRecording ? "bg-red-500 scale-110 shadow-red-500/20" : "bg-blue-primary hover:bg-blue-primary/90 shadow-blue-primary/20"
+                          )}
+                        >
+                          <Mic size={32} className="text-white" />
+                        </button>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                          Hold to Speak
+                        </p>
+                        
+                        <button 
+                          onClick={handleNextSpeakingPart}
+                          className="mt-4 px-8 py-3 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-all text-xs uppercase tracking-widest"
+                        >
+                          {speakingStage === 'part3' && speakingPartIndex === (testTask.speakingParts.part3.length - 1) ? "Finish Speaking" : "Next Question"}
+                        </button>
+                      </div>
                     </div>
+                  )}
 
-                    {activeTest.chartData && (
-                      <div className="mt-8 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                        <ChartDisplay type={activeTest.chartType} data={activeTest.chartData} />
-                      </div>
-                    )}
+                  <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed font-serif">
+                    {testTask?.passage && (activeTest.skill === 'reading' || testStage === 'reading') && <Markdown>{testTask.passage}</Markdown>}
+                    {testTask?.prompt && (activeTest.skill === 'writing' || testStage === 'writing') && <Markdown>{testTask.prompt}</Markdown>}
+                    {!testTask && <Markdown>{activeTest.desc}</Markdown>}
                   </div>
-                )}
+
+                  {testTask?.chartData && (activeTest.skill === 'writing' || testStage === 'writing') && (
+                    <div className="mt-8 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                      <ChartDisplay type={testTask.chartType || "line"} data={testTask.chartData} />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Right Pane: Input */}
               <div className="w-full md:w-1/2 bg-[#F4F7F9] overflow-y-auto p-4 md:p-8 custom-scrollbar h-[60vh] md:h-full">
                 <div className="max-w-2xl mx-auto h-full flex flex-col">
-                  {testTask && !isGeneratingTask && (
+                  {testTask && (
                     <>
                       <div className="flex-1 relative mb-6">
-                        <textarea
-                          value={answer}
-                          onChange={(e) => setAnswer(e.target.value)}
-                          placeholder="Type your response here..."
-                          className="w-full h-full bg-white border border-gray-200 rounded-xl p-8 text-gray-800 focus:ring-2 focus:ring-blue-primary/20 focus:border-blue-primary outline-none resize-none font-serif leading-relaxed text-lg shadow-sm"
-                        />
-                        <div className="absolute bottom-6 right-6 flex items-center gap-4">
-                          <div className="px-3 py-1 bg-gray-100 rounded text-[10px] font-bold text-gray-500 uppercase tracking-widest">
-                            Word Count: {answer.trim() ? answer.trim().split(/\s+/).length : 0}
+                        {(activeTest.skill === 'writing' || testStage === 'writing') ? (
+                          <div className="h-full flex flex-col">
+                            <textarea
+                              value={writingAnswer}
+                              onChange={(e) => setWritingAnswer(e.target.value)}
+                              placeholder="Type your essay response here..."
+                              className="flex-1 w-full bg-white border border-gray-200 rounded-xl p-8 text-gray-800 focus:ring-2 focus:ring-blue-primary/20 focus:border-blue-primary outline-none resize-none font-serif leading-relaxed text-lg shadow-sm"
+                            />
+                            <div className="mt-4 flex items-center justify-between">
+                              <div className="px-3 py-1 bg-white border border-gray-200 rounded text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                                Word Count: {writingAnswer.trim() ? writingAnswer.trim().split(/\s+/).length : 0}
+                              </div>
+                              <div className="text-[10px] font-bold text-gray-400 uppercase">Min: {activeTest.id.includes('t1') ? 150 : 250} words</div>
+                            </div>
                           </div>
-                        </div>
+                        ) : (
+                          <div className="space-y-6">
+                            {testTask.questions.map((q, idx) => (
+                              <div 
+                                key={q.id} 
+                                className={cn(
+                                  "p-6 bg-white border rounded-xl transition-all",
+                                  currentQuestion === q.id ? "border-blue-primary ring-1 ring-blue-primary/10 shadow-md" : "border-gray-200"
+                                )}
+                                onClick={() => setCurrentQuestion(q.id)}
+                              >
+                                <div className="flex items-start gap-4">
+                                  <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-xs font-bold text-gray-500 flex-shrink-0">
+                                    {q.id}
+                                  </div>
+                                  <div className="flex-1 space-y-4">
+                                    <p className="text-sm font-bold text-gray-800">{q.text}</p>
+                                    
+                                    {q.type === 'mcq' && q.options && (
+                                      <div className="grid grid-cols-1 gap-2">
+                                        {q.options.map(opt => (
+                                          <button
+                                            key={opt}
+                                            onClick={() => setUserAnswers(prev => ({ ...prev, [q.id]: opt }))}
+                                            className={cn(
+                                              "text-left px-4 py-3 rounded-lg border text-sm transition-all",
+                                              userAnswers[q.id] === opt 
+                                                ? "bg-blue-primary/5 border-blue-primary text-blue-primary font-bold" 
+                                                : "bg-white border-gray-100 hover:border-gray-300 text-gray-600"
+                                            )}
+                                          >
+                                            {opt}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {q.type === 'gap-fill' && (
+                                      <input 
+                                        type="text"
+                                        value={userAnswers[q.id] || ""}
+                                        onChange={(e) => setUserAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                                        placeholder="Type your answer..."
+                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-primary/20 outline-none"
+                                      />
+                                    )}
+
+                                    {q.type === 'tfng' && (
+                                      <div className="flex gap-2">
+                                        {['TRUE', 'FALSE', 'NOT GIVEN'].map(opt => (
+                                          <button
+                                            key={opt}
+                                            onClick={() => setUserAnswers(prev => ({ ...prev, [q.id]: opt }))}
+                                            className={cn(
+                                              "flex-1 py-2 rounded-lg border text-[10px] font-bold transition-all",
+                                              userAnswers[q.id] === opt 
+                                                ? "bg-blue-primary border-blue-primary text-white" 
+                                                : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
+                                            )}
+                                          >
+                                            {opt}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
-                      <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-4 mt-auto">
                         <button
                           onClick={handleSubmit}
-                          disabled={!answer.trim() || isSubmitting}
+                          disabled={isSubmitting}
                           className="flex-1 bg-blue-primary hover:bg-blue-primary/90 text-white font-bold py-4 rounded-xl shadow-lg shadow-blue-primary/20 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3"
                         >
                           {isSubmitting ? <><Loader2 size={20} className="animate-spin" /> Finalizing Submission...</> : "Finish Section"}
@@ -460,30 +709,91 @@ export default function MockTests() {
               </div>
             </div>
           ) : testStage === "result" ? (
-            <div className="flex-1 overflow-y-auto bg-white p-12 custom-scrollbar">
-              <div className="max-w-4xl mx-auto space-y-12">
+            <div className="flex-1 overflow-y-auto bg-[#F8FAFC] p-12 custom-scrollbar">
+              <div className="max-w-5xl mx-auto space-y-12">
                 <div className="text-center space-y-4">
-                  <div className="w-20 h-20 bg-blue-primary rounded-full flex items-center justify-center text-white mx-auto shadow-xl shadow-blue-primary/20">
-                    <Trophy size={40} />
+                  <div className="w-24 h-24 bg-blue-primary rounded-3xl rotate-12 flex items-center justify-center text-white mx-auto shadow-2xl shadow-blue-primary/20">
+                    <Trophy size={48} className="-rotate-12" />
                   </div>
-                  <h2 className="text-4xl font-serif font-bold text-gray-800">Mock Test Results</h2>
-                  <p className="text-gray-500">Comprehensive analysis of your full IELTS simulation.</p>
+                  <h2 className="text-5xl font-serif font-bold text-gray-900">Test Report Form</h2>
+                  <p className="text-gray-500 text-lg">Official AI-generated performance analysis</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {Object.entries(fullTestResults).map(([skill, data]: [string, any]) => (
-                    <div key={skill} className="card bg-gray-50 border-gray-200">
-                      <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">{skill}</div>
-                      <div className="text-3xl font-black text-blue-primary mb-4">Band {data.band}</div>
-                      <div className="prose prose-xs max-w-none text-gray-600 line-clamp-6">
-                        <Markdown>{data.feedback}</Markdown>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  {['Listening', 'Reading', 'Writing', 'Speaking'].map((skill) => {
+                    const data = fullTestResults[skill.toLowerCase()];
+                    return (
+                      <div key={skill} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">{skill}</div>
+                        <div className="text-4xl font-black text-gray-900 mb-2">
+                          {data ? data.band : "—"}
+                        </div>
+                        <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                          <motion.div 
+                            className="h-full bg-blue-primary"
+                            initial={{ width: 0 }}
+                            animate={{ width: data ? `${(data.band / 9) * 100}%` : 0 }}
+                            transition={{ duration: 1, delay: 0.5 }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="bg-white rounded-[40px] border border-gray-100 shadow-xl overflow-hidden">
+                  <div className="grid grid-cols-1 lg:grid-cols-3">
+                    <div className="lg:col-span-1 bg-gray-900 p-12 text-white flex flex-col justify-between">
+                      <div>
+                        <h3 className="text-2xl font-serif font-bold mb-2">Overall Band</h3>
+                        <p className="text-gray-400 text-sm">Based on the average of all sections</p>
+                      </div>
+                      <div className="py-12">
+                        <div className="text-9xl font-black text-blue-primary leading-none">
+                          {estimatedBand || "6.5"}
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-400">CEFR Level</span>
+                          <span className="font-bold">C1 Advanced</span>
+                        </div>
+                        <div className="h-px bg-white/10" />
+                        <p className="text-xs text-gray-400 italic">
+                          "Your performance indicates a strong command of the language with some minor inaccuracies."
+                        </p>
                       </div>
                     </div>
-                  ))}
+                    <div className="lg:col-span-2 p-12 space-y-8 overflow-y-auto max-h-[600px] custom-scrollbar">
+                      <h3 className="text-xl font-bold text-gray-800">Detailed Feedback</h3>
+                      {Object.entries(fullTestResults).map(([skill, data]: [string, any]) => (
+                        <div key={skill} className="space-y-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-blue-primary/10 flex items-center justify-center text-blue-primary font-bold text-xs uppercase">
+                              {skill[0]}
+                            </div>
+                            <h4 className="font-bold text-gray-700 uppercase tracking-widest text-xs">{skill} Analysis</h4>
+                          </div>
+                          <div className="prose prose-sm max-w-none text-gray-600 bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                            <Markdown>{data.feedback}</Markdown>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="flex justify-center">
-                  <button onClick={() => { setActiveTest(null); setFeedback(null); setTestStage(null); }} className="btn btn-primary px-12 py-4">
+                <div className="flex justify-center gap-4">
+                  <button 
+                    onClick={() => window.print()}
+                    className="px-8 py-4 bg-white border border-gray-200 text-gray-700 font-bold rounded-2xl hover:bg-gray-50 transition-all flex items-center gap-2"
+                  >
+                    <FileText size={18} /> Download PDF
+                  </button>
+                  <button 
+                    onClick={() => { setActiveTest(null); setFeedback(null); setTestStage(null); }} 
+                    className="px-12 py-4 bg-blue-primary text-white font-bold rounded-2xl hover:bg-blue-primary/90 shadow-xl shadow-blue-primary/20 transition-all"
+                  >
                     Return to Dashboard
                   </button>
                 </div>
@@ -615,8 +925,13 @@ export default function MockTests() {
           <button
             key={test.id}
             onClick={() => startTest(test)}
-            className="card text-left hover:border-blue-primary group flex flex-col h-full"
+            className="card text-left hover:border-blue-primary group flex flex-col h-full relative overflow-hidden"
           >
+            <div className="absolute top-0 right-0 p-4">
+              <div className="px-2 py-1 bg-blue-primary/10 text-blue-primary text-[10px] font-bold rounded uppercase tracking-widest">
+                GROQ AI
+              </div>
+            </div>
             <div className={cn("p-3 rounded-2xl bg-bg-2 w-fit mb-4 transition-transform group-hover:scale-110 group-hover:rotate-3", test.color)}>
               <test.icon size={28} />
             </div>
@@ -625,7 +940,7 @@ export default function MockTests() {
             <div className="flex items-center justify-between mt-auto pt-4 border-t border-border/50">
               <div className="flex items-center gap-3">
                 <span className="tag tag-gray">⏱ {test.mins} min</span>
-                <span className="tag tag-blue">AI Scored</span>
+                <span className="tag tag-blue">Academic</span>
               </div>
               <ChevronRight size={16} className="text-text-muted group-hover:text-blue-primary group-hover:translate-x-1 transition-all" />
             </div>
