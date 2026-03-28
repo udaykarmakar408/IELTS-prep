@@ -62,9 +62,39 @@ export default function Vocabulary() {
     const load = async () => {
       const p = await getProgress();
       setProgress(p);
+      
+      const today = new Date().toISOString().split("T")[0];
+      if (!p.dailyWord || p.dailyWord.date !== today) {
+        generateDailyWord(p);
+      }
     };
     load();
   }, []);
+
+  const generateDailyWord = async (p: UserProgress) => {
+    const today = new Date().toISOString().split("T")[0];
+    try {
+      const systemPrompt = `You are an IELTS expert. Generate a high-level academic word suitable for IELTS Band 7-9.
+      Return ONLY a JSON object in this format:
+      {
+        "word": "...",
+        "type": "noun | verb | adj | adv",
+        "band": "7+ | 8+ | 9",
+        "def": "...",
+        "example": "..."
+      }`;
+      
+      const result = await callGroq("Generate a random IELTS academic word.", systemPrompt);
+      const cleaned = result.replace(/```json|```/g, "").trim();
+      const word = JSON.parse(cleaned);
+      
+      const updated = { ...p, dailyWord: { ...word, date: today } };
+      setProgress(updated);
+      await saveProgress(updated);
+    } catch (error) {
+      console.error("Failed to generate daily word:", error);
+    }
+  };
 
   const getAiAnalysis = async (word: string) => {
     setIsAnalyzing(true);
@@ -188,46 +218,56 @@ export default function Vocabulary() {
       </div>
 
       {/* Word of the Day Hero */}
-      <div className="relative overflow-hidden rounded-[3rem] recipe-atmospheric-bg p-10 md:p-16 text-white shadow-2xl shadow-violet-accent/20 border border-violet-accent/20">
-        <div className="absolute top-0 right-0 p-16 opacity-10 pointer-events-none transform translate-x-1/4 -translate-y-1/4 scale-150">
-          <Sparkles size={300} />
-        </div>
-        <div className="relative z-10 space-y-8 max-w-4xl">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/20">
-              <Star size={20} className="text-amber-accent fill-amber-accent animate-pulse" />
+      {progress.dailyWord && (
+        <div className="relative overflow-hidden rounded-[3rem] recipe-atmospheric-bg p-10 md:p-16 text-white shadow-2xl shadow-violet-accent/20 border border-violet-accent/20">
+          <div className="absolute top-0 right-0 p-16 opacity-10 pointer-events-none transform translate-x-1/4 -translate-y-1/4 scale-150">
+            <Sparkles size={300} />
+          </div>
+          <div className="relative z-10 space-y-8 max-w-4xl">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/20">
+                <Star size={20} className="text-amber-accent fill-amber-accent animate-pulse" />
+              </div>
+              <div className="recipe-editorial-label text-amber-accent">Word of the Day</div>
             </div>
-            <div className="recipe-editorial-label text-amber-accent">Word of the Day</div>
-          </div>
-          <div className="space-y-4">
-            <h3 className="recipe-editorial-h1 text-white leading-[0.85]">
-              UNPRECEDENTED
-            </h3>
-            <div className="flex items-center gap-6 text-[11px] font-black uppercase tracking-widest opacity-80">
-              <span className="px-3 py-1 bg-white/10 rounded-full border border-white/20">adjective</span>
-              <div className="w-1.5 h-1.5 bg-white rounded-full" />
-              <span className="text-amber-accent">Band 8.5+</span>
+            <div className="space-y-4">
+              <h3 className="recipe-editorial-h1 text-white leading-[0.85] uppercase">
+                {progress.dailyWord.word}
+              </h3>
+              <div className="flex items-center gap-6 text-[11px] font-black uppercase tracking-widest opacity-80">
+                <span className="px-3 py-1 bg-white/10 rounded-full border border-white/20">{progress.dailyWord.type}</span>
+                <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                <span className="text-amber-accent">Band {progress.dailyWord.band}</span>
+              </div>
+            </div>
+            <p className="text-xl md:text-2xl font-medium leading-relaxed opacity-80 max-w-2xl">
+              {progress.dailyWord.def}
+            </p>
+            <div className="flex flex-wrap gap-6 pt-6">
+              <button 
+                onClick={() => setSelectedWord({
+                  w: progress.dailyWord!.word,
+                  pos: progress.dailyWord!.type,
+                  def: progress.dailyWord!.def,
+                  ex: progress.dailyWord!.example,
+                  band: progress.dailyWord!.band,
+                  category: "Academic",
+                  synonyms: []
+                })}
+                className="px-10 py-5 bg-white text-violet-accent rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white/90 transition-all active:scale-95 shadow-2xl shadow-black/20"
+              >
+                Master This Word
+              </button>
+              <button 
+                onClick={() => setIsFlashcardMode(true)}
+                className="px-10 py-5 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white/20 transition-all active:scale-95"
+              >
+                Start Flashcards
+              </button>
             </div>
           </div>
-          <p className="text-xl md:text-2xl font-medium leading-relaxed opacity-80 max-w-2xl">
-            Never done or known before; something that has no previous example or parallel in history.
-          </p>
-          <div className="flex flex-wrap gap-6 pt-6">
-            <button 
-              onClick={() => setSelectedWord(VOCAB_DATA.find(v => v.w === "unprecedented") || null)}
-              className="px-10 py-5 bg-white text-violet-accent rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white/90 transition-all active:scale-95 shadow-2xl shadow-black/20"
-            >
-              Master This Word
-            </button>
-            <button 
-              onClick={() => setIsFlashcardMode(true)}
-              className="px-10 py-5 bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white/20 transition-all active:scale-95"
-            >
-              Start Flashcards
-            </button>
-          </div>
         </div>
-      </div>
+      )}
 
       <div className="flex justify-center">
         <div className="flex bg-bg-2 p-1.5 rounded-2xl border border-border shadow-inner">
@@ -256,75 +296,89 @@ export default function Vocabulary() {
         </div>
       </div>
 
+      {/* Categories - Moved outside to be accessible in both modes */}
+      <div className="flex flex-wrap gap-3 mb-10 justify-center">
+        {categories.map(cat => (
+          <button
+            key={cat}
+            onClick={() => {
+              setSelectedCategory(cat || "All");
+              setFlashcardIndex(0); // Reset index when category changes
+            }}
+            className={cn(
+              "px-6 py-2.5 rounded-full text-[11px] font-black uppercase tracking-widest transition-all border",
+              selectedCategory === cat 
+                ? "bg-blue-primary text-white border-blue-primary shadow-xl shadow-blue-primary/20" 
+                : "bg-bg-2 text-text-muted border-border hover:bg-bg-3"
+            )}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
       {isFlashcardMode ? (
         <div className="flex flex-col items-center justify-center py-16 space-y-12">
-          <div className="relative w-full max-w-xl aspect-[4/3] perspective-2000">
-            <motion.div
-              animate={{ rotateY: isFlipped ? 180 : 0 }}
-              transition={{ duration: 0.8, type: "spring", stiffness: 100, damping: 20 }}
-              className="w-full h-full relative preserve-3d cursor-pointer"
-              onClick={() => setIsFlipped(!isFlipped)}
-            >
-              {/* Front */}
-              <div className="absolute inset-0 backface-hidden card bg-bg-2 border-border-2 flex flex-col items-center justify-center text-center p-12 shadow-2xl rounded-[3rem]">
-                <div className="recipe-editorial-label text-blue-secondary mb-8">Word</div>
-                <h3 className="recipe-editorial-h1 text-6xl md:text-8xl">{filteredVocab[flashcardIndex]?.w}</h3>
-                <div className="mt-12 text-[10px] font-black text-text-muted uppercase tracking-widest animate-pulse">Click to flip</div>
+          {filteredVocab.length === 0 ? (
+            <div className="text-center py-20 bg-bg-2 rounded-[3rem] border border-border w-full max-w-xl flex flex-col items-center justify-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-bg-3 flex items-center justify-center text-text-muted">
+                <Search size={32} />
               </div>
-              {/* Back */}
-              <div className="absolute inset-0 backface-hidden card bg-bg-2 border-border-2 flex flex-col items-center justify-center text-center p-12 shadow-2xl rounded-[3rem] rotate-y-180">
-                <div className="recipe-editorial-label text-green-accent mb-6">Definition</div>
-                <p className="text-xl text-text-primary leading-relaxed mb-10 font-medium">{filteredVocab[flashcardIndex]?.def}</p>
-                <div className="recipe-editorial-label text-blue-secondary mb-4">Example</div>
-                <p className="text-base text-text-secondary leading-relaxed italic font-medium max-w-md">"{filteredVocab[flashcardIndex]?.ex}"</p>
-              </div>
-            </motion.div>
-          </div>
-
-          <div className="flex items-center gap-10">
-            <button 
-              onClick={() => {
-                setFlashcardIndex(prev => (prev > 0 ? prev - 1 : filteredVocab.length - 1));
-                setIsFlipped(false);
-              }}
-              className="w-16 h-16 rounded-full border border-border hover:bg-bg-2 flex items-center justify-center transition-all hover:border-blue-primary group"
-            >
-              <ChevronRight size={32} className="rotate-180 text-text-muted group-hover:text-blue-primary transition-colors" />
-            </button>
-            <div className="text-lg font-black text-text-muted tracking-widest">
-              {flashcardIndex + 1} <span className="opacity-30">/</span> {filteredVocab.length}
+              <p className="text-text-muted font-black uppercase tracking-widest text-xs">No words found in this category</p>
             </div>
-            <button 
-              onClick={() => {
-                setFlashcardIndex(prev => (prev < filteredVocab.length - 1 ? prev + 1 : 0));
-                setIsFlipped(false);
-              }}
-              className="w-16 h-16 rounded-full border border-border hover:bg-bg-2 flex items-center justify-center transition-all hover:border-blue-primary group"
-            >
-              <ChevronRight size={32} className="text-text-muted group-hover:text-blue-primary transition-colors" />
-            </button>
-          </div>
+          ) : (
+            <>
+              <div className="relative w-full max-w-xl aspect-[4/3] perspective-2000">
+                <motion.div
+                  animate={{ rotateY: isFlipped ? 180 : 0 }}
+                  transition={{ duration: 0.8, type: "spring", stiffness: 100, damping: 20 }}
+                  className="w-full h-full relative preserve-3d cursor-pointer"
+                  onClick={() => setIsFlipped(!isFlipped)}
+                >
+                  {/* Front */}
+                  <div className="absolute inset-0 backface-hidden card bg-bg-2 border-border-2 flex flex-col items-center justify-center text-center p-12 shadow-2xl rounded-[3rem]">
+                    <div className="recipe-editorial-label text-blue-secondary mb-8">Word</div>
+                    <h3 className="recipe-editorial-h1 text-6xl md:text-8xl">{filteredVocab[flashcardIndex]?.w}</h3>
+                    <div className="mt-12 text-[10px] font-black text-text-muted uppercase tracking-widest animate-pulse">Click to flip</div>
+                  </div>
+                  {/* Back */}
+                  <div className="absolute inset-0 backface-hidden card bg-bg-2 border-border-2 flex flex-col items-center justify-center text-center p-12 shadow-2xl rounded-[3rem] rotate-y-180">
+                    <div className="recipe-editorial-label text-green-accent mb-6">Definition</div>
+                    <p className="text-xl text-text-primary leading-relaxed mb-10 font-medium">{filteredVocab[flashcardIndex]?.def}</p>
+                    <div className="recipe-editorial-label text-blue-secondary mb-4">Example</div>
+                    <p className="text-base text-text-secondary leading-relaxed italic font-medium max-w-md">"{filteredVocab[flashcardIndex]?.ex}"</p>
+                  </div>
+                </motion.div>
+              </div>
+
+              <div className="flex items-center gap-10">
+                <button 
+                  onClick={() => {
+                    setFlashcardIndex(prev => (prev > 0 ? prev - 1 : filteredVocab.length - 1));
+                    setIsFlipped(false);
+                  }}
+                  className="w-16 h-16 rounded-full border border-border hover:bg-bg-2 flex items-center justify-center transition-all hover:border-blue-primary group"
+                >
+                  <ChevronRight size={32} className="rotate-180 text-text-muted group-hover:text-blue-primary transition-colors" />
+                </button>
+                <div className="text-lg font-black text-text-muted tracking-widest">
+                  {flashcardIndex + 1} <span className="opacity-30">/</span> {filteredVocab.length}
+                </div>
+                <button 
+                  onClick={() => {
+                    setFlashcardIndex(prev => (prev < filteredVocab.length - 1 ? prev + 1 : 0));
+                    setIsFlipped(false);
+                  }}
+                  className="w-16 h-16 rounded-full border border-border hover:bg-bg-2 flex items-center justify-center transition-all hover:border-blue-primary group"
+                >
+                  <ChevronRight size={32} className="text-text-muted group-hover:text-blue-primary transition-colors" />
+                </button>
+              </div>
+            </>
+          )}
         </div>
       ) : (
         <>
-          {/* Categories */}
-          <div className="flex flex-wrap gap-3 mb-10 justify-center">
-            {categories.map(cat => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat || "All")}
-                className={cn(
-                  "px-6 py-2.5 rounded-full text-[11px] font-black uppercase tracking-widest transition-all border",
-                  selectedCategory === cat 
-                    ? "bg-blue-primary text-white border-blue-primary shadow-xl shadow-blue-primary/20" 
-                    : "bg-bg-2 text-text-muted border-border hover:bg-bg-3"
-                )}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {filteredVocab.map((item, i) => {
               const isKnown = progress?.knownWords?.includes(item.w);
@@ -363,68 +417,90 @@ export default function Vocabulary() {
           </div>
 
           {/* Word Detail Modal */}
+          {/* Word Detail Modal */}
           <AnimatePresence>
             {selectedWord && (
-              <div className="fixed inset-0 bg-black/90 backdrop-blur-2xl z-[100] flex items-center justify-center p-4">
+              <div className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[100] flex items-center justify-center p-4 md:p-8">
                 <motion.div
-                  initial={{ scale: 0.9, opacity: 0, y: 40 }}
+                  initial={{ scale: 0.95, opacity: 0, y: 20 }}
                   animate={{ scale: 1, opacity: 1, y: 0 }}
-                  exit={{ scale: 0.9, opacity: 0, y: 40 }}
-                  className="card w-full max-w-3xl bg-bg-1 border-border-2 shadow-2xl p-0 overflow-hidden flex flex-col max-h-[90vh] relative rounded-[3rem]"
+                  exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                  className="w-full max-w-4xl bg-bg-1 border border-border/50 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] relative rounded-[2.5rem]"
                 >
-                  <div className="p-10 md:p-12 bg-gradient-to-br from-blue-dim/20 to-bg-1 border-b border-border flex-shrink-0 relative">
-                    <div className="flex justify-between items-start mb-6">
-                      <div className="space-y-2">
-                        <div className="recipe-editorial-label text-blue-secondary">Vocabulary Master</div>
-                        <h3 className="recipe-editorial-h1 text-5xl md:text-7xl">{selectedWord.w}</h3>
-                        <div className="flex items-center gap-4 text-[11px] font-black uppercase tracking-widest text-text-muted">
-                          <span className="italic">{selectedWord.pos}</span>
-                          <div className="w-1.5 h-1.5 bg-border rounded-full" />
-                          <span className="text-blue-secondary">Academic Word List</span>
-                        </div>
+                  {/* Header Section - Compacted to maximize content space */}
+                  <div className="p-6 md:p-8 bg-gradient-to-b from-blue-dim/20 to-transparent border-b border-border/50 flex-shrink-0 relative">
+                    <button 
+                      onClick={() => { setSelectedWord(null); setAiAnalysis(null); setTestFeedback(null); setTestSentence(""); }} 
+                      className="absolute top-6 right-6 w-10 h-10 rounded-full bg-bg-2 hover:bg-bg-3 border border-border flex items-center justify-center transition-all z-10 group"
+                    >
+                      <X size={20} className="text-text-muted group-hover:text-text-primary transition-colors" />
+                    </button>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <span className={cn(
+                          "px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest",
+                          selectedWord.band === "8+" ? "bg-violet-500/10 text-violet-400 border border-violet-500/20" : 
+                          selectedWord.band === "7+" ? "bg-blue-500/10 text-blue-400 border border-blue-500/20" : 
+                          "bg-green-500/10 text-green-400 border border-green-500/20"
+                        )}>
+                          Band {selectedWord.band}
+                        </span>
+                        <span className="text-[9px] font-black uppercase tracking-widest text-text-muted italic">
+                          {selectedWord.pos} • {selectedCategory}
+                        </span>
                       </div>
-                      <button 
-                        onClick={() => { setSelectedWord(null); setAiAnalysis(null); setTestFeedback(null); setTestSentence(""); }} 
-                        className="w-12 h-12 rounded-2xl bg-bg-2 hover:bg-bg-3 border border-border flex items-center justify-center transition-all group"
-                      >
-                        <X size={24} className="text-text-muted group-hover:text-text-primary transition-colors" />
-                      </button>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className={cn(
-                        "tag px-4 py-1.5 text-xs font-black",
-                        selectedWord.band === "8+" ? "tag-violet" : selectedWord.band === "7+" ? "tag-blue" : "tag-green"
-                      )}>Band {selectedWord.band}</span>
-                      <div className="flex items-center gap-2 px-4 py-1.5 bg-bg-2 rounded-full border border-border text-[10px] font-black uppercase tracking-widest text-text-muted">
-                        <Bookmark size={12} /> {selectedCategory}
-                      </div>
+
+                      <h3 className="text-4xl md:text-6xl font-serif font-black tracking-tighter text-text-primary uppercase leading-none">
+                        {selectedWord.w}
+                      </h3>
                     </div>
                   </div>
 
-                  <div className="p-10 md:p-12 space-y-10 overflow-y-auto custom-scrollbar flex-1">
-                    <div className="space-y-10">
+                  {/* Content Section - Maximize this area */}
+                  <div className="p-6 md:p-10 overflow-y-auto custom-scrollbar flex-1 space-y-10">
+                    {/* Definition */}
+                    <div className="space-y-4">
+                      <div className="recipe-editorial-label">Definition</div>
+                      <p className="text-2xl md:text-3xl text-text-primary font-medium leading-tight tracking-tight">
+                        {selectedWord.def}
+                      </p>
+                    </div>
+
+                    {/* Synonyms */}
+                    {selectedWord.synonyms && selectedWord.synonyms.length > 0 && (
                       <div className="space-y-4">
-                        <div className="recipe-editorial-label">Definition</div>
-                        <p className="text-text-primary leading-relaxed text-xl font-medium">{selectedWord.def}</p>
-                      </div>
-      
-                      <div className="space-y-4">
-                        <div className="recipe-editorial-label">Example Context</div>
-                        <div className="p-8 bg-bg-2 rounded-[2rem] border-l-8 border-blue-primary italic text-lg text-text-secondary leading-relaxed shadow-inner">
-                          &quot;{selectedWord.ex}&quot;
+                        <div className="recipe-editorial-label">Synonyms</div>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedWord.synonyms.map((syn, idx) => (
+                            <span key={idx} className="px-4 py-2 bg-bg-2 text-text-secondary rounded-xl text-sm font-medium border border-border hover:border-blue-secondary/50 transition-colors">
+                              {syn}
+                            </span>
+                          ))}
                         </div>
                       </div>
-      
+                    )}
+
+                    {/* Example */}
+                    <div className="space-y-4">
+                      <div className="recipe-editorial-label">Example Context</div>
+                      <div className="p-8 bg-bg-2/50 rounded-3xl border border-border italic text-xl text-text-secondary leading-relaxed shadow-inner">
+                        &quot;{selectedWord.ex}&quot;
+                      </div>
+                    </div>
+
+                    {/* AI Analysis or Practice */}
+                    <div className="pt-12 border-t border-border/50">
                       {isAnalyzing ? (
-                        <div className="flex flex-col items-center justify-center gap-6 py-16 bg-blue-primary/5 rounded-[2.5rem] border border-dashed border-blue-primary/20">
-                          <Loader2 size={40} className="animate-spin text-blue-primary" /> 
+                        <div className="flex flex-col items-center justify-center gap-6 py-16 bg-blue-primary/5 rounded-3xl border border-dashed border-blue-primary/20">
+                          <Loader2 size={32} className="animate-spin text-blue-primary" /> 
                           <span className="recipe-hardware-label text-blue-primary">Aria is synthesizing usage patterns...</span>
                         </div>
                       ) : aiAnalysis ? (
                         <motion.div 
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="card bg-blue-dim/10 border-blue-primary/20 p-8 md:p-10 rounded-[2.5rem]"
+                          className="bg-blue-dim/10 border border-blue-primary/20 p-8 md:p-10 rounded-3xl"
                         >
                           <div className="flex items-center gap-3 text-blue-secondary font-black text-[11px] uppercase tracking-widest mb-6">
                             <Sparkles size={16} /> AI Deep Analysis
@@ -434,21 +510,21 @@ export default function Vocabulary() {
                           </div>
                         </motion.div>
                       ) : (
-                        <div className="pt-10 border-t border-border space-y-8">
+                        <div className="space-y-8">
                           <div className="recipe-editorial-label">Practice Session</div>
                           <div className="space-y-6">
                             <textarea
                               value={testSentence}
                               onChange={(e) => setTestSentence(e.target.value)}
                               placeholder={`Construct a sentence using "${selectedWord.w}" in an academic context...`}
-                              className="w-full bg-bg-1 border border-border rounded-[2rem] p-8 text-lg text-text-primary focus:border-blue-primary focus:ring-8 focus:ring-blue-primary/5 outline-none min-h-[180px] resize-none transition-all shadow-inner"
+                              className="w-full bg-bg-2 border border-border rounded-3xl p-8 text-xl text-text-primary focus:border-blue-primary focus:ring-4 focus:ring-blue-primary/10 outline-none min-h-[200px] resize-none transition-all shadow-inner"
                             />
                             <button
                               onClick={checkSentence}
                               disabled={!testSentence.trim() || isTesting}
-                              className="btn btn-primary w-full py-6 text-xs font-black uppercase tracking-widest shadow-2xl shadow-blue-primary/30 rounded-2xl"
+                              className="btn btn-primary w-full py-6 text-xs font-black uppercase tracking-[0.2em] shadow-2xl shadow-blue-primary/20 rounded-2xl"
                             >
-                              {isTesting ? <Loader2 size={24} className="animate-spin" /> : "Submit for Evaluation"}
+                              {isTesting ? <Loader2 size={24} className="animate-spin mx-auto" /> : "Submit for Evaluation"}
                             </button>
                             
                             <AnimatePresence>
@@ -456,7 +532,7 @@ export default function Vocabulary() {
                                 <motion.div 
                                   initial={{ opacity: 0, y: 20 }}
                                   animate={{ opacity: 1, y: 0 }}
-                                  className="card bg-bg-2 border-border-2 p-8 md:p-10 rounded-[2.5rem] shadow-inner"
+                                  className="bg-bg-2 border border-border p-8 md:p-10 rounded-3xl shadow-inner"
                                 >
                                   <div className="text-[11px] font-black text-blue-secondary uppercase tracking-widest mb-6 flex items-center gap-3">
                                     <CheckCircle2 size={18} /> AI Feedback
@@ -472,26 +548,27 @@ export default function Vocabulary() {
                       )}
                     </div>
                   </div>
-      
-                  <div className="p-8 md:p-10 flex gap-4 border-t border-border bg-bg-1 flex-shrink-0">
-                    <button 
+
+                  {/* Footer Actions */}
+                  <div className="p-6 md:p-8 flex gap-4 border-t border-border/50 bg-bg-1/80 backdrop-blur-md flex-shrink-0">
+                    <button
                       onClick={() => toggleKnown(selectedWord.w)}
                       className={cn(
-                        "btn flex-1 py-5 text-xs font-black uppercase tracking-widest transition-all rounded-2xl",
-                        progress.knownWords?.includes(selectedWord.w) 
-                          ? "bg-green-accent text-white shadow-2xl shadow-green-accent/30" 
+                        "flex-1 py-5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all active:scale-95",
+                        progress.knownWords?.includes(selectedWord.w)
+                          ? "bg-green-accent text-white shadow-lg shadow-green-accent/20"
                           : "bg-bg-2 border border-border text-text-muted hover:bg-bg-3 hover:text-text-primary"
                       )}
                     >
-                      {progress.knownWords?.includes(selectedWord.w) ? <><CheckCircle2 size={20} className="mr-2" /> Mastered</> : <><Bookmark size={20} className="mr-2" /> Mark as Known</>}
+                      <CheckCircle2 size={18} /> {progress.knownWords?.includes(selectedWord.w) ? "Mastered" : "Mark as Known"}
                     </button>
                     {!aiAnalysis && !isAnalyzing && (
-                      <button 
+                      <button
                         onClick={() => getAiAnalysis(selectedWord.w)}
-                        className="w-16 h-16 rounded-2xl bg-blue-primary text-white flex items-center justify-center shadow-2xl shadow-blue-primary/30 hover:bg-blue-secondary transition-all active:scale-95"
-                        title="Get AI Analysis"
+                        className="w-20 py-5 bg-blue-primary hover:bg-blue-secondary text-white rounded-2xl flex items-center justify-center transition-all hover:scale-105 active:scale-95 disabled:opacity-50 shadow-lg shadow-blue-primary/20"
+                        title="AI Analysis"
                       >
-                        <Sparkles size={24} />
+                        <Sparkles size={20} />
                       </button>
                     )}
                   </div>

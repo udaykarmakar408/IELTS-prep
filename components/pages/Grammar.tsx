@@ -29,6 +29,9 @@ export default function Grammar() {
   const [openSection, setOpenSection] = useState<string | null>("0-0");
   const [aiExplanation, setAiExplanation] = useState<Record<string, string>>({});
   const [isAnalyzing, setIsAnalyzing] = useState<Record<string, boolean>>({});
+  const [practiceAnswers, setPracticeAnswers] = useState<Record<string, string>>({});
+  const [practiceEvaluations, setPracticeEvaluations] = useState<Record<string, string>>({});
+  const [isEvaluatingTask, setIsEvaluatingTask] = useState<Record<string, boolean>>({});
 
   React.useEffect(() => {
     const load = async () => {
@@ -107,6 +110,39 @@ Use **Markdown** for formatting. Be encouraging but precise.`;
       setCheckResult("Failed to check grammar. Please try again.");
     } finally {
       setIsChecking(false);
+    }
+  };
+
+  const evaluateTask = async (id: string, heading: string, content: string) => {
+    const answer = practiceAnswers[id];
+    if (!answer || !answer.trim()) return;
+
+    setIsEvaluatingTask(prev => ({ ...prev, [id]: true }));
+    setPracticeEvaluations(prev => ({ ...prev, [id]: "" }));
+
+    const systemPrompt = `You are an expert IELTS Grammar Tutor. The student has written a practice sentence for the grammar rule: "${heading}".
+    
+    Rule Context:
+    ${content}
+    
+    Student's Sentence:
+    "${answer}"
+    
+    Evaluate the sentence:
+    1. **Accuracy**: Is the grammar rule applied correctly? Are there any other errors?
+    2. **IELTS Suitability**: Is the sentence appropriate for an academic context (Writing Task 1 or 2)?
+    3. **Band 7.5+ Upgrade**: Suggest a way to make the sentence even more sophisticated.
+    
+    Keep your feedback concise, encouraging, and highly professional. Use Markdown.`;
+
+    try {
+      const result = await callGroq(`Evaluate this sentence for the rule "${heading}": ${answer}`, systemPrompt);
+      setPracticeEvaluations(prev => ({ ...prev, [id]: result }));
+    } catch (error) {
+      console.error(error);
+      setPracticeEvaluations(prev => ({ ...prev, [id]: "Failed to evaluate. Please try again." }));
+    } finally {
+      setIsEvaluatingTask(prev => ({ ...prev, [id]: false }));
     }
   };
 
@@ -289,8 +325,42 @@ Use **Markdown** for formatting. Be encouraging but precise.`;
                               <p className="text-xs text-text-primary">Write your own example sentence using this structure:</p>
                               <textarea 
                                 placeholder="Type here..."
+                                value={practiceAnswers[id] || ""}
+                                onChange={(e) => setPracticeAnswers(prev => ({ ...prev, [id]: e.target.value }))}
                                 className="w-full bg-bg-1 border border-border-2 rounded-lg p-2.5 text-xs text-text-primary focus:border-blue-primary outline-none min-h-[60px] resize-none"
                               />
+                              <button 
+                                onClick={() => evaluateTask(id, sec.heading, sec.content)}
+                                disabled={!practiceAnswers[id]?.trim() || isEvaluatingTask[id]}
+                                className="w-full py-2.5 bg-blue-primary text-white rounded-lg font-black text-[10px] uppercase tracking-widest disabled:opacity-50 shadow-lg shadow-blue-primary/10 transition-all active:scale-95"
+                              >
+                                {isEvaluatingTask[id] ? (
+                                  <div className="flex items-center justify-center gap-2">
+                                    <Loader2 size={12} className="animate-spin" />
+                                    <span>Evaluating...</span>
+                                  </div>
+                                ) : (
+                                  "Submit for Evaluation"
+                                )}
+                              </button>
+
+                              <AnimatePresence>
+                                {practiceEvaluations[id] && (
+                                  <motion.div 
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: "auto" }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="pt-2"
+                                  >
+                                    <div className="p-4 bg-blue-dim/5 border border-blue-primary/10 rounded-xl text-[11px] leading-relaxed markdown-body overflow-hidden">
+                                      <div className="flex items-center gap-2 text-blue-secondary font-bold text-[9px] uppercase tracking-widest mb-2">
+                                        <Sparkles size={12} /> Feedback
+                                      </div>
+                                      <ReactMarkdown>{practiceEvaluations[id]}</ReactMarkdown>
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
                             </div>
                           </div>
                         </motion.div>

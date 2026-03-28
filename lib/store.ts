@@ -35,6 +35,8 @@ export interface UserProgress {
   studyLog: Record<string, number>;
   examDate: string | null;
   dailyBriefing: { date: string; content: string } | null;
+  dailyWord: { date: string; word: string; type: string; band: string; def: string; example: string } | null;
+  dailyGrammar: { date: string; title: string; tip: string; bad: string; good: string } | null;
   achievements: { id: string; title: string; description: string; unlocked: boolean; date?: string }[];
 }
 
@@ -70,6 +72,8 @@ export const defaultProgress: UserProgress = {
   studyLog: {},
   examDate: null,
   dailyBriefing: null,
+  dailyWord: null,
+  dailyGrammar: null,
   achievements: [
     { id: "first_step", title: "First Step", description: "Complete your first lesson", unlocked: false },
     { id: "streak_3", title: "Consistency is Key", description: "Maintain a 3-day streak", unlocked: false },

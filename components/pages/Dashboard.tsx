@@ -121,24 +121,101 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
         generateBriefing(p);
       }
       
+      if (!p.dailyWord || p.dailyWord.date !== today) {
+        generateDailyWord(p);
+      }
+
+      if (!p.dailyGrammar || p.dailyGrammar.date !== today) {
+        generateDailyGrammar(p);
+      }
+      
       generateDailyChallenge();
     };
     load();
   }, []);
 
+  const generateDailyWord = async (p: UserProgress) => {
+    const today = new Date().toISOString().split("T")[0];
+    try {
+      const systemPrompt = `You are an IELTS expert. Generate a high-level academic word suitable for IELTS Band 7-9.
+      Return ONLY a JSON object in this format:
+      {
+        "word": "...",
+        "type": "noun | verb | adj | adv",
+        "band": "7+ | 8+ | 9",
+        "def": "...",
+        "example": "..."
+      }`;
+      
+      const result = await callGroq("Generate a random IELTS academic word.", systemPrompt);
+      const cleaned = result.replace(/```json|```/g, "").trim();
+      const word = JSON.parse(cleaned);
+      
+      const updated = { ...p, dailyWord: { ...word, date: today } };
+      setProgress(updated);
+      await saveProgress(updated);
+    } catch (error) {
+      console.error("Failed to generate daily word:", error);
+    }
+  };
+
+  const generateDailyGrammar = async (p: UserProgress) => {
+    const today = new Date().toISOString().split("T")[0];
+    try {
+      const systemPrompt = `You are an IELTS expert. Generate a high-impact grammar tip for IELTS students.
+      Return ONLY a JSON object in this format:
+      {
+        "title": "...",
+        "tip": "...",
+        "bad": "Incorrect example sentence",
+        "good": "Corrected example sentence"
+      }`;
+      
+      const result = await callGroq("Generate a random IELTS grammar tip.", systemPrompt);
+      const cleaned = result.replace(/```json|```/g, "").trim();
+      const tip = JSON.parse(cleaned);
+      
+      const updated = { ...p, dailyGrammar: { ...tip, date: today } };
+      setProgress(updated);
+      await saveProgress(updated);
+    } catch (error) {
+      console.error("Failed to generate daily grammar tip:", error);
+    }
+  };
+
   const generateDailyChallenge = async () => {
-    const challenges = [
-      { type: "grammar", question: "Identify the error: 'He have been living here for five years.'", answer: "has", explanation: "The subject 'He' is third-person singular, so it requires 'has' instead of 'have'." },
-      { type: "vocab", question: "What is a Band 8 synonym for 'very big'?", answer: "immense", explanation: "'Immense', 'colossal', or 'vast' are high-level synonyms for 'very big'." },
-      { type: "idiom", question: "Complete the idiom: 'To cost an arm and a ___'", answer: "leg", explanation: "'To cost an arm and a leg' means something is very expensive." },
-      { type: "spelling", question: "Correct the spelling: 'Goverment'", answer: "government", explanation: "Don't forget the 'n' after 'r'!" },
-      { type: "vocab", question: "Which word is more academic: 'get' or 'acquire'?", answer: "acquire", explanation: "'Acquire' is a more formal, academic alternative to 'get'." },
-      { type: "grammar", question: "Complete the conditional: 'If I ___ you, I would study harder.'", answer: "were", explanation: "In second conditional, 'were' is used for all subjects (subjunctive mood)." }
-    ];
-    const randomChallenge = challenges[Math.floor(Math.random() * challenges.length)];
-    setDailyChallenge(randomChallenge);
-    setUserChallengeAnswer("");
-    setChallengeFeedback(null);
+    setIsCheckingChallenge(true);
+    try {
+      const systemPrompt = `You are an IELTS expert. Generate a single, concise "1-Minute Challenge" for an IELTS student.
+      The challenge should be one of these types: "grammar", "vocab", "idiom", or "spelling".
+      Provide the question, the correct answer, and a brief explanation.
+      Return ONLY a JSON object in this format:
+      {
+        "type": "grammar | vocab | idiom | spelling",
+        "question": "...",
+        "answer": "...",
+        "explanation": "..."
+      }`;
+      
+      const result = await callGroq("Generate a random IELTS challenge.", systemPrompt);
+      const cleaned = result.replace(/```json|```/g, "").trim();
+      const challenge = JSON.parse(cleaned);
+      
+      setDailyChallenge(challenge);
+      setUserChallengeAnswer("");
+      setChallengeFeedback(null);
+    } catch (error) {
+      console.error("Failed to generate challenge:", error);
+      // Fallback to a static one if AI fails
+      setDailyChallenge({ 
+        type: "grammar", 
+        question: "Identify the error: 'He have been living here for five years.'", 
+        answer: "has", 
+        explanation: "The subject 'He' is third-person singular, so it requires 'has' instead of 'have'." 
+      });
+    } finally {
+      setIsCheckingChallenge(false);
+    }
   };
 
   const checkChallenge = () => {
@@ -193,10 +270,10 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
 
   if (!progress) return null;
 
-  // Use date-based index for daily rotation
+  // Use date-based index for daily rotation as fallback
   const dayOfYear = Math.floor((new Date().getTime() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-  const grammarTip = GRAMMAR_TIPS[dayOfYear % GRAMMAR_TIPS.length];
-  const wordOfDay = WORDS_OF_THE_DAY[dayOfYear % WORDS_OF_THE_DAY.length];
+  const grammarTip = progress.dailyGrammar || (GRAMMAR_TIPS[dayOfYear % GRAMMAR_TIPS.length] as any);
+  const wordOfDay = progress.dailyWord || (WORDS_OF_THE_DAY[dayOfYear % WORDS_OF_THE_DAY.length] as any);
   const totalLessons = 32;
   const lessonsDone = progress.completedLessons.length;
   const progressPct = Math.round((lessonsDone / totalLessons) * 100);
@@ -994,7 +1071,7 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
           <div className="flex items-center gap-2 text-amber-accent font-bold text-[10px] uppercase tracking-[0.2em] mb-4">
             <Book size={14} /> Grammar Tip
           </div>
-          <p className="text-sm text-text-primary font-bold mb-2">{grammarTip.title}</p>
+          <p className="text-sm text-text-primary font-bold mb-2">{grammarTip.title || grammarTip.t}</p>
           <p className="text-xs text-text-secondary leading-relaxed mb-4">
             {grammarTip.tip}
           </p>
@@ -1015,11 +1092,11 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
           </div>
           <div className="flex justify-between items-start">
             <div className="flex-1">
-              <h4 className="font-serif text-2xl font-black text-text-primary uppercase tracking-tighter mb-1">{wordOfDay.word}</h4>
-              <p className="text-[10px] text-text-muted italic mb-3">{wordOfDay.type} · Band {wordOfDay.band}</p>
+              <h4 className="font-serif text-2xl font-black text-text-primary uppercase tracking-tighter mb-1">{wordOfDay.word || wordOfDay.w}</h4>
+              <p className="text-[10px] text-text-muted italic mb-3">{wordOfDay.type || wordOfDay.pos} · Band {wordOfDay.band}</p>
               <p className="text-xs text-text-secondary leading-relaxed mb-4 line-clamp-2">{wordOfDay.def}</p>
               <div className="p-3 bg-violet-accent/5 border border-violet-accent/10 rounded-xl italic text-[11px] text-text-primary/80">
-                &quot;{wordOfDay.example}&quot;
+                &quot;{wordOfDay.example || wordOfDay.ex}&quot;
               </div>
             </div>
             <button onClick={() => setActivePage("vocab")} className="btn btn-ghost p-2 rounded-full border-violet-accent/20 text-violet-accent ml-2">

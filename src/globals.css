@@ -75,6 +75,12 @@
   .tag-pink { @apply bg-pink-accent/10 text-pink-accent border border-pink-accent/20; }
   .tag-gray { @apply bg-bg-3 text-text-muted border border-border; }
 
+  /* 3D Transform Utilities */
+  .perspective-2000 { perspective: 2000px; }
+  .preserve-3d { transform-style: preserve-3d; }
+  .backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+  .rotate-y-180 { transform: rotateY(180deg); }
+
   /* Recipe 2: Editorial / Magazine Hero */
   .recipe-editorial-h1 {
     @apply font-serif text-5xl md:text-7xl font-black leading-[0.9] tracking-tighter uppercase;
