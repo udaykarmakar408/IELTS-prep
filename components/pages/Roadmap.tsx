@@ -85,7 +85,7 @@ export default function Roadmap() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiPlan, setAiPlan] = useState<string | null>(null);
   const [isEditingGoal, setIsEditingGoal] = useState(false);
-  const [newTarget, setNewTarget] = useState(7.5);
+  const [newTarget, setNewTarget] = useState(9.0);
 
   useEffect(() => {
     const load = async () => {

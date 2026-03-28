@@ -44,7 +44,7 @@ const STORAGE_KEY = "ielts_pro_v1";
 
 export const defaultProgress: UserProgress = {
   name: "Learner",
-  target: 7.5,
+  target: 9,
   created: new Date().toISOString().split("T")[0],
   lastSeen: new Date().toISOString().split("T")[0],
   streak: 0,

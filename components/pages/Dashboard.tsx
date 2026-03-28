@@ -412,7 +412,7 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
               <p className="text-lg text-text-secondary max-w-md leading-relaxed font-medium">
                 {progress.streak >= 3 
                   ? `You're on a ${progress.streak}-day winning streak! Your consistency is the key to mastering the IELTS.` 
-                  : "Your journey to Band 8.0 starts with a single step. Let's practice today."}
+                  : "Your journey to Band 9.0 starts with a single step. Let's practice today."}
               </p>
             </motion.div>
             
@@ -627,7 +627,7 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
                 </div>
               </div>
               <p className="text-[10px] text-text-muted leading-relaxed">
-                Aria suggests focusing on <span className="text-text-primary font-bold">Complex Sentences</span> to boost your Writing band from 6.5 to 7.5.
+                Aria suggests focusing on <span className="text-text-primary font-bold">Complex Sentences</span> to boost your Writing band from 6.5 to 9.0.
               </p>
             </div>
           </div>
@@ -992,7 +992,7 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
                 { subject: 'Reading', A: progress.bands.reading || 0, fullMark: 9 },
                 { subject: 'Writing', A: progress.bands.writing || 0, fullMark: 9 },
                 { subject: 'Speaking', A: progress.bands.speaking || 0, fullMark: 9 },
-                { subject: 'Grammar', A: 7.5, fullMark: 9 },
+                { subject: 'Grammar', A: 9.0, fullMark: 9 },
                 { subject: 'Vocab', A: 8.0, fullMark: 9 },
               ]}>
                 <PolarGrid stroke="#2D3748" />

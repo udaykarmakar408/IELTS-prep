@@ -24,7 +24,7 @@ interface SettingsProps {
 export default function Settings({ onUpdate }: SettingsProps) {
   const [progress, setProgress] = useState<UserProgress | null>(null);
   const [name, setName] = useState("");
-  const [target, setTarget] = useState(7.5);
+  const [target, setTarget] = useState(9.0);
   const [isSaved, setIsSaved] = useState(false);
 
   useEffect(() => {
@@ -93,7 +93,7 @@ export default function Settings({ onUpdate }: SettingsProps) {
             <div>
               <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-3 block">Target Band Score</label>
               <div className="grid grid-cols-3 gap-2">
-                {[6.0, 6.5, 7.0, 7.5, 8.0, 8.5].map((b) => (
+                {[7.0, 7.5, 8.0, 8.5, 9.0].map((b) => (
                   <button
                     key={b}
                     onClick={() => setTarget(b)}

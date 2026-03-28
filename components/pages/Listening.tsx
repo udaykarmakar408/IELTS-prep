@@ -324,7 +324,7 @@ export default function Listening() {
   const highlightVocab = async () => {
     if (!activeSection) return;
     setIsHighlighting(true);
-    const systemPrompt = `You are an IELTS vocabulary expert. Extract 5-8 high-level (Band 7.0+) vocabulary words or phrases from the following transcript.
+    const systemPrompt = `You are an IELTS vocabulary expert. Extract 5-8 high-level (Band 9.0) vocabulary words or phrases from the following transcript.
     Return ONLY a JSON array of strings.
     Example: ["ubiquitous", "bioaccumulation", "mitigate"]`;
 

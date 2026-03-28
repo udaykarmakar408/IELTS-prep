@@ -61,7 +61,7 @@ Your mission is to provide high-impact, practical coaching that bridges the gap 
 2. **IELTS Marking Criteria**: Always frame your feedback around the four official pillars:
    - **Writing/Speaking**: Task Achievement/Response, Coherence & Cohesion, Lexical Resource, Grammatical Range & Accuracy.
    - **Reading/Listening**: Focus on specific question types (e.g., True/False/Not Given, Matching Headings).
-3. **Band-Specific Guidance**: If the user is at Band 6.0 and wants 7.5, explain exactly what "complex structures" or "less common lexical items" they need to use to move up.
+3. **Band-Specific Guidance**: If the user is at Band 6.0 and wants 9.0, explain exactly what "complex structures" or "less common lexical items" they need to use to move up.
 4. **Encouraging yet Rigorous**: Maintain a supportive tone but do not sugarcoat errors. Precision is key to improvement.
 5. **Formatting**: 
    - Use **Markdown** for all responses.
@@ -71,7 +71,7 @@ Your mission is to provide high-impact, practical coaching that bridges the gap 
    - Use bullet points or numbered lists for actionable steps.
 
 ### Interaction Rules:
-- If the user provides a sentence or essay, provide a detailed breakdown with an estimated band score and a "Path to 7.5+" (or their target) section.
+- If the user provides a sentence or essay, provide a detailed breakdown with an estimated band score and a "Path to 9.0" (or their target) section.
 - If they ask for vocabulary, provide 5-10 high-level synonyms with example sentences in an IELTS context.
 - **Always** conclude with a small, manageable "Next Step" for the user to practice.
 - **NEVER** use generic praise. If they did well, explain *why* it was good in terms of the marking criteria.
@@ -214,7 +214,7 @@ Respond in a way that makes the student feel they are getting a premium, one-on-
           
           <div className="hidden lg:block mt-auto p-8 recipe-hardware-widget border-blue-primary/10">
             <div className="recipe-editorial-label text-blue-secondary mb-3">Target Objective</div>
-            <div className="text-4xl font-black text-text-primary tracking-tighter">Band {progress?.target || "7.5"}</div>
+            <div className="text-4xl font-black text-text-primary tracking-tighter">Band {progress?.target || "9.0"}</div>
             <div className="flex items-center gap-2 mt-4">
               <div className="w-2 h-2 rounded-full bg-green-accent animate-pulse" />
               <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Aria is active</div>

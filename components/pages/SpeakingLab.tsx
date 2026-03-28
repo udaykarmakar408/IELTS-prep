@@ -21,6 +21,10 @@ import {
 } from "lucide-react";
 import { callGroq } from "@/lib/groq";
 import { cn } from "@/lib/utils";
+import { GoogleGenAI } from "@google/genai";
+import { pcmToWav } from "@/lib/audio";
+
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 declare global {
   interface Window {
@@ -50,6 +54,46 @@ export default function SpeakingLab() {
   const [recognition, setRecognition] = useState<any>(null);
   const [pronunciationFeedback, setPronunciationFeedback] = useState<any>(null);
   const [isAnalyzingPronunciation, setIsAnalyzingPronunciation] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [isAudioLoading, setIsAudioLoading] = useState(false);
+
+  const generateAudio = async (text: string) => {
+    setIsAudioLoading(true);
+    try {
+      const response = await ai.models.generateContent({
+        model: "gemini-2.5-flash-preview-tts",
+        contents: [{ parts: [{ text: `Say clearly and professionally as an IELTS examiner: ${text}` }] }],
+        config: {
+          responseModalities: ["AUDIO"],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: "Puck" },
+            },
+          },
+        },
+      });
+
+      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+      if (base64Audio) {
+        const binaryString = atob(base64Audio);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const pcmData = new Int16Array(bytes.buffer);
+        const wavBlob = pcmToWav(pcmData, 24000);
+        const wavUrl = URL.createObjectURL(wavBlob);
+        setAudioUrl(wavUrl);
+        const audio = new Audio(wavUrl);
+        audio.play();
+      }
+    } catch (error) {
+      console.error("Audio generation failed:", error);
+    } finally {
+      setIsAudioLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined" && (window.webkitSpeechRecognition || window.SpeechRecognition)) {
@@ -99,6 +143,9 @@ export default function SpeakingLab() {
       const result = await callGroq(prompt, "You are an IELTS Speaking examiner.");
       const data = JSON.parse(result.replace(/```json\n?|\n?```/g, ''));
       setCueCardData(data);
+      
+      const audioText = `Now, I'd like you to speak about a topic for one to two minutes. You have one minute to prepare. Here is your topic: ${data.topic}. You should say: ${data.bullets.join(", ")}. Your preparation time starts now.`;
+      generateAudio(audioText);
     } catch (error) {
       console.error(error);
       setCueCardData({ topic: topic || "A random interesting topic", bullets: ["Who it was", "When it happened", "What you did", "Why it was important"] });
@@ -149,6 +196,7 @@ export default function SpeakingLab() {
       3. Lexical Resource: Identify good vocabulary used and suggest 5-10 more advanced words/collocations for this topic.
       4. Grammatical Range & Accuracy: Point out specific grammatical errors in the transcript and suggest corrections.
       5. Pronunciation: Based on the transcript (if available), suggest focus areas.
+      6. Band 9.0 Sample Answer: Provide a high-scoring sample answer for this specific cue card topic.
       
       Return in clean Markdown with bold headers.`;
       

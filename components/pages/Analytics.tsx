@@ -103,13 +103,13 @@ export default function Analytics() {
             <div className="flex items-center gap-6 px-6 py-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
               <div className="flex flex-col">
                 <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Target Band</span>
-                <span className="text-xl font-black">{progress.target || "7.5"}</span>
+                <span className="text-xl font-black">{progress.target || "9.0"}</span>
               </div>
               <div className="w-px h-8 bg-white/20" />
               <div className="flex flex-col">
                 <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Gap</span>
                 <span className="text-xl font-black text-blue-primary">
-                  {Math.max(0, (progress.target || 7.5) - parseFloat(avgBand)).toFixed(1)}
+                  {Math.max(0, (progress.target || 9.0) - parseFloat(avgBand)).toFixed(1)}
                 </span>
               </div>
             </div>

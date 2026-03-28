@@ -39,14 +39,16 @@ export async function callGroq(prompt: string, systemInstruction?: string, model
 
 export async function callGroqJSON(prompt: string, schema?: any, systemInstruction?: string, model: string = "llama-3.3-70b-versatile") {
   try {
+    const schemaPrompt = schema ? `\n\nYour response MUST strictly follow this JSON schema:\n${JSON.stringify(schema, null, 2)}` : "";
     const response = await groq.chat.completions.create({
       messages: [
         ...(systemInstruction ? [{ role: "system" as const, content: systemInstruction }] : []),
-        { role: "user" as const, content: `${prompt}\n\nReturn your response in JSON format.` },
+        { role: "user" as const, content: `${prompt}${schemaPrompt}\n\nReturn your response in JSON format.` },
       ],
       model: model,
       response_format: { type: "json_object" },
       temperature: 0.7,
+      max_tokens: 4096,
     });
 
     const content = response.choices[0]?.message?.content;

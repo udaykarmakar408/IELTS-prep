@@ -178,7 +178,7 @@ export default function Course() {
     try {
       const prompt = `Create a comprehensive IELTS lesson for the topic: "${lesson.title}".
       Lesson Type: ${lesson.type}
-      Target Band: 7.5+
+      Target Band: 9.0
       Include:
       1. Introduction to the concept.
       2. Key strategies or vocabulary.

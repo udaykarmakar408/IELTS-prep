@@ -68,7 +68,7 @@ export default function Grammar() {
     if (!userSentence.trim()) return;
     setIsChecking(true);
     setCheckResult(null);
-    const systemPrompt = `You are an expert IELTS Grammar Examiner (Aria). Your goal is to help the student achieve a Band 7.5+ in their writing and speaking by correcting their grammar and elevating their language.
+    const systemPrompt = `You are an expert IELTS Grammar Examiner (Aria). Your goal is to help the student achieve a Band 9.0 in their writing and speaking by correcting their grammar and elevating their language.
 
 Analyze the following sentence:
 "${userSentence}"
@@ -82,7 +82,7 @@ Provide your analysis in the following structured format:
 * **Grammar Points**: Identify specific errors (e.g., Subject-Verb Agreement, Article usage, Tense consistency).
 * **Explanation**: Briefly explain why it was wrong and the rule behind it.
 
-### 3. Elevate to Band 7.5+
+### 3. Elevate to Band 9.0
 * **Advanced Structure**: Suggest a more complex grammatical structure (e.g., inversion, conditional, passive voice, nominalization) that conveys the same meaning but more formally.
 * **Lexical Upgrade**: Suggest 1-2 academic synonyms for common words used in the sentence.
 
@@ -131,7 +131,7 @@ Use **Markdown** for formatting. Be encouraging but precise.`;
     Evaluate the sentence:
     1. **Accuracy**: Is the grammar rule applied correctly? Are there any other errors?
     2. **IELTS Suitability**: Is the sentence appropriate for an academic context (Writing Task 1 or 2)?
-    3. **Band 7.5+ Upgrade**: Suggest a way to make the sentence even more sophisticated.
+    3. **Band 9.0 Upgrade**: Suggest a way to make the sentence even more sophisticated.
     
     Keep your feedback concise, encouraging, and highly professional. Use Markdown.`;
 
@@ -170,7 +170,7 @@ Use **Markdown** for formatting. Be encouraging but precise.`;
           </div>
           <div className="space-y-2">
             <h3 className="font-serif text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none">
-              UPGRADE TO 7.5+
+              UPGRADE TO 9.0
             </h3>
             <p className="text-lg md:text-xl font-medium max-w-2xl leading-relaxed opacity-90">
               Paste your sentences below. Aria will analyze them for accuracy, IELTS suitability, and suggest high-band improvements.
@@ -214,7 +214,7 @@ Use **Markdown** for formatting. Be encouraging but precise.`;
               ) : (
                 <div className="flex items-center justify-center gap-2">
                   <Sparkles size={18} />
-                  <span>Check Grammar & Upgrade to 7.5+</span>
+                  <span>Check Grammar & Upgrade to 9.0</span>
                 </div>
               )}
             </button>

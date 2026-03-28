@@ -46,7 +46,7 @@ export default function Vocabulary() {
     Provide:
     1. Correctness: Is the word used correctly (grammar, meaning, collocation)?
     2. IELTS Suitability: Is the context appropriate for an IELTS Writing or Speaking task?
-    3. Improvement: How to make the sentence more "Band 7.5+"?
+    3. Improvement: How to make the sentence more "Band 9.0"?
     Use markdown for formatting.`;
 
     try {
@@ -180,7 +180,7 @@ export default function Vocabulary() {
             <Type size={16} className="text-blue-secondary" /> Lexical Resource
           </div>
           <h2 className="recipe-editorial-h1 text-5xl md:text-7xl mb-4">Vocabulary</h2>
-          <p className="text-lg text-text-muted max-w-xl leading-relaxed font-medium">Master the Academic Word List and high-band vocabulary for a Band 8.0+ score.</p>
+          <p className="text-lg text-text-muted max-w-xl leading-relaxed font-medium">Master the Academic Word List and high-band vocabulary for a Band 9.0 score.</p>
         </div>
         <div className="relative w-full md:w-96 group">
           <Search size={20} className="absolute left-5 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-blue-secondary transition-colors" />

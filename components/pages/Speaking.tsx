@@ -337,7 +337,7 @@ export default function Speaking() {
     if (messages.length === 0) return;
     setIsHighlighting(true);
     const transcript = messages.map(m => m.text).join("\n");
-    const systemPrompt = `You are an IELTS vocabulary expert. Extract 8-10 high-level (Band 7.5+) vocabulary words or idioms from the following speaking transcript.
+    const systemPrompt = `You are an IELTS vocabulary expert. Extract 8-10 high-level (Band 9.0) vocabulary words or idioms from the following speaking transcript.
     Return ONLY a JSON array of strings.`;
 
     try {
@@ -770,11 +770,11 @@ export default function Speaking() {
             <Sparkles size={14} /> Vocabulary Booster
           </div>
           <div className="space-y-3">
-            {[
-              { word: "Ubiquitous", meaning: "Present, appearing, or found everywhere.", band: "8.5" },
-              { word: "Mitigate", meaning: "Make less severe, serious, or painful.", band: "8.0" },
-              { word: "Pragmatic", meaning: "Dealing with things sensibly and realistically.", band: "8.0" }
-            ].map((v, i) => (
+              {[
+                { word: "Ubiquitous", meaning: "Present, appearing, or found everywhere.", band: "9.0" },
+                { word: "Mitigate", meaning: "Make less severe, serious, or painful.", band: "9.0" },
+                { word: "Pragmatic", meaning: "Dealing with things sensibly and realistically.", band: "9.0" }
+              ].map((v, i) => (
               <div key={i} className="flex items-center justify-between p-3 bg-bg-1 rounded-xl border border-border">
                 <div>
                   <div className="text-sm font-bold text-text-primary">{v.word}</div>
@@ -867,9 +867,9 @@ export default function Speaking() {
               </div>
               <div className="space-y-3">
                 {[
-                  { word: "Resilient", def: "Able to withstand or recover quickly from difficult conditions.", band: "8.5" },
-                  { word: "Inquisitive", def: "Having or showing an interest in learning things; curious.", band: "8.0" },
-                  { word: "Profound", def: "Very great or intense; having or showing great knowledge.", band: "8.0" }
+                  { word: "Resilient", def: "Able to withstand or recover quickly from difficult conditions.", band: "9.0" },
+                  { word: "Inquisitive", def: "Having or showing an interest in learning things; curious.", band: "9.0" },
+                  { word: "Profound", def: "Very great or intense; having or showing great knowledge.", band: "9.0" }
                 ].map((v, i) => (
                   <div key={i} className="flex items-center justify-between p-2 bg-bg-1 rounded-lg border border-border">
                     <div>
@@ -891,9 +891,9 @@ export default function Speaking() {
               </div>
               <div className="space-y-3">
                 {[
-                  { idiom: "Once in a blue moon", usage: "Very rarely.", band: "7.5" },
-                  { idiom: "Piece of cake", usage: "Something very easy.", band: "7.0" },
-                  { idiom: "Break the ice", usage: "Start a conversation.", band: "7.5" }
+                  { idiom: "Once in a blue moon", usage: "Very rarely.", band: "9.0" },
+                  { idiom: "Piece of cake", usage: "Something very easy.", band: "9.0" },
+                  { idiom: "Break the ice", usage: "Start a conversation.", band: "9.0" }
                 ].map((v, i) => (
                   <div key={i} className="flex items-center justify-between p-2 bg-bg-1 rounded-lg border border-border">
                     <div>

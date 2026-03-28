@@ -79,8 +79,8 @@ export default function Writing() {
     if (avgSentenceLength > 10) estimate += 1.0;
     if (avgSentenceLength > 20) estimate += 1.0;
     
-    // Cap it at 8.5 for the live estimate (to be safe)
-    setLiveBandEstimate(Math.min(8.5, estimate));
+    // Cap it at 9.0 for the live estimate
+    setLiveBandEstimate(Math.min(9.0, estimate));
   }, [userText]);
 
   useEffect(() => {

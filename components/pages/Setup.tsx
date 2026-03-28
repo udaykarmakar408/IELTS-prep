@@ -12,7 +12,7 @@ interface SetupProps {
 export default function Setup({ onComplete }: SetupProps) {
   const [step, setStep] = useState(1);
   const [name, setName] = useState("");
-  const [target, setTarget] = useState(7.5);
+  const [target, setTarget] = useState(9.0);
 
   const handleFinish = async () => {
     if (!name.trim()) return;
@@ -86,7 +86,7 @@ export default function Setup({ onComplete }: SetupProps) {
               <p className="text-sm text-text-muted mb-6">What IELTS band are you aiming for?</p>
               
               <div className="grid grid-cols-3 gap-3 mb-8">
-                {[6.0, 6.5, 7.0, 7.5, 8.0, 8.5].map((b) => (
+                {[7.0, 7.5, 8.0, 8.5, 9.0].map((b) => (
                   <button
                     key={b}
                     onClick={() => setTarget(b)}

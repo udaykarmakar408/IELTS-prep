@@ -425,7 +425,7 @@ export default function Reading() {
       required: ["title", "difficulty", "mins", "text", "questions"]
     };
 
-    const prompt = "Generate a high-quality IELTS Academic Reading passage (approx 400 words) with 5 multiple-choice questions. The topic should be related to science, history, or environment. Ensure the questions are challenging and follow IELTS standards.";
+    const prompt = "Generate a high-quality IELTS Academic Reading passage (approx 400 words) with 5 multiple-choice questions. The topic should be related to science, history, or environment. Ensure the questions are challenging (Band 9.0 level) and follow IELTS standards.";
 
     try {
       const result = await callGroqJSON(prompt, schema, "You are an IELTS Reading content creator.");

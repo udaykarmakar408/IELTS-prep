@@ -36,6 +36,7 @@ interface GeneratedTask {
   passage?: string;
   script?: string;
   prompt?: string;
+  modelAnswer?: string;
   chartType?: string;
   chartData?: any;
   speakingParts?: {
@@ -137,26 +138,36 @@ export default function MockTests() {
   const handleNextSpeakingPart = () => {
     if (!testTask?.speakingParts) return;
     
+    let nextPrompt = "";
     if (speakingStage === "part1") {
       if (speakingPartIndex < testTask.speakingParts.part1.length - 1) {
         setSpeakingPartIndex(prev => prev + 1);
-        setSpeakingPrompt(testTask.speakingParts.part1[speakingPartIndex + 1]);
+        nextPrompt = testTask.speakingParts.part1[speakingPartIndex + 1];
+        setSpeakingPrompt(nextPrompt);
       } else {
         setSpeakingStage("part2");
-        setSpeakingPrompt(testTask.speakingParts.part2);
+        nextPrompt = testTask.speakingParts.part2;
+        setSpeakingPrompt(nextPrompt);
         setSpeakingPartIndex(0);
       }
     } else if (speakingStage === "part2") {
       setSpeakingStage("part3");
       setSpeakingPartIndex(0);
-      setSpeakingPrompt(testTask.speakingParts.part3[0]);
+      nextPrompt = testTask.speakingParts.part3[0];
+      setSpeakingPrompt(nextPrompt);
     } else if (speakingStage === "part3") {
       if (speakingPartIndex < testTask.speakingParts.part3.length - 1) {
         setSpeakingPartIndex(prev => prev + 1);
-        setSpeakingPrompt(testTask.speakingParts.part3[speakingPartIndex + 1]);
+        nextPrompt = testTask.speakingParts.part3[speakingPartIndex + 1];
+        setSpeakingPrompt(nextPrompt);
       } else {
         handleSubmit();
+        return;
       }
+    }
+
+    if (nextPrompt) {
+      generateAudio(nextPrompt, true);
     }
   };
 
@@ -168,7 +179,7 @@ export default function MockTests() {
     );
   };
 
-  const generateAudio = async (text: string) => {
+  const generateAudio = async (text: string, isSpeaking: boolean = false) => {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
@@ -177,23 +188,41 @@ export default function MockTests() {
     setIsPlaying(false);
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text: `Read this IELTS script naturally: ${text}` }] }],
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } },
-        },
-      });
+      
+      // Split text into chunks of ~1000 characters for Gemini TTS limits
+      const chunks = text.match(/.{1,1000}(?:\s|$)/g) || [text];
+      const audioChunks: Int16Array[] = [];
 
-      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      if (base64Audio) {
-        const binaryString = atob(base64Audio);
-        const len = binaryString.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
-        const pcmData = new Int16Array(bytes.buffer);
-        const wavBlob = pcmToWav(pcmData, 24000);
+      for (const chunk of chunks) {
+        const response = await ai.models.generateContent({
+          model: "gemini-2.5-flash-preview-tts",
+          contents: [{ parts: [{ text: isSpeaking ? `As an IELTS examiner, ask this question naturally: ${chunk}` : chunk }] }],
+          config: {
+            responseModalities: [Modality.AUDIO],
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: isSpeaking ? 'Fenrir' : 'Kore' } } },
+          },
+        });
+
+        const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+        if (base64Audio) {
+          const binaryString = atob(base64Audio);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+          audioChunks.push(new Int16Array(bytes.buffer));
+        }
+      }
+
+      if (audioChunks.length > 0) {
+        // Concatenate all chunks
+        const totalLength = audioChunks.reduce((acc, curr) => acc + curr.length, 0);
+        const combinedPcm = new Int16Array(totalLength);
+        let offset = 0;
+        for (const chunk of audioChunks) {
+          combinedPcm.set(chunk, offset);
+          offset += chunk.length;
+        }
+
+        const wavBlob = pcmToWav(combinedPcm, 24000);
         const url = URL.createObjectURL(wavBlob);
         const audio = new Audio(url);
         audioRef.current = audio;
@@ -203,7 +232,10 @@ export default function MockTests() {
           URL.revokeObjectURL(url);
         };
         
-        // Don't auto-play, let the user click
+        if (isSpeaking) {
+          audio.play();
+          setIsPlaying(true);
+        }
       }
     } catch (error) {
       console.error("Audio generation failed:", error);
@@ -254,14 +286,14 @@ export default function MockTests() {
       setGenerationStep(`Generating challenging ${currentSkill} content...`);
       
       const prompt = `Generate a realistic, challenging Academic IELTS task EXCLUSIVELY for the ${currentSkill} section.
-      Difficulty: Band 7.5 - 8.5 level.
+      Difficulty: Band 9.0 level. Use complex academic vocabulary and sophisticated grammatical structures.
       
       CRITICAL: ONLY return data for the ${currentSkill} skill. DO NOT include fields for other skills.
       
-      If ${currentSkill} is 'writing': Provide a prompt (Task 1 or Task 2), chartType (if Task 1), and chartData (if Task 1).
-      If ${currentSkill} is 'reading': Provide a 700-word academic passage and 10 questions (mcq, gap-fill, tfng).
-      If ${currentSkill} is 'listening': Provide a script for a conversation/talk and 10 questions.
-      If ${currentSkill} is 'speaking': Provide 3 parts of questions. Part 1: Personal, Part 2: Cue Card, Part 3: Discussion.
+      If ${currentSkill} is 'writing': Provide a prompt (Task 1 or Task 2), chartType (if Task 1), chartData (if Task 1), and a modelAnswer (Band 9.0 level).
+      If ${currentSkill} is 'reading': Provide a 1000-1200 word academic passage and 10 questions (mcq, gap-fill, tfng). Ensure questions are strictly answerable ONLY from the passage.
+      If ${currentSkill} is 'listening': Provide a detailed script for a conversation or talk (at least 1500 words for a 5-8 minute experience) and 10 questions.
+      If ${currentSkill} is 'speaking': Provide 3 parts of questions. Part 1: Personal (3-4 questions), Part 2: Cue Card (topic + 4 bullets), Part 3: Discussion (3-4 abstract questions). Also provide a modelAnswer for Part 2 (Cue Card).
       
       Return as JSON matching this structure:
       {
@@ -269,6 +301,7 @@ export default function MockTests() {
         "passage": "string (only if reading)",
         "script": "string (only if listening)",
         "prompt": "string (only if writing)",
+        "modelAnswer": "string (only if writing or speaking)",
         "chartType": "string (only if writing task 1)",
         "chartData": "any (only if writing task 1)",
         "speakingParts": { "part1": ["string"], "part2": "string", "part3": ["string"] } (only if speaking),
@@ -287,7 +320,9 @@ export default function MockTests() {
 
       if (currentSkill === 'speaking' && result.speakingParts) {
         setSpeakingStage("part1");
-        setSpeakingPrompt(result.speakingParts.part1[0]);
+        const firstPrompt = result.speakingParts.part1[0];
+        setSpeakingPrompt(firstPrompt);
+        generateAudio(firstPrompt, true);
       }
     } catch (error) {
       console.error(error);
@@ -318,7 +353,7 @@ export default function MockTests() {
     If Speaking: Evaluate based on Fluency/Coherence, Lexical Resource, Grammatical Range/Accuracy, Pronunciation.
     If Reading/Listening: Compare userAnswers to the correct answers in the task.
     
-    Provide a detailed breakdown and an Overall Band (0-9).
+    Provide a detailed breakdown, an Overall Band (0-9), and a "Path to 9.0" section with specific, actionable steps to reach Band 9.0 from the current level.
     Format as Markdown. End with "Overall Band: X.X"`;
 
     try {
@@ -332,7 +367,7 @@ export default function MockTests() {
         const currentSkill = testStage || "listening";
         const nextStage = nextStageMap[currentSkill];
         
-        const newResults = { ...fullTestResults, [currentSkill]: { band, feedback: result } };
+        const newResults = { ...fullTestResults, [currentSkill]: { band, feedback: result, modelAnswer: testTask?.modelAnswer } };
         setFullTestResults(newResults);
         
         if (nextStage === "result") {
@@ -348,6 +383,9 @@ export default function MockTests() {
         setEstimatedBand(band);
 
         if (band) {
+          setFeedback(result);
+          setEstimatedBand(band);
+          
           const updated = {
             ...progress,
             bands: { ...progress.bands, [activeTest.skill]: band },
@@ -777,6 +815,14 @@ export default function MockTests() {
                           <div className="prose prose-sm max-w-none text-gray-600 bg-gray-50 p-6 rounded-2xl border border-gray-100">
                             <Markdown>{data.feedback}</Markdown>
                           </div>
+                          {data.modelAnswer && (
+                            <div className="bg-blue-primary/5 p-6 rounded-2xl border border-blue-primary/10 space-y-3">
+                              <h5 className="text-[10px] font-black text-blue-primary uppercase tracking-widest">Band 9.0 Model Answer</h5>
+                              <div className="prose prose-sm max-w-none text-gray-700 italic">
+                                <Markdown>{data.modelAnswer}</Markdown>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
