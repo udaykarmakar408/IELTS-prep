@@ -198,7 +198,7 @@ export default function Speaking() {
     setFeedback(null);
     setIsTyping(true);
 
-    const systemPrompt = `You are a certified, high-level IELTS Speaking Examiner aiming for Band 9.0 standards. 
+    const systemPrompt = `You are a certified, high-level IELTS Speaking Examiner with 20+ years of experience, aiming for Band 9.0 standards. 
     Mode: ${mode === "part1" ? "Part 1 (Introduction & Interview)" : mode === "part2" ? "Part 2 (Long Turn/Cue Card)" : "Part 3 (Discussion)"}.
     
     Conduct a realistic, challenging speaking test. 
@@ -206,8 +206,13 @@ export default function Speaking() {
     Part 2: Provide a complex cue card topic and ask the student to speak for 2 minutes.
     Part 3: Ask deep, abstract, and analytical follow-up questions related to the Part 2 topic.
     
-    Be professional, use natural examiner language, and strictly follow Band 9.0 IELTS standards.
-    Start by introducing yourself and asking the first question.`;
+    STRICT BAND 9.0 STANDARDS:
+    - Fluency: Speaks fluently with only rare repetition or self-correction; any hesitation is content-related rather than to find words or grammar.
+    - Vocabulary: Uses a wide range of vocabulary with very natural and sophisticated control of lexical features; rare minor errors occur only as 'slips'.
+    - Grammar: Uses a wide range of structures with full flexibility and accuracy; rare minor errors occur only as 'slips'.
+    - Pronunciation: Uses a full range of pronunciation features with precision and subtlety; is effortless to understand throughout.
+    
+    Be professional, use natural examiner language. Start by introducing yourself and asking the first question.`;
 
     try {
       const initialMessage = await callGroq("Start the speaking test.", systemPrompt);
@@ -245,15 +250,22 @@ export default function Speaking() {
 
   const endSimulation = async () => {
     setIsTyping(true);
-    const systemPrompt = `You are a certified IELTS Speaking Examiner. Analyze the following IELTS speaking test transcript. 
-    Provide a detailed band score (0-9) and feedback on:
-    1. Fluency and Coherence: (e.g., hesitation, repetition, use of connectives)
-    2. Lexical Resource: (e.g., range of vocabulary, precision, collocations)
-    3. Grammatical Range and Accuracy: (e.g., complex structures, error frequency)
-    4. Pronunciation Analysis: (Analyze potential pronunciation issues based on the transcript's flow, rhythm, and word choice. Suggest specific phonemes or stress patterns to practice.)
+    const systemPrompt = `You are a certified Senior IELTS Speaking Examiner. Analyze the following IELTS speaking test transcript against STRICT Band 9.0 criteria.
     
-    Provide specific examples from the transcript for each category.
-    Format your response with clear headings and an Overall Band score at the end.`;
+    BAND 9.0 DESCRIPTORS:
+    1. Fluency and Coherence: Speaks fluently with only rare repetition or self-correction; hesitation is content-related; uses a full range of cohesive features.
+    2. Lexical Resource: Uses a wide range of vocabulary with very natural and sophisticated control; rare minor errors occur only as 'slips'.
+    3. Grammatical Range and Accuracy: Uses a wide range of structures with full flexibility and accuracy; rare minor errors occur only as 'slips'.
+    4. Pronunciation: Uses a full range of features with precision and subtlety; is effortless to understand throughout.
+    
+    Provide a detailed evaluation:
+    - Overall Band Score (0-9)
+    - Detailed breakdown for each of the 4 criteria
+    - Specific examples from the transcript
+    - Band 9.0 Upgrades: For 3-5 sentences from the student, show a "Band 9.0 Upgrade" version and explain why it's better.
+    - Key improvement needed to reach or maintain Band 9.0
+    
+    Format your response with clear headings and an Overall Band score at the end. Use markdown for the upgrades section.`;
 
     const transcript = messages.map(m => `${m.role === "user" ? "Student" : "Examiner"}: ${m.text}`).join("\n");
 

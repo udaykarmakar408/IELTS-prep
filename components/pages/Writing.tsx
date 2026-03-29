@@ -42,7 +42,8 @@ export default function Writing() {
 
   const [feedback, setFeedback] = useState<any>(null);
   const [smartReview, setSmartReview] = useState<any[] | null>(null);
-  const [feedbackTab, setFeedbackTab] = useState<"report" | "review" | "band9">("report");
+  const [upgrades, setUpgrades] = useState<any[] | null>(null);
+  const [feedbackTab, setFeedbackTab] = useState<"report" | "review" | "upgrades" | "band9">("report");
   const [timeLeft, setTimeLeft] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [band9Version, setBand9Version] = useState<string | null>(null);
@@ -64,8 +65,15 @@ export default function Writing() {
     if (words > 200) estimate = 6.0;
     if (words > 250) estimate = 6.5;
     
-    const complexWords = (userText.match(/\b(however|furthermore|consequently|nevertheless|moreover|although|despite|whereas)\b/gi) || []).length;
-    estimate += complexWords * 0.2;
+    // Band 9.0 criteria: Range of vocabulary, complex structures, coherence
+    const complexVocab = ["notwithstanding", "consequently", "furthermore", "moreover", "nevertheless", "subsequently", "paradoxically", "ubiquitous", "mitigate", "pragmatic", "resilient", "inquisitive", "profound", "empirical", "theoretical", "paradigm", "correlation", "causality"];
+    const complexCount = complexVocab.filter(v => userText.toLowerCase().includes(v)).length;
+    
+    // Sentence complexity (basic check for subordinate clauses)
+    const complexStructures = (userText.match(/although|even though|whereas|while|because|since|unless|provided that|in order to|so that/gi) || []).length;
+    
+    estimate += complexCount * 0.3;
+    estimate += complexStructures * 0.2;
     
     setLiveBandEstimate(Math.min(9.0, estimate));
   }, [userText]);
@@ -214,7 +222,14 @@ export default function Writing() {
     if (userText.trim().length < 50) return;
     setIsAnalyzing(true);
     
-    const systemPrompt = `You are a Senior IELTS Writing Examiner. Evaluate the following ${activeTask.type} response based on the 4 official Band 9.0 criteria.
+    const systemPrompt = `You are a certified Senior IELTS Writing Examiner with 20+ years of experience, specializing in Band 9.0 evaluations.
+    Analyze the following IELTS Writing Task ${activeTask.type} response.
+    
+    STRICT BAND 9.0 CRITERIA:
+    1. Task Response: Fully addresses all parts of the task with a fully developed response.
+    2. Coherence & Cohesion: Uses cohesion in such a way that it attracts no attention. Skillfully manages paragraphing.
+    3. Lexical Resource: Uses a wide range of vocabulary with very natural and sophisticated control of lexical features; rare minor errors occur only as 'slips'.
+    4. Grammatical Range & Accuracy: Uses a wide range of structures with full flexibility and accuracy; rare minor errors occur only as 'slips'.
     
     Task: ${activeTask.title}
     Task Description: ${activeTask.description}
@@ -229,9 +244,10 @@ export default function Writing() {
         grammaticalRange: { score: number, feedback: string }
       }
     - detailedFeedback: A comprehensive markdown report.
-    - keyImprovement: The single most important thing to fix.
+    - keyImprovement: The single most important thing to reach Band 9.0.
     - smartReview: Array of { original: string, correction: string, type: "grammar" | "spelling" | "vocabulary", explanation: string } for specific improvements.
-    - band9Version: A complete Band 9.0 version of the essay.
+    - upgrades: Array of { original: string, upgrade: string, reason: string } showing how to elevate specific sentences to Band 9.0 level.
+    - band9Version: A complete, rewritten Band 9.0 version of the essay.
     
     Be extremely critical. Band 9.0 requires perfect cohesion, sophisticated vocabulary, and error-free complex grammar.`;
 
@@ -250,6 +266,7 @@ export default function Writing() {
       setFeedback(data);
       setBand9Version(data.band9Version);
       setSmartReview(data.smartReview);
+      setUpgrades(data.upgrades);
       
       if (progress) {
         const band = data.overallBand || 6.0;
@@ -593,6 +610,7 @@ export default function Writing() {
                   {[
                     { id: "report", label: "Examiner Report", color: "blue" },
                     { id: "review", label: "Smart Review", color: "amber" },
+                    { id: "upgrades", label: "Band 9.0 Upgrades", color: "emerald" },
                     { id: "band9", label: "Band 9 Version", color: "violet" },
                   ].map((tab) => (
                     <button 
@@ -747,6 +765,44 @@ export default function Writing() {
                                   </motion.div>
                                 ))}
                               </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : feedbackTab === "upgrades" ? (
+                        <div className="card bg-bg-1/80 backdrop-blur-xl border-white/5 h-full flex flex-col rounded-xl p-0 overflow-hidden shadow-3xl">
+                          <div className="p-10 border-b border-emerald-accent/10 flex items-center gap-4 text-emerald-accent font-black text-[12px] uppercase tracking-[0.3em] bg-emerald-accent/5">
+                            <div className="w-10 h-10 rounded-lg bg-emerald-accent/10 flex items-center justify-center">
+                              <Sparkles size={20} />
+                            </div>
+                            Band 9.0 Sentence Upgrades
+                          </div>
+                          <div className="overflow-y-auto p-10 custom-scrollbar flex-1 space-y-8">
+                            <p className="text-sm text-text-muted mb-6 leading-relaxed font-medium">
+                              These upgrades focus on enhancing your lexical resource and grammatical complexity to reach Band 9.0.
+                            </p>
+                            <div className="grid grid-cols-1 gap-6">
+                              {upgrades?.map((item, i) => (
+                                <motion.div 
+                                  key={i} 
+                                  initial={{ opacity: 0, y: 20 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: i * 0.1 }}
+                                  className="p-8 bg-bg-2/50 border border-white/5 rounded-xl space-y-6 group hover:border-emerald-accent/30 transition-all duration-500 shadow-inner"
+                                >
+                                  <div className="space-y-2">
+                                    <div className="text-[10px] font-black text-text-muted uppercase tracking-widest">Original Sentence</div>
+                                    <div className="text-lg text-text-muted italic line-through opacity-50">{item.original}</div>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <div className="text-[10px] font-black text-emerald-accent uppercase tracking-widest">Band 9.0 Upgrade</div>
+                                    <div className="text-xl text-text-primary font-bold leading-relaxed">{item.upgrade}</div>
+                                  </div>
+                                  <div className="pt-4 border-t border-white/5">
+                                    <div className="text-[10px] font-black text-blue-secondary uppercase tracking-widest mb-2">Why this works</div>
+                                    <p className="text-sm text-text-secondary leading-relaxed">{item.reason}</p>
+                                  </div>
+                                </motion.div>
+                              ))}
                             </div>
                           </div>
                         </div>

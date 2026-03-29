@@ -61,6 +61,17 @@ const RESOURCE_CATEGORIES = [
       { name: "Oxford Learner's Dictionary", url: "https://www.oxfordlearnersdictionaries.com/", type: "Tool" },
       { name: "Thesaurus.com (Synonyms)", url: "https://www.thesaurus.com/", type: "Tool" },
     ]
+  },
+  {
+    title: "Band 9.0 Strategy Guides",
+    icon: Star,
+    color: "text-amber-accent",
+    bg: "bg-amber-accent/10",
+    links: [
+      { name: "Writing Task 2: Band 9.0 Structure", url: "https://ieltsadvantage.com/writing-task-2-band-9-structure/", type: "Guide" },
+      { name: "Speaking: How to Sound Like a Native", url: "https://www.ieltspodcast.com/speaking-tips/how-to-sound-like-a-native-speaker/", type: "Guide" },
+      { name: "Reading: Mastering True/False/Not Given", url: "https://ieltsliz.com/ielts-reading-true-false-not-given-tips/", type: "Guide" },
+    ]
   }
 ];
 
