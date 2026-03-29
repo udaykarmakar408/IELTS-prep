@@ -21,7 +21,11 @@ import {
   BookOpenCheck,
   Trophy,
   MessageSquare,
-  ClipboardList
+  ClipboardList,
+  History,
+  Check,
+  X,
+  FileText
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { calculateListeningBand, calculateReadingBand } from "@/lib/ielts";
@@ -46,6 +50,7 @@ interface PracticeItem {
   title: string;
   skill: Skill;
   difficulty: "Easy" | "Medium" | "Hard";
+  part: string;
 }
 
 export default function PracticeLibrary() {
@@ -53,6 +58,7 @@ export default function PracticeLibrary() {
   const [activeSkill, setActiveSkill] = useState<Skill>("listening");
   const [searchQuery, setSearchQuery] = useState("");
   const [difficultyFilter, setDifficultyFilter] = useState<string>("All");
+  const [partFilter, setPartFilter] = useState<string>("All");
   const [selectedItem, setSelectedItem] = useState<PracticeItem | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationError, setGenerationError] = useState<string | null>(null);
@@ -65,10 +71,30 @@ export default function PracticeLibrary() {
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [progress, setProgress] = useState<UserProgress | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [selectedHistoryItem, setSelectedHistoryItem] = useState<any>(null);
 
   useEffect(() => {
     getProgress().then(setProgress);
   }, []);
+
+  const toggleComplete = async (e: React.MouseEvent, item: PracticeItem) => {
+    e.stopPropagation();
+    if (!progress) return;
+
+    const id = `${item.skill}-${item.id}`;
+    const isCompleted = progress.completedPracticeIds.includes(id);
+    
+    const updated = {
+      ...progress,
+      completedPracticeIds: isCompleted 
+        ? progress.completedPracticeIds.filter(i => i !== id)
+        : [...progress.completedPracticeIds, id]
+    };
+    
+    setProgress(updated);
+    await saveProgress(updated);
+  };
 
   const ensureString = (val: any): string => {
     if (typeof val === 'string') return val;
@@ -91,27 +117,50 @@ export default function PracticeLibrary() {
 
   const ALL_TOPICS = Object.values(TOPICS_BY_CATEGORY).flat();
 
+  const SKILL_PARTS: Record<Skill, string[]> = {
+    listening: ["Part 1", "Part 2", "Part 3", "Part 4"],
+    reading: ["Passage 1", "Passage 2", "Passage 3"],
+    writing: ["Task 1", "Task 2"],
+    speaking: ["Part 1", "Part 2", "Part 3"]
+  };
+
   // Generate 2000+ items (simulated but more dynamic)
   const items = React.useMemo(() => {
     const staticItems: PracticeItem[] = [];
     
     if (activeSkill === "listening") {
-      LISTENING_SECTIONS.forEach((s, i) => staticItems.push({ id: 10000 + i, title: s.title, skill: "listening", difficulty: s.difficulty }));
+      LISTENING_SECTIONS.forEach((s, i) => {
+        const part = s.title.split(':')[0].trim();
+        staticItems.push({ id: 10000 + i, title: s.title, skill: "listening", difficulty: s.difficulty, part });
+      });
     } else if (activeSkill === "reading") {
-      READING_PASSAGES.forEach((p, i) => staticItems.push({ id: 20000 + i, title: p.title, skill: "reading", difficulty: p.difficulty }));
+      READING_PASSAGES.forEach((p, i) => {
+        const part = `Passage ${i + 1}`;
+        staticItems.push({ id: 20000 + i, title: p.title, skill: "reading", difficulty: p.difficulty, part });
+      });
     } else if (activeSkill === "speaking") {
-      SPEAKING_TOPICS.forEach((t, i) => staticItems.push({ id: 30000 + i, title: t.title, skill: "speaking", difficulty: "Medium" }));
+      SPEAKING_TOPICS.forEach((t, i) => {
+        const part = t.title.split(':')[0].trim();
+        staticItems.push({ id: 30000 + i, title: t.title, skill: "speaking", difficulty: "Medium", part });
+      });
     } else if (activeSkill === "writing") {
-      WRITING_SAMPLES.forEach((s, i) => staticItems.push({ id: 40000 + i, title: s.title, skill: "writing", difficulty: "Hard" }));
+      WRITING_SAMPLES.forEach((s, i) => {
+        const part = s.title.split(':')[0].trim();
+        staticItems.push({ id: 40000 + i, title: s.title, skill: "writing", difficulty: "Hard", part });
+      });
     }
 
     const generatedItems = Array.from({ length: 2000 }, (_, i) => {
       const topic = ALL_TOPICS[i % ALL_TOPICS.length];
+      const parts = SKILL_PARTS[activeSkill];
+      const part = parts[i % parts.length];
+      
       return {
         id: i + 1,
-        title: `${topic}: ${activeSkill.charAt(0).toUpperCase() + activeSkill.slice(1)} Module #${i + 1}`,
+        title: `${topic}: ${part}`,
         skill: activeSkill,
-        difficulty: i % 3 === 0 ? "Easy" : i % 3 === 1 ? "Medium" : "Hard"
+        difficulty: i % 3 === 0 ? "Easy" : i % 3 === 1 ? "Medium" : "Hard",
+        part: part
       } as PracticeItem;
     });
 
@@ -120,7 +169,8 @@ export default function PracticeLibrary() {
 
   const filteredItems = items.filter(item => 
     (item.title.toLowerCase().includes(searchQuery.toLowerCase()) || item.id.toString() === searchQuery) &&
-    (difficultyFilter === "All" || item.difficulty === difficultyFilter)
+    (difficultyFilter === "All" || item.difficulty === difficultyFilter) &&
+    (partFilter === "All" || item.part === partFilter)
   ).slice(0, visibleCount);
 
   const [showTranscript, setShowTranscript] = useState(false);
@@ -258,45 +308,45 @@ export default function PracticeLibrary() {
     try {
       if (item.skill === "listening") {
         const parts = [];
-        const partPrompts = [
-          "Part 1: Social context, 2 speakers (10 questions). Everyday social situation, e.g., booking a hotel or asking for information. Include a mix of form completion and multiple choice.",
-          "Part 2: Social context, 1 speaker (10 questions). Monologue on a social topic, e.g., a local facility or a radio talk. Include map/plan labeling or matching questions.",
-          "Part 3: Educational context, 2-4 speakers (10 questions). Discussion between students or a student and a tutor. Focus on academic discussion and multiple choice.",
-          "Part 4: Academic lecture, 1 speaker (10 questions). A formal lecture on an academic subject. Focus on note completion or summary completion."
-        ];
+        const partPrompts: Record<string, string> = {
+          "Part 1": "Part 1: Social context, 2 speakers (10 questions). Everyday social situation, e.g., booking a hotel or asking for information. Include a mix of form completion and multiple choice.",
+          "Part 2": "Part 2: Social context, 1 speaker (10 questions). Monologue on a social topic, e.g., a local facility or a radio talk. Include map/plan labeling or matching questions.",
+          "Part 3": "Part 3: Educational context, 2-4 speakers (10 questions). Discussion between students or a student and a tutor. Focus on academic discussion and multiple choice.",
+          "Part 4": "Part 4: Academic lecture, 1 speaker (10 questions). A formal lecture on an academic subject. Focus on note completion or summary completion."
+        };
 
-        for (let i = 0; i < 4; i++) {
-          const partSchema = {
-            type: "object",
-            properties: {
-              title: { type: "string" },
-              script: { type: "string" },
-              questions: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    id: { type: "string" },
-                    q: { type: "string" },
-                    answer: { type: "string" }
-                  },
-                  required: ["id", "q", "answer"]
-                }
+        const partToGenerate = item.part || "Part 1";
+        const partSchema = {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            script: { type: "string" },
+            questions: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  id: { type: "string" },
+                  q: { type: "string" },
+                  answer: { type: "string" }
+                },
+                required: ["id", "q", "answer"]
               }
-            },
-            required: ["title", "script", "questions"]
-          };
-          const partData = await callGroqJSON(
-            `Generate a FULL IELTS Listening ${partPrompts[i]} for the topic: ${item.title}. 
-            Difficulty: Band 9.0 (Highest Standard). 
-            The script MUST be extremely detailed, natural, and approximately 1000-1200 words to ensure a realistic 6-8 minute duration per part. 
-            Include natural pauses, hesitations, and corrections (self-repair) as found in real IELTS tests.
-            Questions must be challenging and answerable ONLY from the script.`,
-            partSchema,
-            "You are an expert IELTS Listening examiner and content creator for Band 9.0 materials."
-          );
-          parts.push(partData);
-        }
+            }
+          },
+          required: ["title", "script", "questions"]
+        };
+
+        const partData = await callGroqJSON(
+          `Generate a FULL IELTS Listening ${partPrompts[partToGenerate]} for the topic: ${item.title}. 
+          Difficulty: Band 9.0 (Highest Standard). 
+          The script MUST be extremely detailed, natural, and approximately 1000-1200 words to ensure a realistic 6-8 minute duration. 
+          Include natural pauses, hesitations, and corrections (self-repair) as found in real IELTS tests.
+          Questions must be challenging and answerable ONLY from the script.`,
+          partSchema,
+          "You are an expert IELTS Listening examiner and content creator for Band 9.0 materials."
+        );
+        parts.push(partData);
         
         const keyVocabSchema = {
           type: "array",
@@ -310,7 +360,7 @@ export default function PracticeLibrary() {
           }
         };
         const keyVocab = await callGroqJSON(
-          `Extract 10 high-level Band 9.0 vocabulary words from these scripts: ${parts.map(p => p.script).join(" ")}`,
+          `Extract 10 high-level Band 9.0 vocabulary words from this script: ${partData.script}`,
           keyVocabSchema,
           "You are an IELTS vocabulary expert."
         );
@@ -321,43 +371,43 @@ export default function PracticeLibrary() {
         generateAudio(fullScript);
       } else if (item.skill === "reading") {
         const parts = [];
-        const passagePrompts = [
-          "Passage 1: Descriptive/factual (13 questions). Topic: ${item.title}. Focus on True/False/Not Given and Note Completion.",
-          "Passage 2: Discursive/analytical (13 questions). Topic: ${item.title}. Focus on Matching Headings and Multiple Choice.",
-          "Passage 3: Complex argument (14 questions). Topic: ${item.title}. Focus on Yes/No/Not Given and Summary Completion."
-        ];
+        const passagePrompts: Record<string, string> = {
+          "Passage 1": "Passage 1: Descriptive/factual (13 questions). Topic: ${item.title}. Focus on True/False/Not Given and Note Completion.",
+          "Passage 2": "Passage 2: Discursive/analytical (13 questions). Topic: ${item.title}. Focus on Matching Headings and Multiple Choice.",
+          "Passage 3": "Passage 3: Complex argument/opinion (14 questions). Topic: ${item.title}. Focus on Yes/No/Not Given and Summary Completion."
+        };
 
-        for (let i = 0; i < 3; i++) {
-          const passageSchema = {
-            type: "object",
-            properties: {
-              title: { type: "string" },
-              passage: { type: "string" },
-              questions: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    id: { type: "string" },
-                    q: { type: "string" },
-                    answer: { type: "string" }
-                  },
-                  required: ["id", "q", "answer"]
-                }
+        const partToGenerate = item.part || "Passage 1";
+        const passageSchema = {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            passage: { type: "string" },
+            questions: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  id: { type: "string" },
+                  q: { type: "string" },
+                  answer: { type: "string" }
+                },
+                required: ["id", "q", "answer"]
               }
-            },
-            required: ["title", "passage", "questions"]
-          };
-          const passageData = await callGroqJSON(
-            `Generate a FULL IELTS Academic Reading ${passagePrompts[i]} 
-            Difficulty: Band 9.0 (Highest Standard). 
-            The passage MUST be 1200-1500 words, using sophisticated academic vocabulary and complex sentence structures. 
-            Questions must be highly challenging and answerable ONLY from the passage.`,
-            passageSchema,
-            "You are an expert IELTS Reading examiner and content creator for Band 9.0 materials."
-          );
-          parts.push(passageData);
-        }
+            }
+          },
+          required: ["title", "passage", "questions"]
+        };
+
+        const passageData = await callGroqJSON(
+          `Generate a FULL IELTS Reading ${passagePrompts[partToGenerate]} for the topic: ${item.title}. 
+          Difficulty: Band 9.0 (Highest Standard). 
+          The passage MUST be approximately 1200-1500 words, academic in tone, and highly complex.
+          Questions must be challenging and require deep understanding of the text.`,
+          passageSchema,
+          "You are an expert IELTS Reading examiner and content creator for Band 9.0 materials."
+        );
+        parts.push(passageData);
 
         const keyVocabSchema = {
           type: "array",
@@ -371,26 +421,30 @@ export default function PracticeLibrary() {
           }
         };
         const keyVocab = await callGroqJSON(
-          `Extract 10 high-level Band 9.0 vocabulary words from these passages: ${parts.map(p => p.passage).join(" ")}`,
+          `Extract 10 high-level Band 9.0 vocabulary words from this passage: ${passageData.passage}`,
           keyVocabSchema,
           "You are an IELTS vocabulary expert."
         );
 
-        setTaskData({ parts, keyVocabulary: keyVocab });
+        const data = { parts, keyVocabulary: keyVocab };
+        setTaskData(data);
       } else if (item.skill === "writing") {
-        const schema = {
+        const taskPrompts: Record<string, string> = {
+          "Task 1": "Task 1: Academic Report (150 words). Summarize a graph, table, or diagram. Topic: ${item.title}.",
+          "Task 2": "Task 2: Discursive Essay (250 words). Discuss an opinion or problem. Topic: ${item.title}."
+        };
+
+        const partToGenerate = item.part || "Task 1";
+        const writingSchema = {
           type: "object",
           properties: {
-            title: { type: "string" },
             task1: {
               type: "object",
               properties: {
                 prompt: { type: "string" },
-                chartType: { type: "string" },
-                chartData: { type: "object" },
                 modelAnswer: { type: "string" }
               },
-              required: ["prompt", "chartType", "chartData", "modelAnswer"]
+              required: ["prompt", "modelAnswer"]
             },
             task2: {
               type: "object",
@@ -401,54 +455,45 @@ export default function PracticeLibrary() {
               required: ["prompt", "modelAnswer"]
             }
           },
-          required: ["title", "task1", "task2"]
+          required: ["task1", "task2"]
         };
-        const data = await callGroqJSON(
-          `Generate a FULL Academic IELTS Writing section (Task 1 and Task 2) for ${item.title}. Difficulty: Band 9.0. Task 1 MUST be a Map, Process Diagram, or complex Chart. Provide Band 9.0 model answers.`,
-          schema,
-          "You are an IELTS Writing expert."
+
+        const writingData = await callGroqJSON(
+          `Generate an IELTS Writing ${taskPrompts[partToGenerate]}. 
+          Difficulty: Band 9.0. 
+          Include a high-level model answer and specific Band 9.0 vocabulary.`,
+          writingSchema,
+          "You are an expert IELTS Writing examiner."
         );
-        setTaskData(data);
+        setTaskData(writingData);
       } else if (item.skill === "speaking") {
-        const schema = {
+        const speakingSchema = {
           type: "object",
           properties: {
-            title: { type: "string" },
             parts: {
               type: "object",
               properties: {
-                part1: { type: "array", items: { type: "string" } },
+                part1: { type: "string" },
                 part2: { type: "string" },
-                part3: { type: "array", items: { type: "string" } }
+                part3: { type: "string" }
               },
               required: ["part1", "part2", "part3"]
             },
-            modelAnswer: { type: "string" }
+            modelAnswer: { type: "string" },
+            keyVocabulary: { type: "string" }
           },
-          required: ["title", "parts", "modelAnswer"]
+          required: ["parts", "modelAnswer", "keyVocabulary"]
         };
-        const data = await callGroqJSON(
-          `Generate a FULL IELTS Speaking test (Parts 1, 2, and 3) for the topic: ${item.title}. 
-          Difficulty: Band 9.0 (Highest Standard). 
-          Part 1 should have 4-5 questions. 
-          Part 2 should be a full cue card with 4 bullet points. 
-          Part 3 should have 4-5 abstract, analytical questions related to the Part 2 topic. 
-          Provide a Band 9.0 model answer for the entire test.`,
-          schema,
+
+        const speakingData = await callGroqJSON(
+          `Generate a FULL IELTS Speaking test for the topic: ${item.title}. 
+          Focus specifically on ${item.part || "all parts"}.
+          Difficulty: Band 9.0. 
+          Include a model answer and key vocabulary.`,
+          speakingSchema,
           "You are an expert IELTS Speaking examiner."
         );
-        setTaskData(data);
-        
-        // Generate audio for the examiner's prompts
-        const fullSpeakingScript = [
-          "Part 1 questions:",
-          ...data.parts.part1,
-          "Part 2 cue card:",
-          data.parts.part2,
-          "Part 3 questions:",
-          ...data.parts.part3
-        ].join("\n\n");
-        generateAudio(fullSpeakingScript);
+        setTaskData(speakingData);
       }
     } catch (error) {
       console.error("Generation failed:", error);
@@ -482,12 +527,29 @@ export default function PracticeLibrary() {
       setFeedback(result);
       
       if (progress) {
+        const id = `${activeSkill}-${selectedItem?.id}`;
         const updated = {
           ...progress,
           bands: { ...progress.bands, [activeSkill]: band },
           bandHistory: [...progress.bandHistory, { date: new Date().toISOString().split("T")[0], band, skill: activeSkill }],
           mockHistory: [...progress.mockHistory, { date: new Date().toISOString().split("T")[0], test: `Practice: ${activeSkill}`, band, skill: activeSkill }],
           studyMinutes: (progress.studyMinutes || 0) + 20,
+          completedPracticeIds: Array.from(new Set([...progress.completedPracticeIds, id])),
+          practiceHistory: [
+            {
+              id,
+              title: selectedItem?.title || "Untitled Practice",
+              skill: activeSkill,
+              date: new Date().toISOString(),
+              score: correctCount,
+              total: allQuestions.length,
+              band,
+              answers: userAnswers,
+              taskData,
+              feedback: result
+            },
+            ...progress.practiceHistory
+          ]
         };
         setProgress(updated);
         saveProgress(updated);
@@ -504,12 +566,27 @@ export default function PracticeLibrary() {
       band = bandMatch ? parseFloat(bandMatch[1]) : 6.0;
 
       if (progress) {
+        const id = `${activeSkill}-${selectedItem?.id}`;
         const updated = {
           ...progress,
           bands: { ...progress.bands, [activeSkill]: band },
           bandHistory: [...progress.bandHistory, { date: new Date().toISOString().split("T")[0], band, skill: activeSkill }],
           mockHistory: [...progress.mockHistory, { date: new Date().toISOString().split("T")[0], test: `Practice: ${activeSkill}`, band, skill: activeSkill }],
           studyMinutes: (progress.studyMinutes || 0) + 20,
+          completedPracticeIds: Array.from(new Set([...progress.completedPracticeIds, id])),
+          practiceHistory: [
+            {
+              id,
+              title: selectedItem?.title || "Untitled Practice",
+              skill: activeSkill,
+              date: new Date().toISOString(),
+              band,
+              answers: userAnswers,
+              taskData,
+              feedback: result
+            },
+            ...progress.practiceHistory
+          ]
         };
         setProgress(updated);
         saveProgress(updated);
@@ -557,6 +634,15 @@ export default function PracticeLibrary() {
               Access 2000+ AI-generated IELTS practice modules across all skills. 
               Filter by difficulty, topic, or specific question types.
             </motion.p>
+
+            <div className="flex gap-4 pt-4">
+              <button 
+                onClick={() => setShowHistory(true)}
+                className="btn btn-secondary flex items-center gap-2 px-6 py-3 text-xs font-black uppercase tracking-widest"
+              >
+                <History size={16} /> Practice History
+              </button>
+            </div>
           </div>
 
           <motion.div 
@@ -600,21 +686,37 @@ export default function PracticeLibrary() {
                 className="input pl-12"
               />
             </div>
-            <div className="flex flex-wrap bg-bg-2 p-1 rounded-xl border border-border shadow-inner gap-1">
-              {["All", "Easy", "Medium", "Hard"].map((diff) => (
-                <button
-                  key={diff}
-                  onClick={() => setDifficultyFilter(diff)}
-                  className={cn(
-                    "px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
-                    difficultyFilter === diff 
-                      ? "bg-white text-blue-primary shadow-sm" 
-                      : "text-text-muted hover:text-text-primary"
-                  )}
+            
+            <div className="flex flex-wrap gap-2">
+              <div className="flex bg-bg-2 p-1 rounded-xl border border-border shadow-inner gap-1">
+                {["All", "Easy", "Medium", "Hard"].map((diff) => (
+                  <button
+                    key={diff}
+                    onClick={() => setDifficultyFilter(diff)}
+                    className={cn(
+                      "px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                      difficultyFilter === diff 
+                        ? "bg-white text-blue-primary shadow-sm" 
+                        : "text-text-muted hover:text-text-primary"
+                    )}
+                  >
+                    {diff}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex bg-bg-2 p-1 rounded-xl border border-border shadow-inner gap-1">
+                <select
+                  value={partFilter}
+                  onChange={(e) => setPartFilter(e.target.value)}
+                  className="bg-transparent text-[10px] font-black uppercase tracking-widest px-4 py-2 outline-none text-text-muted hover:text-text-primary transition-all cursor-pointer"
                 >
-                  {diff}
-                </button>
-              ))}
+                  <option value="All">All Parts</option>
+                  {SKILL_PARTS[activeSkill].map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
 
@@ -643,41 +745,77 @@ export default function PracticeLibrary() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredItems.map((item) => (
-              <motion.button
-                key={item.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                whileHover={{ y: -4 }}
-                onClick={() => handleSelectItem(item)}
-                className="bg-bg-1 border border-white/5 rounded-xl text-left group hover:border-blue-primary/30 hover:shadow-xl hover:shadow-blue-primary/5 transition-all p-6 flex flex-col justify-between min-h-[160px]"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <span className={cn(
-                      "tag text-[10px]",
-                      item.difficulty === "Easy" ? "tag-emerald" : item.difficulty === "Medium" ? "tag-blue" : "tag-violet"
-                    )}>
-                      {item.difficulty}
-                    </span>
-                    <span className="text-[10px] font-black text-text-muted uppercase tracking-widest">#{item.id}</span>
+            {filteredItems.map((item) => {
+              const isCompleted = progress?.completedPracticeIds?.includes(`${item.skill}-${item.id}`);
+              return (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  whileHover={{ y: -4 }}
+                  onClick={() => handleSelectItem(item)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleSelectItem(item);
+                    }
+                  }}
+                  className={cn(
+                    "bg-bg-1 border rounded-xl text-left group transition-all p-6 flex flex-col justify-between min-h-[160px] relative overflow-hidden cursor-pointer",
+                    isCompleted ? "border-emerald-accent/30 bg-emerald-accent/5" : "border-white/5 hover:border-blue-primary/30 hover:shadow-xl hover:shadow-blue-primary/5"
+                  )}
+                >
+                  {isCompleted && (
+                    <div className="absolute top-0 right-0 p-2 bg-emerald-accent text-white rounded-bl-xl shadow-lg">
+                      <Check size={12} />
+                    </div>
+                  )}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex gap-2">
+                        <span className={cn(
+                          "tag text-[10px]",
+                          item.difficulty === "Easy" ? "tag-emerald" : item.difficulty === "Medium" ? "tag-blue" : "tag-violet"
+                        )}>
+                          {item.difficulty}
+                        </span>
+                        <span className="tag tag-blue text-[10px]">
+                          {item.part}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-black text-text-muted uppercase tracking-widest">#{item.id}</span>
+                    </div>
+                    <h3 className="font-bold text-text-primary group-hover:text-blue-primary transition-colors leading-tight">
+                      {item.title}
+                    </h3>
                   </div>
-                  <h3 className="font-bold text-text-primary group-hover:text-blue-primary transition-colors leading-tight">
-                    {item.title}
-                  </h3>
-                </div>
-                <div className="flex items-center justify-between mt-4">
-                  <div className="flex items-center gap-2 text-[10px] font-bold text-text-muted uppercase tracking-widest">
-                    {activeSkill === "listening" && <Headphones size={12} />}
-                    {activeSkill === "reading" && <BookOpen size={12} />}
-                    {activeSkill === "writing" && <PenTool size={12} />}
-                    {activeSkill === "speaking" && <Mic size={12} />}
-                    {activeSkill}
+                  <div className="flex items-center justify-between mt-4">
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-text-muted uppercase tracking-widest">
+                      {activeSkill === "listening" && <Headphones size={12} />}
+                      {activeSkill === "reading" && <BookOpen size={12} />}
+                      {activeSkill === "writing" && <PenTool size={12} />}
+                      {activeSkill === "speaking" && <Mic size={12} />}
+                      {activeSkill}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={(e) => toggleComplete(e, item)}
+                        className={cn(
+                          "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+                          isCompleted ? "bg-emerald-accent text-white" : "bg-bg-2 text-text-muted hover:text-emerald-accent hover:bg-emerald-accent/10"
+                        )}
+                        title={isCompleted ? "Mark as Incomplete" : "Mark as Done"}
+                      >
+                        {isCompleted ? <CheckCircle2 size={14} /> : <Check size={14} />}
+                      </button>
+                      <ChevronRight size={16} className="text-text-muted group-hover:text-blue-primary group-hover:translate-x-1 transition-all" />
+                    </div>
                   </div>
-                  <ChevronRight size={16} className="text-text-muted group-hover:text-blue-primary group-hover:translate-x-1 transition-all" />
-                </div>
-              </motion.button>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
           
           {items.length > visibleCount && searchQuery === "" && (
@@ -1078,6 +1216,170 @@ export default function PracticeLibrary() {
           </div>
         </motion.div>
       )}
+      {/* Practice History Modal */}
+      <AnimatePresence>
+        {showHistory && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-bg-1 border border-white/10 rounded-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl"
+            >
+              <div className="p-6 border-b border-white/5 flex items-center justify-between bg-bg-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-primary/10 flex items-center justify-center text-blue-primary">
+                    <History size={20} />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-text-primary">Practice History</h2>
+                    <p className="text-xs text-text-muted font-bold uppercase tracking-widest">Review your past sessions</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => {
+                    setShowHistory(false);
+                    setSelectedHistoryItem(null);
+                  }}
+                  className="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-text-muted transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-hidden flex">
+                {/* List of sessions */}
+                <div className={cn(
+                  "w-full md:w-1/3 border-r border-white/5 overflow-y-auto p-4 space-y-3 bg-bg-1/50",
+                  selectedHistoryItem && "hidden md:block"
+                )}>
+                  {progress?.practiceHistory && progress.practiceHistory.length > 0 ? (
+                    progress.practiceHistory.map((session, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => setSelectedHistoryItem(session)}
+                        className={cn(
+                          "w-full p-4 rounded-xl text-left transition-all border flex flex-col gap-2",
+                          selectedHistoryItem?.date === session.date 
+                            ? "bg-blue-primary/10 border-blue-primary/30" 
+                            : "bg-bg-2/50 border-white/5 hover:border-white/10"
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className={cn(
+                            "tag text-[9px]",
+                            session.skill === "listening" ? "tag-blue" :
+                            session.skill === "reading" ? "tag-emerald" :
+                            session.skill === "writing" ? "tag-violet" : "tag-amber"
+                          )}>
+                            {session.skill}
+                          </span>
+                          <span className="text-[10px] text-text-muted font-mono">
+                            {new Date(session.date).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <h4 className="font-bold text-sm text-text-primary line-clamp-1">{session.title}</h4>
+                        <div className="flex items-center justify-between mt-1">
+                          <div className="flex items-center gap-1 text-emerald-accent font-bold text-xs">
+                            <Trophy size={12} />
+                            Band {session.band}
+                          </div>
+                          {session.score !== undefined && (
+                            <span className="text-[10px] text-text-muted font-bold">
+                              {session.score}/{session.total}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-center p-8 opacity-50">
+                      <ClipboardList size={48} className="mb-4 text-text-muted" />
+                      <p className="text-sm font-bold text-text-muted uppercase tracking-widest">No history yet</p>
+                      <p className="text-xs text-text-muted mt-2">Complete a practice to see it here.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Session Details */}
+                <div className={cn(
+                  "flex-1 overflow-y-auto p-8",
+                  !selectedHistoryItem && "hidden md:flex items-center justify-center text-center opacity-30"
+                )}>
+                  {selectedHistoryItem ? (
+                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                      <div className="flex items-center justify-between">
+                        <button 
+                          onClick={() => setSelectedHistoryItem(null)}
+                          className="md:hidden flex items-center gap-2 text-blue-primary font-bold text-xs uppercase tracking-widest mb-4"
+                        >
+                          <ArrowLeft size={14} /> Back to list
+                        </button>
+                      </div>
+
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 bg-bg-2 rounded-2xl border border-white/5">
+                        <div>
+                          <h3 className="text-2xl font-bold text-text-primary mb-2">{selectedHistoryItem.title}</h3>
+                          <div className="flex items-center gap-4 text-sm text-text-muted">
+                            <span className="flex items-center gap-1.5">
+                              <FileText size={14} /> {selectedHistoryItem.skill.charAt(0).toUpperCase() + selectedHistoryItem.skill.slice(1)}
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                              <History size={14} /> {new Date(selectedHistoryItem.date).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 bg-emerald-accent/10 p-4 rounded-xl border border-emerald-accent/20">
+                          <div className="w-12 h-12 rounded-lg bg-emerald-accent flex items-center justify-center text-white shadow-lg shadow-emerald-accent/20">
+                            <Trophy size={24} />
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-black text-emerald-accent uppercase tracking-widest">Final Band</p>
+                            <p className="text-2xl font-black text-text-primary">{selectedHistoryItem.band}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-8">
+                        <section>
+                          <h4 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2">
+                            <MessageSquare size={20} className="text-blue-primary" />
+                            Examiner Feedback
+                          </h4>
+                          <div className="bg-bg-2 p-6 rounded-2xl border border-white/5 prose prose-invert max-w-none">
+                            <ReactMarkdown>{selectedHistoryItem.feedback}</ReactMarkdown>
+                          </div>
+                        </section>
+
+                        <section>
+                          <h4 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2">
+                            <ClipboardList size={20} className="text-violet-accent" />
+                            Your Answers
+                          </h4>
+                          <div className="space-y-4">
+                            {Object.entries(selectedHistoryItem.answers).map(([id, answer]: [string, any]) => (
+                              <div key={id} className="p-4 bg-bg-2 rounded-xl border border-white/5 flex flex-col gap-1">
+                                <span className="text-[10px] font-black text-text-muted uppercase tracking-widest">Question {id}</span>
+                                <p className="text-text-primary font-medium">{answer}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </section>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="max-w-xs">
+                      <History size={64} className="mx-auto mb-6 text-blue-primary/20" />
+                      <h3 className="text-xl font-bold text-text-primary mb-2">Select a Session</h3>
+                      <p className="text-sm text-text-muted">Choose a practice session from the list to review your performance and feedback.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

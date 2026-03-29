@@ -39,6 +39,19 @@ export interface UserProgress {
   dailyGrammar: { date: string; title: string; tip: string; bad: string; good: string } | null;
   achievements: { id: string; title: string; description: string; unlocked: boolean; date?: string }[];
   theme?: "dark" | "light";
+  completedPracticeIds: string[];
+  practiceHistory: {
+    id: string;
+    title: string;
+    skill: string;
+    date: string;
+    score?: number;
+    total?: number;
+    band?: number;
+    answers: Record<string, string>;
+    taskData: any;
+    feedback?: string;
+  }[];
 }
 
 const STORAGE_KEY = "ielts_pro_v1";
@@ -83,6 +96,8 @@ export const defaultProgress: UserProgress = {
     { id: "mock_test", title: "Test Ready", description: "Complete your first full mock test", unlocked: false }
   ],
   theme: "dark",
+  completedPracticeIds: [],
+  practiceHistory: [],
 };
 
 import { supabase } from "./supabase";
@@ -98,7 +113,8 @@ function mergeProgress(data: any): UserProgress {
   const arrayFields: (keyof UserProgress)[] = [
     'studyDays', 'bandHistory', 'quizHistory', 'mockHistory', 
     'completedLessons', 'badges', 'chatHistory', 'errorLog', 
-    'writingHistory', 'grammarHistory', 'knownWords'
+    'writingHistory', 'grammarHistory', 'knownWords',
+    'completedPracticeIds', 'practiceHistory'
   ];
   
   arrayFields.forEach(field => {
