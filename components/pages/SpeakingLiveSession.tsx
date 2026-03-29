@@ -216,7 +216,7 @@ export default function SpeakingLiveSession({ onClose, topic, mode = "full" }: S
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[200] bg-bg/95 backdrop-blur-xl flex items-center justify-center p-4 md:p-8"
     >
-      <div className="w-full max-w-4xl h-full max-h-[800px] bg-bg-2 border border-border rounded-[40px] shadow-2xl flex flex-col overflow-hidden relative">
+      <div className="w-full max-w-4xl h-full max-h-[800px] bg-bg-2 border border-border rounded-[2rem] shadow-2xl flex flex-col overflow-hidden relative">
         {/* Header */}
         <div className="px-8 py-6 border-b border-border flex items-center justify-between bg-bg-3/50">
           <div className="flex items-center gap-4">
@@ -265,7 +265,7 @@ export default function SpeakingLiveSession({ onClose, topic, mode = "full" }: S
                 }}
                 transition={{ repeat: Infinity, duration: 2 }}
                 className={cn(
-                  "w-48 h-48 rounded-[60px] flex items-center justify-center shadow-2xl relative z-10 transition-all duration-500",
+                  "w-48 h-48 rounded-[2.5rem] flex items-center justify-center shadow-2xl relative z-10 transition-all duration-500",
                   isSpeaking ? "bg-blue-primary text-white scale-105" : "bg-violet-accent text-white"
                 )}
               >
@@ -281,14 +281,14 @@ export default function SpeakingLiveSession({ onClose, topic, mode = "full" }: S
                       animate={{ scale: 1.5, opacity: 0.2 }}
                       exit={{ scale: 2, opacity: 0 }}
                       transition={{ repeat: Infinity, duration: 2 }}
-                      className="absolute inset-0 border-2 border-blue-primary rounded-[60px]"
+                      className="absolute inset-0 border-2 border-blue-primary rounded-[2.5rem]"
                     />
                     <motion.div 
                       initial={{ scale: 0.8, opacity: 0 }}
                       animate={{ scale: 1.8, opacity: 0.1 }}
                       exit={{ scale: 2.5, opacity: 0 }}
                       transition={{ repeat: Infinity, duration: 2, delay: 0.5 }}
-                      className="absolute inset-0 border-2 border-blue-primary rounded-[60px]"
+                      className="absolute inset-0 border-2 border-blue-primary rounded-[2.5rem]"
                     />
                   </>
                 )}
@@ -349,7 +349,7 @@ export default function SpeakingLiveSession({ onClose, topic, mode = "full" }: S
             <button 
               onClick={() => setIsMuted(!isMuted)}
               className={cn(
-                "w-16 h-16 rounded-3xl flex items-center justify-center transition-all shadow-lg active:scale-90",
+                "w-16 h-16 rounded-2xl flex items-center justify-center transition-all shadow-lg active:scale-90",
                 isMuted ? "bg-red-accent text-white shadow-red-accent/20" : "bg-bg-1 text-text-muted border border-border hover:bg-bg-2"
               )}
             >
@@ -357,12 +357,12 @@ export default function SpeakingLiveSession({ onClose, topic, mode = "full" }: S
             </button>
             <button 
               onClick={onClose}
-              className="w-20 h-20 rounded-[32px] bg-red-accent text-white flex items-center justify-center shadow-2xl shadow-red-accent/40 hover:scale-105 active:scale-95 transition-all"
+              className="w-20 h-20 rounded-[2rem] bg-red-accent text-white flex items-center justify-center shadow-2xl shadow-red-accent/40 hover:scale-105 active:scale-95 transition-all"
             >
               <PhoneOff size={32} />
             </button>
             <button 
-              className="w-16 h-16 rounded-3xl bg-bg-1 text-text-muted border border-border flex items-center justify-center hover:bg-bg-2 transition-all active:scale-90"
+              className="w-16 h-16 rounded-2xl bg-bg-1 text-text-muted border border-border flex items-center justify-center hover:bg-bg-2 transition-all active:scale-90"
             >
               <Volume2 size={24} />
             </button>

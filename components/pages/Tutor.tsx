@@ -162,7 +162,7 @@ Respond in a way that makes the student feel they are getting a premium, one-on-
   return (
     <div className="flex flex-col min-h-full space-y-8 pb-4">
       {/* Tutor Hero Section */}
-      <div className="relative overflow-hidden rounded-[3rem] recipe-atmospheric-bg p-10 md:p-16 text-white shadow-2xl shadow-blue-primary/20 shrink-0 border border-blue-primary/20">
+      <div className="relative overflow-hidden rounded-2xl recipe-atmospheric-bg p-10 md:p-16 text-white shadow-2xl shadow-blue-primary/20 shrink-0 border border-blue-primary/20">
         <div className="absolute top-0 right-0 p-16 opacity-10 pointer-events-none transform translate-x-1/4 -translate-y-1/4 scale-150">
           <Bot size={300} />
         </div>
@@ -192,7 +192,7 @@ Respond in a way that makes the student feel they are getting a premium, one-on-
               key={m}
               onClick={() => setMode(m)}
               className={cn(
-                "flex items-center gap-4 px-6 py-5 rounded-[2rem] text-[11px] font-black uppercase tracking-widest transition-all border whitespace-nowrap lg:whitespace-normal group",
+                "flex items-center gap-4 px-6 py-5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all border whitespace-nowrap lg:whitespace-normal group",
                 mode === m 
                   ? "bg-blue-primary text-white border-blue-primary shadow-xl shadow-blue-primary/30 scale-[1.02]" 
                   : "bg-bg-2 text-text-muted border-border hover:bg-bg-3 hover:border-blue-primary/30"
@@ -223,10 +223,10 @@ Respond in a way that makes the student feel they are getting a premium, one-on-
         </div>
 
         {/* Chat Main Area */}
-        <div className="flex-1 flex flex-col bg-bg-2 border border-border rounded-[3rem] overflow-hidden shadow-2xl shadow-black/5 min-h-[600px] relative">
+        <div className="flex-1 flex flex-col bg-bg-2 border border-border rounded-2xl overflow-hidden shadow-2xl shadow-black/5 min-h-[600px] relative">
           <div className="bg-bg-3/80 backdrop-blur-xl px-8 py-6 border-b border-border flex items-center justify-between shrink-0 relative z-20">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-blue-primary/10 flex items-center justify-center text-blue-primary border border-blue-primary/20 shadow-inner">
+              <div className="w-14 h-14 rounded-xl bg-blue-primary/10 flex items-center justify-center text-blue-primary border border-blue-primary/20 shadow-inner">
                 <Bot size={28} />
               </div>
               <div>
@@ -278,7 +278,7 @@ Respond in a way that makes the student feel they are getting a premium, one-on-
               <div className="h-full flex flex-col items-center justify-center text-center space-y-10 max-w-xl mx-auto py-20">
                 <div className="relative">
                   <div className="absolute inset-0 bg-blue-primary/20 blur-[60px] rounded-full animate-pulse" />
-                  <div className="relative w-28 h-28 rounded-[2.5rem] bg-blue-dim/10 flex items-center justify-center text-blue-primary border border-blue-primary/20 rotate-6 shadow-2xl">
+                  <div className="relative w-28 h-28 rounded-xl bg-blue-dim/10 flex items-center justify-center text-blue-primary border border-blue-primary/20 rotate-6 shadow-2xl">
                     <Bot size={56} />
                   </div>
                 </div>
@@ -313,13 +313,13 @@ Respond in a way that makes the student feel they are getting a premium, one-on-
                 )}
               >
                 <div className={cn(
-                  "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 mt-1 shadow-lg",
+                  "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-1 shadow-lg",
                   msg.role === "user" ? "bg-blue-primary text-white shadow-blue-primary/20" : "bg-bg-3 text-blue-secondary border border-border"
                 )}>
                   {msg.role === "user" ? <User size={18} /> : <Bot size={18} />}
                 </div>
                 <div className={cn(
-                  "p-6 md:p-8 rounded-[2.5rem] text-base leading-relaxed font-medium",
+                  "p-6 md:p-8 rounded-2xl text-base leading-relaxed font-medium",
                   msg.role === "user" 
                     ? "bg-blue-primary text-white rounded-tr-none shadow-2xl shadow-blue-primary/20" 
                     : "bg-bg-1 border border-border rounded-tl-none text-text-primary shadow-xl shadow-black/5"
@@ -333,10 +333,10 @@ Respond in a way that makes the student feel they are getting a premium, one-on-
 
             {isLoading && (
               <div className="flex gap-6 max-w-[80%]">
-                <div className="w-10 h-10 rounded-2xl bg-bg-3 text-blue-secondary border border-border flex items-center justify-center shrink-0 mt-1">
+                <div className="w-10 h-10 rounded-xl bg-bg-3 text-blue-secondary border border-border flex items-center justify-center shrink-0 mt-1">
                   <Bot size={18} />
                 </div>
-                <div className="p-6 bg-bg-1 border border-border rounded-[2.5rem] rounded-tl-none shadow-xl shadow-black/5">
+                <div className="p-6 bg-bg-1 border border-border rounded-2xl rounded-tl-none shadow-xl shadow-black/5">
                   <div className="flex gap-2">
                     <div className="w-2 h-2 bg-blue-secondary/40 rounded-full animate-bounce" />
                     <div className="w-2 h-2 bg-blue-secondary/40 rounded-full animate-bounce [animation-delay:0.2s]" />
@@ -355,12 +355,12 @@ Respond in a way that makes the student feel they are getting a premium, one-on-
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 placeholder="Ask Aria anything..."
-                className="w-full bg-bg-1 border border-border rounded-[2rem] pl-8 pr-20 py-6 text-lg text-text-primary focus:border-blue-primary focus:ring-8 focus:ring-blue-primary/5 outline-none transition-all shadow-inner group-hover:bg-bg-2"
+                className="input w-full pl-8 pr-20 py-6 text-lg"
               />
               <button
                 onClick={() => handleSend()}
                 disabled={!input.trim() || isLoading}
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-14 h-14 rounded-2xl bg-blue-primary text-white flex items-center justify-center hover:bg-blue-secondary transition-all disabled:opacity-50 disabled:scale-90 shadow-xl shadow-blue-primary/20 active:scale-95"
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-14 h-14 rounded-xl bg-blue-primary text-white flex items-center justify-center hover:bg-blue-secondary transition-all disabled:opacity-50 disabled:scale-90 shadow-xl shadow-blue-primary/20 active:scale-95"
               >
                 <Send size={24} />
               </button>

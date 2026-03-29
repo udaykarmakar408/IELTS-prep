@@ -494,10 +494,34 @@ export default function MockTests() {
         const newResults = { ...fullTestResults, [currentSkill]: { band, feedback: result, modelAnswer: testTask?.modelAnswer } };
         setFullTestResults(newResults);
         
+        // Save progress for the current stage
+        if (progress) {
+          const updated = {
+            ...progress,
+            bands: { ...progress.bands, [currentSkill]: band },
+            bandHistory: [...progress.bandHistory, { date: new Date().toISOString().split("T")[0], band, skill: currentSkill }],
+            mockHistory: [...progress.mockHistory, { date: new Date().toISOString().split("T")[0], test: `Full Mock: ${currentSkill}`, band, skill: currentSkill }],
+            studyMinutes: (progress.studyMinutes || 0) + (currentSkill === 'reading' ? 60 : currentSkill === 'listening' ? 30 : currentSkill === 'writing' ? 60 : 15),
+          };
+          setProgress(updated);
+          saveProgress(updated);
+        }
+
         if (nextStage === "result") {
           const avg = Object.values(newResults).reduce((acc: number, curr: any) => acc + curr.band, 0) / 4;
-          setEstimatedBand(Math.round(avg * 2) / 2);
+          const finalBand = Math.round(avg * 2) / 2;
+          setEstimatedBand(finalBand);
           setTestStage("result");
+
+          // Save overall mock test result
+          if (progress) {
+            const updated = {
+              ...progress,
+              mockHistory: [...progress.mockHistory, { date: new Date().toISOString().split("T")[0], test: "Full Mock Test (Overall)", band: finalBand, skill: "all" }],
+            };
+            setProgress(updated);
+            saveProgress(updated);
+          }
         } else {
           setTestStage(nextStage);
           generateTask(activeTest, nextStage);
@@ -810,7 +834,7 @@ export default function MockTests() {
                               value={writingAnswer}
                               onChange={(e) => setWritingAnswer(e.target.value)}
                               placeholder="Type your essay response here..."
-                              className="flex-1 w-full bg-white border border-gray-200 rounded-xl p-8 text-gray-800 focus:ring-2 focus:ring-blue-primary/20 focus:border-blue-primary outline-none resize-none font-serif leading-relaxed text-lg shadow-sm"
+                              className="textarea flex-1 min-h-[400px] text-lg"
                             />
                             <div className="mt-4 flex items-center justify-between">
                               <div className="px-3 py-1 bg-white border border-gray-200 rounded text-[10px] font-bold text-gray-500 uppercase tracking-widest">
@@ -862,7 +886,7 @@ export default function MockTests() {
                                         value={userAnswers[q.id] || ""}
                                         onChange={(e) => setUserAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
                                         placeholder="Type your answer..."
-                                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-primary/20 outline-none"
+                                        className="input"
                                       />
                                     )}
 

@@ -38,6 +38,7 @@ export interface UserProgress {
   dailyWord: { date: string; word: string; type: string; band: string; def: string; example: string } | null;
   dailyGrammar: { date: string; title: string; tip: string; bad: string; good: string } | null;
   achievements: { id: string; title: string; description: string; unlocked: boolean; date?: string }[];
+  theme?: "dark" | "light";
 }
 
 const STORAGE_KEY = "ielts_pro_v1";
@@ -81,6 +82,7 @@ export const defaultProgress: UserProgress = {
     { id: "vocab_100", title: "Word Master", description: "Learn 100 new words", unlocked: false },
     { id: "mock_test", title: "Test Ready", description: "Complete your first full mock test", unlocked: false }
   ],
+  theme: "dark",
 };
 
 import { supabase } from "./supabase";

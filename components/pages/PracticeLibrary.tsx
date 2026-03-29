@@ -30,6 +30,14 @@ import { callGroq, callGroqJSON } from "@/lib/groq";
 import ReactMarkdown from "react-markdown";
 import { AudioPlayer } from "@/components/ui/AudioPlayer";
 import { ChartDisplay } from "@/components/ChartDisplay";
+import { getProgress, saveProgress, type UserProgress } from "@/lib/store";
+
+import { 
+  LISTENING_SECTIONS, 
+  READING_PASSAGES, 
+  SPEAKING_TOPICS, 
+  WRITING_SAMPLES 
+} from "@/lib/data/ielts_content";
 
 type Skill = "listening" | "reading" | "writing" | "speaking";
 
@@ -56,6 +64,11 @@ export default function PracticeLibrary() {
   // Audio state
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [progress, setProgress] = useState<UserProgress | null>(null);
+
+  useEffect(() => {
+    getProgress().then(setProgress);
+  }, []);
 
   const ensureString = (val: any): string => {
     if (typeof val === 'string') return val;
@@ -65,28 +78,35 @@ export default function PracticeLibrary() {
     return String(val || "");
   };
 
-  const TOPICS = [
-    "Education & Technology",
-    "Environment & Sustainability",
-    "Global Economy",
-    "Health & Modern Lifestyle",
-    "Culture & Traditions",
-    "Urbanization & Housing",
-    "Work & Career Development",
-    "Media & Communication",
-    "Science & Innovation",
-    "Social Issues & Equality",
-    "Travel & Tourism",
-    "Art & Literature",
-    "Sports & Health",
-    "Crime & Punishment",
-    "Family & Relationships"
-  ];
+  const TOPICS_BY_CATEGORY: Record<string, string[]> = {
+    "Education": ["Education Systems", "Online Learning", "Academic Success", "Student Life", "Vocational Training", "Language Learning", "Higher Education", "Early Childhood Education", "Special Education", "Lifelong Learning", "Educational Technology", "Standardized Testing"],
+    "Technology": ["Artificial Intelligence", "Social Media", "Digital Privacy", "Automation", "Space Exploration", "Cybersecurity", "Blockchain", "Internet of Things", "Virtual Reality", "Quantum Computing", "5G Networks", "E-commerce Trends"],
+    "Environment": ["Climate Change", "Renewable Energy", "Wildlife Conservation", "Sustainable Cities", "Pollution", "Marine Biology", "Deforestation", "Waste Management", "Biodiversity", "Ocean Acidification", "Circular Economy", "Green Architecture"],
+    "Health": ["Modern Lifestyle", "Public Health", "Mental Well-being", "Nutrition", "Sports & Fitness", "Medical Advancements", "Aging Population", "Epidemiology", "Telemedicine", "Genetic Engineering", "Alternative Medicine", "Sleep Hygiene"],
+    "Society": ["Urbanization", "Global Economy", "Social Equality", "Crime & Punishment", "Family Structures", "Human Rights", "Migration", "Demographics", "Gender Roles", "Poverty Alleviation", "Globalization", "Community Development"],
+    "Culture": ["Traditions", "Art & Literature", "Language & Linguistics", "Tourism", "Fashion & Design", "History & Archaeology", "Philosophy & Ethics", "Music & Entertainment", "Cultural Heritage", "Cuisine & Gastronomy", "Cinema & Media", "Festivals & Rituals"],
+    "Business": ["Entrepreneurship", "Corporate Responsibility", "Marketing Strategies", "Remote Work", "Consumer Behavior", "Financial Literacy", "Leadership Styles", "Supply Chain", "Small Businesses", "Gig Economy", "Investment Trends", "Work-Life Balance"],
+    "Science": ["Astrophysics", "Genetics", "Chemistry in Daily Life", "Physics Wonders", "Neuroscience", "Evolutionary Biology", "Materials Science", "Robotics", "Microbiology", "Geology", "Psychology", "Forensic Science"]
+  };
+
+  const ALL_TOPICS = Object.values(TOPICS_BY_CATEGORY).flat();
 
   // Generate 2000+ items (simulated but more dynamic)
   const items = React.useMemo(() => {
-    return Array.from({ length: 2000 }, (_, i) => {
-      const topic = TOPICS[i % TOPICS.length];
+    const staticItems: PracticeItem[] = [];
+    
+    if (activeSkill === "listening") {
+      LISTENING_SECTIONS.forEach((s, i) => staticItems.push({ id: 10000 + i, title: s.title, skill: "listening", difficulty: s.difficulty }));
+    } else if (activeSkill === "reading") {
+      READING_PASSAGES.forEach((p, i) => staticItems.push({ id: 20000 + i, title: p.title, skill: "reading", difficulty: p.difficulty }));
+    } else if (activeSkill === "speaking") {
+      SPEAKING_TOPICS.forEach((t, i) => staticItems.push({ id: 30000 + i, title: t.title, skill: "speaking", difficulty: "Medium" }));
+    } else if (activeSkill === "writing") {
+      WRITING_SAMPLES.forEach((s, i) => staticItems.push({ id: 40000 + i, title: s.title, skill: "writing", difficulty: "Hard" }));
+    }
+
+    const generatedItems = Array.from({ length: 2000 }, (_, i) => {
+      const topic = ALL_TOPICS[i % ALL_TOPICS.length];
       return {
         id: i + 1,
         title: `${topic}: ${activeSkill.charAt(0).toUpperCase() + activeSkill.slice(1)} Module #${i + 1}`,
@@ -94,6 +114,8 @@ export default function PracticeLibrary() {
         difficulty: i % 3 === 0 ? "Easy" : i % 3 === 1 ? "Medium" : "Hard"
       } as PracticeItem;
     });
+
+    return [...staticItems, ...generatedItems];
   }, [activeSkill]);
 
   const filteredItems = items.filter(item => 
@@ -441,10 +463,13 @@ export default function PracticeLibrary() {
     setIsGenerating(true);
     
     let prompt = "";
+    let band = 6.0;
+    let result = "";
+
     if (activeSkill === "writing") {
-      prompt = `Assess this IELTS Writing response for Module #${selectedItem?.id}:\n\nTask 1 Prompt: ${taskData.task1.prompt}\nTask 2 Prompt: ${taskData.task2.prompt}\n\nUser Response: ${userAnswers.writing}\n\nProvide a detailed band score breakdown for both tasks and a "Path to 9.0" section with specific, actionable steps to reach Band 9.0 from the current level.`;
+      prompt = `Assess this IELTS Writing response for Module #${selectedItem?.id}:\n\nTask 1 Prompt: ${taskData.task1.prompt}\nTask 2 Prompt: ${taskData.task2.prompt}\n\nUser Response: ${userAnswers.writing}\n\nProvide a detailed band score breakdown for both tasks and a "Path to 9.0" section with specific, actionable steps to reach Band 9.0 from the current level. Format as Markdown. End with "Overall Band: X.X"`;
     } else if (activeSkill === "speaking") {
-      prompt = `Assess this IELTS Speaking practice session for Module #${selectedItem?.id}:\n\nParts 1, 2, 3 Prompts: ${JSON.stringify(taskData.parts)}\n\nUser Notes/Transcript: ${userAnswers.speaking}\n\nProvide a detailed band score breakdown and a "Path to 9.0" section with specific, actionable steps to reach Band 9.0 from the current level.`;
+      prompt = `Assess this IELTS Speaking practice session for Module #${selectedItem?.id}:\n\nParts 1, 2, 3 Prompts: ${JSON.stringify(taskData.parts)}\n\nUser Notes/Transcript: ${userAnswers.speaking}\n\nProvide a detailed band score breakdown and a "Path to 9.0" section with specific, actionable steps to reach Band 9.0 from the current level. Format as Markdown. End with "Overall Band: X.X"`;
     } else {
       // For listening/reading, we can just compare answers
       const allQuestions = taskData.parts?.flatMap((p: any) => p.questions) || taskData.questions || [];
@@ -452,15 +477,43 @@ export default function PracticeLibrary() {
         userAnswers[q.id]?.toLowerCase().trim() === q.answer.toLowerCase().trim()
       ).length;
       
-      const band = activeSkill === "listening" ? calculateListeningBand(correctCount) : calculateReadingBand(correctCount);
-      setFeedback(`You got ${correctCount} out of ${allQuestions.length} correct. Estimated Band: ${band}`);
+      band = activeSkill === "listening" ? calculateListeningBand(correctCount) : calculateReadingBand(correctCount);
+      result = `You got ${correctCount} out of ${allQuestions.length} correct. Estimated Band: ${band}`;
+      setFeedback(result);
+      
+      if (progress) {
+        const updated = {
+          ...progress,
+          bands: { ...progress.bands, [activeSkill]: band },
+          bandHistory: [...progress.bandHistory, { date: new Date().toISOString().split("T")[0], band, skill: activeSkill }],
+          mockHistory: [...progress.mockHistory, { date: new Date().toISOString().split("T")[0], test: `Practice: ${activeSkill}`, band, skill: activeSkill }],
+          studyMinutes: (progress.studyMinutes || 0) + 20,
+        };
+        setProgress(updated);
+        saveProgress(updated);
+      }
       setIsGenerating(false);
       return;
     }
 
     try {
-      const result = await callGroq(prompt, "You are an IELTS examiner.");
+      result = await callGroq(prompt, "You are an IELTS examiner.");
       setFeedback(result);
+      
+      const bandMatch = result.match(/Overall Band:\s*([0-9]\.?[0-9]?)/i);
+      band = bandMatch ? parseFloat(bandMatch[1]) : 6.0;
+
+      if (progress) {
+        const updated = {
+          ...progress,
+          bands: { ...progress.bands, [activeSkill]: band },
+          bandHistory: [...progress.bandHistory, { date: new Date().toISOString().split("T")[0], band, skill: activeSkill }],
+          mockHistory: [...progress.mockHistory, { date: new Date().toISOString().split("T")[0], test: `Practice: ${activeSkill}`, band, skill: activeSkill }],
+          studyMinutes: (progress.studyMinutes || 0) + 20,
+        };
+        setProgress(updated);
+        saveProgress(updated);
+      }
     } catch (error) {
       console.error("Assessment failed:", error);
     } finally {
@@ -469,31 +522,68 @@ export default function PracticeLibrary() {
   };
 
   return (
-    <div className="space-y-8 pb-20">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <h2 className="font-serif text-3xl font-bold mb-2 flex items-center gap-3">
-            <ClipboardList className="text-blue-primary" size={32} />
-            Practice Library
-          </h2>
-          <p className="text-text-muted">Access 2000+ AI-generated IELTS practice modules across all skills.</p>
-        </div>
+    <div className="space-y-16 pb-20">
+      {/* Practice Library Hero Section */}
+      <div className="relative overflow-hidden rounded-3xl bg-bg-1 border border-white/5 p-8 md:p-12 lg:p-16">
+        <div className="absolute inset-0 recipe-atmospheric-bg opacity-30" />
+        <div className="absolute -top-24 -right-24 w-96 h-96 bg-blue-primary/10 rounded-full blur-[120px] animate-pulse" />
         
-        <div className="flex bg-bg-2 p-1 rounded-2xl border border-border shadow-inner">
-          {(["listening", "reading", "writing", "speaking"] as Skill[]).map((skill) => (
-            <button
-              key={skill}
-              onClick={() => { setActiveSkill(skill); setSelectedItem(null); setTaskData(null); }}
-              className={cn(
-                "px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all",
-                activeSkill === skill 
-                  ? "bg-blue-primary text-white shadow-lg shadow-blue-primary/20" 
-                  : "text-text-muted hover:text-text-primary"
-              )}
+        <div className="relative z-10 flex flex-col 2xl:flex-row 2xl:items-end justify-between gap-12">
+          <div className="max-w-3xl min-w-0">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="recipe-editorial-label mb-8 flex items-center gap-3"
             >
-              {skill}
-            </button>
-          ))}
+              <div className="w-8 h-px bg-blue-secondary/30" />
+              <ClipboardList size={16} className="text-blue-secondary" /> Resource Hub
+            </motion.div>
+            
+            <motion.h2 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="recipe-editorial-h1 mb-8"
+            >
+              Practice <span className="text-blue-primary">Library</span>
+            </motion.h2>
+            
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-xl text-text-secondary leading-relaxed font-medium max-w-2xl"
+            >
+              Access 2000+ AI-generated IELTS practice modules across all skills. 
+              Filter by difficulty, topic, or specific question types.
+            </motion.p>
+          </div>
+
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+            className="flex flex-wrap md:flex-nowrap bg-bg-2/50 backdrop-blur-xl p-2 rounded-2xl border border-white/5 shadow-2xl"
+          >
+            {(["listening", "reading", "writing", "speaking"] as Skill[]).map((skill) => (
+              <button 
+                key={skill}
+                onClick={() => { setActiveSkill(skill); setSelectedItem(null); setTaskData(null); }}
+                className={cn(
+                  "flex items-center gap-2 px-8 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-500",
+                  activeSkill === skill 
+                    ? "bg-blue-primary text-white shadow-xl shadow-blue-primary/30 scale-105" 
+                    : "text-text-muted hover:text-text-primary hover:bg-white/5"
+                )}
+              >
+                {skill === "listening" && <Headphones size={14} />}
+                {skill === "reading" && <BookOpen size={14} />}
+                {skill === "writing" && <PenTool size={14} />}
+                {skill === "speaking" && <Mic size={14} />}
+                <span className="hidden md:inline">{skill}</span>
+              </button>
+            ))}
+          </motion.div>
         </div>
       </div>
 
@@ -504,19 +594,19 @@ export default function PracticeLibrary() {
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted group-focus-within:text-blue-primary transition-colors" size={20} />
               <input 
                 type="text"
-                placeholder={`Search 2000+ ${activeSkill} modules by title or ID...`}
+                placeholder={`Search 2000+ ${activeSkill} modules by topic, title or ID...`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 bg-bg-1 border border-border rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-primary/20 focus:border-blue-primary transition-all text-sm font-medium"
+                className="input pl-12"
               />
             </div>
-            <div className="flex bg-bg-2 p-1 rounded-2xl border border-border shadow-inner">
+            <div className="flex flex-wrap bg-bg-2 p-1 rounded-xl border border-border shadow-inner gap-1">
               {["All", "Easy", "Medium", "Hard"].map((diff) => (
                 <button
                   key={diff}
                   onClick={() => setDifficultyFilter(diff)}
                   className={cn(
-                    "px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                    "px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
                     difficultyFilter === diff 
                       ? "bg-white text-blue-primary shadow-sm" 
                       : "text-text-muted hover:text-text-primary"
@@ -528,6 +618,30 @@ export default function PracticeLibrary() {
             </div>
           </div>
 
+          <div className="flex flex-wrap gap-2 pb-2 overflow-x-auto custom-scrollbar">
+            <button
+              onClick={() => setSearchQuery("")}
+              className={cn(
+                "px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all whitespace-nowrap",
+                searchQuery === "" ? "bg-blue-primary text-white border-blue-primary" : "bg-bg-2 text-text-muted border-border hover:border-blue-primary/50"
+              )}
+            >
+              All Topics
+            </button>
+            {Object.keys(TOPICS_BY_CATEGORY).map(cat => (
+              <button
+                key={cat}
+                onClick={() => setSearchQuery(cat)}
+                className={cn(
+                  "px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all whitespace-nowrap",
+                  searchQuery === cat ? "bg-blue-primary text-white border-blue-primary" : "bg-bg-2 text-text-muted border-border hover:border-blue-primary/50"
+                )}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredItems.map((item) => (
               <motion.button
@@ -536,7 +650,7 @@ export default function PracticeLibrary() {
                 animate={{ opacity: 1, scale: 1 }}
                 whileHover={{ y: -4 }}
                 onClick={() => handleSelectItem(item)}
-                className="card text-left group hover:border-blue-primary transition-all p-6 flex flex-col justify-between min-h-[160px]"
+                className="bg-bg-1 border border-white/5 rounded-xl text-left group hover:border-blue-primary/30 hover:shadow-xl hover:shadow-blue-primary/5 transition-all p-6 flex flex-col justify-between min-h-[160px]"
               >
                 <div>
                   <div className="flex items-center justify-between mb-3">
@@ -602,40 +716,39 @@ export default function PracticeLibrary() {
           </button>
 
           <div className="card p-8 space-y-8">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-6">
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="tag tag-blue">Module #{selectedItem.id}</span>
-                  <span className="tag tag-violet">{selectedItem.difficulty}</span>
-                </div>
-                <h3 className="text-2xl font-bold text-text-primary">{selectedItem.title}</h3>
-              </div>
-              {isGenerating && (
-                <div className="flex items-center gap-2 text-blue-primary font-bold text-sm animate-pulse">
-                  <Loader2 className="animate-spin" size={18} />
-                  AI Generating Content...
-                </div>
-              )}
-              {generationError && (
-                <div className="flex items-center gap-4">
-                  <div className="text-xs text-red-500 font-bold flex items-center gap-2">
-                    <AlertCircle size={14} />
-                    {generationError}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-6">
+                <div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="tag tag-blue">Module #{selectedItem.id}</span>
+                    <span className="tag tag-violet">{selectedItem.difficulty}</span>
                   </div>
-                  <button 
-                    onClick={() => handleSelectItem(selectedItem)}
-                    className="btn btn-primary px-4 py-2 text-[10px]"
-                  >
-                    Retry
-                  </button>
+                  <h3 className="text-2xl font-bold text-text-primary">{selectedItem.title}</h3>
                 </div>
-              )}
+                <div className="flex items-center gap-4">
+                  {isGenerating && (
+                    <div className="flex items-center gap-2 text-blue-primary font-bold text-sm animate-pulse">
+                      <Loader2 className="animate-spin" size={18} />
+                      AI Generating...
+                    </div>
+                  )}
+                  {!isGenerating && taskData && (
+                    <button 
+                      onClick={() => handleSelectItem(selectedItem)}
+                      className="btn btn-ghost px-4 py-2 text-[10px] rounded-lg flex items-center gap-2"
+                    >
+                      <RotateCcw size={14} />
+                      Regenerate Task
+                    </button>
+                  )}
+                </div>
+              </div>
 
             {taskData && (
               <div className="space-y-8">
-                {activeSkill === "listening" && (
+                <div className="space-y-8">
+                  {activeSkill === "listening" && (
                   <div className="space-y-6">
-                    <div className="p-6 bg-bg-2 rounded-2xl border border-border flex flex-col items-center gap-4">
+                    <div className="p-6 bg-bg-2 rounded-xl border border-border flex flex-col items-center gap-4">
                       <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Audio Track</div>
                       {isGeneratingAudio ? (
                         <div className="flex items-center gap-2 text-text-muted text-xs">
@@ -690,7 +803,7 @@ export default function PracticeLibrary() {
                                   onChange={(e) => setUserAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
                                   disabled={showResults}
                                   placeholder="Type your answer..."
-                                  className="w-full p-3 bg-bg-1 border border-border rounded-xl text-sm focus:ring-2 focus:ring-blue-primary/20 outline-none"
+                                  className="input w-full"
                                 />
                                 {showResults && (
                                   <div className={cn(
@@ -716,7 +829,7 @@ export default function PracticeLibrary() {
                       <div key={pIdx} className="grid grid-cols-1 lg:grid-cols-2 gap-8 border-b border-border pb-12 last:border-0">
                         <div className="space-y-4">
                           <h4 className="font-bold text-text-primary uppercase tracking-widest text-xs">{part.title}</h4>
-                          <div className="prose prose-sm max-w-none text-text-secondary leading-relaxed bg-bg-1 p-6 rounded-2xl border border-border h-[500px] overflow-y-auto custom-scrollbar">
+                          <div className="prose prose-sm max-w-none text-text-secondary leading-relaxed bg-bg-1 p-6 rounded-xl border border-border h-[500px] overflow-y-auto custom-scrollbar">
                             <ReactMarkdown>{ensureString(part.passage)}</ReactMarkdown>
                           </div>
                         </div>
@@ -732,7 +845,7 @@ export default function PracticeLibrary() {
                                   onChange={(e) => setUserAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
                                   disabled={showResults}
                                   placeholder="Type your answer..."
-                                  className="w-full p-3 bg-bg-1 border border-border rounded-xl text-sm focus:ring-2 focus:ring-blue-primary/20 outline-none"
+                                  className="input w-full"
                                 />
                                 {showResults && (
                                   <div className={cn(
@@ -756,13 +869,13 @@ export default function PracticeLibrary() {
                   <div className="space-y-12">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                       <div className="space-y-6">
-                        <div className="p-6 bg-bg-2 rounded-2xl border border-border">
+                        <div className="p-6 bg-bg-2 rounded-xl border border-border">
                           <div className="text-[10px] font-bold text-blue-primary uppercase tracking-widest mb-2">Writing Task 1</div>
                           <div className="prose prose-sm max-w-none text-text-primary leading-relaxed mb-6">
                             <ReactMarkdown>{ensureString(taskData.task1.prompt)}</ReactMarkdown>
                           </div>
                           {taskData.task1.chartData && (
-                            <div className="bg-white p-6 rounded-2xl border border-border shadow-sm">
+                            <div className="bg-white p-6 rounded-xl border border-border shadow-sm">
                               <ChartDisplay 
                                 type={taskData.task1.chartType as any} 
                                 data={taskData.task1.chartData} 
@@ -772,7 +885,7 @@ export default function PracticeLibrary() {
                         </div>
                       </div>
                       <div className="space-y-6">
-                        <div className="p-6 bg-bg-2 rounded-2xl border border-border">
+                        <div className="p-6 bg-bg-2 rounded-xl border border-border">
                           <div className="text-[10px] font-bold text-violet-accent uppercase tracking-widest mb-2">Writing Task 2</div>
                           <div className="prose prose-sm max-w-none text-text-primary leading-relaxed">
                             <ReactMarkdown>{ensureString(taskData.task2.prompt)}</ReactMarkdown>
@@ -791,12 +904,12 @@ export default function PracticeLibrary() {
                         onChange={(e) => setUserAnswers(prev => ({ ...prev, writing: e.target.value }))}
                         disabled={showResults}
                         placeholder="Type both Task 1 and Task 2 responses here. Clearly label them."
-                        className="w-full h-96 p-6 bg-bg-1 border border-border rounded-2xl text-sm focus:ring-2 focus:ring-blue-primary/20 outline-none resize-none leading-relaxed"
+                        className="textarea h-96"
                       />
                     </div>
 
                     {showResults && (
-                      <div className="p-8 bg-bg-2 border border-border rounded-3xl space-y-6">
+                      <div className="p-8 bg-bg-2 border border-border rounded-2xl space-y-6">
                         <h4 className="text-lg font-bold text-text-primary flex items-center gap-2">
                           <CheckCircle2 size={24} className="text-emerald-500" />
                           Model Answers (Band 9.0)
@@ -804,13 +917,13 @@ export default function PracticeLibrary() {
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                           <div className="space-y-4">
                             <div className="text-xs font-bold text-blue-primary uppercase tracking-widest">Task 1 Model Answer</div>
-                            <div className="prose prose-sm max-w-none text-text-secondary leading-relaxed bg-bg-1 p-6 rounded-2xl border border-border">
+                            <div className="prose prose-sm max-w-none text-text-secondary leading-relaxed bg-bg-1 p-6 rounded-xl border border-border">
                               <ReactMarkdown>{ensureString(taskData.task1.modelAnswer)}</ReactMarkdown>
                             </div>
                           </div>
                           <div className="space-y-4">
                             <div className="text-xs font-bold text-violet-accent uppercase tracking-widest">Task 2 Model Answer</div>
-                            <div className="prose prose-sm max-w-none text-text-secondary leading-relaxed bg-bg-1 p-6 rounded-2xl border border-border">
+                            <div className="prose prose-sm max-w-none text-text-secondary leading-relaxed bg-bg-1 p-6 rounded-xl border border-border">
                               <ReactMarkdown>{ensureString(taskData.task2.modelAnswer)}</ReactMarkdown>
                             </div>
                           </div>
@@ -822,7 +935,7 @@ export default function PracticeLibrary() {
 
                 {activeSkill === "speaking" && taskData.parts && !Array.isArray(taskData.parts) && (
                   <div className="space-y-8">
-                    <div className="p-6 bg-bg-2 rounded-2xl border border-border text-center">
+                    <div className="p-6 bg-bg-2 rounded-xl border border-border text-center">
                       <h4 className="text-xl font-bold text-text-primary mb-2">{ensureString(taskData.title)}</h4>
                       <p className="text-sm text-text-muted">Practice these questions using the Speaking Lab or record your notes below.</p>
                     </div>
@@ -875,37 +988,36 @@ export default function PracticeLibrary() {
                         onChange={(e) => setUserAnswers(prev => ({ ...prev, speaking: e.target.value }))}
                         disabled={showResults}
                         placeholder="Paste your transcript or type your practice notes here for AI assessment..."
-                        className="w-full h-40 p-6 bg-bg-1 border border-border rounded-2xl text-sm focus:ring-2 focus:ring-blue-primary/20 outline-none resize-none leading-relaxed"
+                        className="textarea h-40"
                       />
                     </div>
 
                     {showResults && taskData.modelAnswer && (
-                      <div className="p-8 bg-bg-2 border border-border rounded-3xl">
+                      <div className="p-8 bg-bg-2 border border-border rounded-2xl">
                         <h4 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2">
                           <CheckCircle2 size={24} className="text-emerald-500" />
                           Model Answer (Band 9.0)
                         </h4>
-                        <div className="prose prose-sm max-w-none text-text-secondary leading-relaxed bg-bg-1 p-6 rounded-2xl border border-border">
+                        <div className="prose prose-sm max-w-none text-text-secondary leading-relaxed bg-bg-1 p-6 rounded-xl border border-border">
                           <ReactMarkdown>{ensureString(taskData.modelAnswer)}</ReactMarkdown>
                         </div>
                       </div>
                     )}
                   </div>
-                )}
 
                 <div className="flex justify-center pt-8">
                   {!showResults ? (
                     <button 
                       onClick={submitAnswers}
                       disabled={isGenerating || (activeSkill === "writing" && !userAnswers.writing) || (activeSkill === "speaking" && !userAnswers.speaking)}
-                      className="btn btn-primary px-12 py-4 rounded-2xl shadow-xl shadow-blue-primary/20 flex items-center gap-2"
+                      className="btn btn-primary px-12 py-4 rounded-xl shadow-xl shadow-blue-primary/20 flex items-center gap-2"
                     >
                       {isGenerating ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle2 size={20} />}
                       Submit for Assessment
                     </button>
                   ) : (
                     <div className="w-full space-y-6">
-                      <div className="p-8 bg-blue-dim border border-blue-primary/20 rounded-3xl">
+                      <div className="p-8 bg-blue-dim border border-blue-primary/20 rounded-2xl">
                         <h4 className="text-lg font-bold text-blue-secondary mb-4 flex items-center gap-2">
                           <Trophy size={24} />
                           AI Assessment & Feedback
@@ -916,14 +1028,14 @@ export default function PracticeLibrary() {
                       </div>
                       
                       {taskData.keyVocabulary && (
-                        <div className="p-8 bg-bg-2 border border-border rounded-3xl">
+                        <div className="p-8 bg-bg-2 border border-border rounded-2xl">
                           <h4 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2">
                             <Sparkles size={24} className="text-amber-accent" />
                             Key Vocabulary
                           </h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {Array.isArray(taskData.keyVocabulary) ? taskData.keyVocabulary.map((item: any, i: number) => (
-                              <div key={i} className="p-4 bg-bg-1 rounded-2xl border border-border">
+                              <div key={i} className="p-4 bg-bg-1 rounded-xl border border-border">
                                 <div className="font-bold text-blue-primary mb-1">{item.word || item.term}</div>
                                 <div className="text-xs text-text-muted mb-2">{item.definition || item.meaning}</div>
                                 <div className="text-[10px] text-text-secondary italic">"{item.example}"</div>
@@ -938,7 +1050,7 @@ export default function PracticeLibrary() {
                       )}
 
                       {taskData.sampleAnswer && (
-                        <div className="p-8 bg-bg-2 border border-border rounded-3xl">
+                        <div className="p-8 bg-bg-2 border border-border rounded-2xl">
                           <h4 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2">
                             <MessageSquare size={24} />
                             Model Answer
@@ -962,9 +1074,10 @@ export default function PracticeLibrary() {
                   )}
                 </div>
               </div>
-            </div>
-          </motion.div>
-        )}
-      </div>
-    );
-  }
+            )}
+          </div>
+        </motion.div>
+      )}
+    </div>
+  );
+}

@@ -68,28 +68,28 @@ export default function Grammar() {
     if (!userSentence.trim()) return;
     setIsChecking(true);
     setCheckResult(null);
-    const systemPrompt = `You are an expert IELTS Grammar Examiner (Aria). Your goal is to help the student achieve a Band 9.0 in their writing and speaking by correcting their grammar and elevating their language.
-
-Analyze the following sentence:
-"${userSentence}"
-
-Provide your analysis in the following structured format:
-
-### 1. Corrected Version
-> [Corrected Sentence Here]
-
-### 2. Error Analysis
-* **Grammar Points**: Identify specific errors (e.g., Subject-Verb Agreement, Article usage, Tense consistency).
-* **Explanation**: Briefly explain why it was wrong and the rule behind it.
-
-### 3. Elevate to Band 9.0
-* **Advanced Structure**: Suggest a more complex grammatical structure (e.g., inversion, conditional, passive voice, nominalization) that conveys the same meaning but more formally.
-* **Lexical Upgrade**: Suggest 1-2 academic synonyms for common words used in the sentence.
-
-### 4. IELTS Context
-* Explain how this specific correction or upgrade helps in a Writing Task 1 or Task 2 context.
-
-Use **Markdown** for formatting. Be encouraging but precise.`;
+    const systemPrompt = `Act as a Senior IELTS Grammar Examiner. Your goal is to provide Band 9.0 level feedback on the student's sentence.
+    
+    Analyze the following sentence:
+    "${userSentence}"
+    
+    Provide your analysis in the following structured format:
+    
+    ### 1. Corrected Version (Band 9.0 Standard)
+    > [Provide the most natural, academic, and grammatically perfect version]
+    
+    ### 2. Grammatical Range & Accuracy Analysis
+    * **Error Identification**: Pinpoint any slips in tenses, articles, prepositions, or word order.
+    * **Rule Explanation**: Briefly explain the underlying grammatical principle.
+    
+    ### 3. Advanced Structural Upgrades
+    * **Complex Structures**: Suggest how to incorporate inversion, nominalization, or complex relative clauses.
+    * **Cohesion**: Suggest a more sophisticated linking device if applicable.
+    
+    ### 4. IELTS Task Application
+    * Explain how this sentence would be evaluated in Writing Task 1 (Data Description) or Task 2 (Argumentative Essay).
+    
+    Use **Markdown** for formatting. Be precise, academic, and authoritative.`;
 
     try {
       const result = await callGroq(`Sentence: ${userSentence}`, systemPrompt);
@@ -120,7 +120,7 @@ Use **Markdown** for formatting. Be encouraging but precise.`;
     setIsEvaluatingTask(prev => ({ ...prev, [id]: true }));
     setPracticeEvaluations(prev => ({ ...prev, [id]: "" }));
 
-    const systemPrompt = `You are an expert IELTS Grammar Tutor. The student has written a practice sentence for the grammar rule: "${heading}".
+    const systemPrompt = `Act as a Senior IELTS Grammar Tutor. Evaluate the student's practice sentence for the rule: "${heading}".
     
     Rule Context:
     ${content}
@@ -128,12 +128,12 @@ Use **Markdown** for formatting. Be encouraging but precise.`;
     Student's Sentence:
     "${answer}"
     
-    Evaluate the sentence:
-    1. **Accuracy**: Is the grammar rule applied correctly? Are there any other errors?
-    2. **IELTS Suitability**: Is the sentence appropriate for an academic context (Writing Task 1 or 2)?
-    3. **Band 9.0 Upgrade**: Suggest a way to make the sentence even more sophisticated.
+    Evaluate based on:
+    1. **Grammatical Accuracy**: Is the specific rule applied correctly? Are there secondary errors?
+    2. **Academic Register**: Is the tone appropriate for IELTS Writing?
+    3. **Band 9.0 Refinement**: Provide a "Masterclass" version of this sentence using even more sophisticated structures.
     
-    Keep your feedback concise, encouraging, and highly professional. Use Markdown.`;
+    Keep feedback concise, professional, and targeted at high-band achievement. Use Markdown.`;
 
     try {
       const result = await callGroq(`Evaluate this sentence for the rule "${heading}": ${answer}`, systemPrompt);
@@ -160,7 +160,7 @@ Use **Markdown** for formatting. Be encouraging but precise.`;
       </div>
 
       {/* Grammar Lab - Hero Section */}
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-blue-primary via-blue-primary/90 to-blue-secondary p-8 md:p-12 text-white shadow-2xl shadow-blue-primary/20">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-primary via-blue-primary/90 to-blue-secondary p-8 md:p-12 text-white shadow-2xl shadow-blue-primary/20">
         <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none">
           <Book size={200} />
         </div>
@@ -183,7 +183,7 @@ Use **Markdown** for formatting. Be encouraging but precise.`;
                 value={userSentence}
                 onChange={(e) => setUserSentence(e.target.value)}
                 placeholder="e.g., Technology have many benefits for the people."
-                className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-6 text-lg text-white placeholder:text-white/40 focus:border-white/40 outline-none min-h-[160px] resize-none font-serif leading-relaxed transition-all group-hover:bg-white/15"
+                className="textarea w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-6 text-lg text-white placeholder:text-white/40 focus:border-white/40 outline-none min-h-[160px] resize-none font-serif leading-relaxed transition-all group-hover:bg-white/15"
               />
               {!userSentence && (
                 <div className="absolute bottom-6 left-6 right-6 flex flex-wrap gap-2 pointer-events-none">
@@ -204,7 +204,7 @@ Use **Markdown** for formatting. Be encouraging but precise.`;
             <button
               onClick={checkGrammar}
               disabled={!userSentence.trim() || isChecking}
-              className="w-full py-5 bg-white text-blue-primary rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-white/90 transition-all active:scale-95 shadow-xl shadow-black/10 disabled:opacity-50"
+              className="w-full py-5 bg-white text-blue-primary rounded-xl font-black text-xs uppercase tracking-widest hover:bg-white/90 transition-all active:scale-95 shadow-xl shadow-black/10 disabled:opacity-50"
             >
               {isChecking ? (
                 <div className="flex items-center justify-center gap-2">
@@ -247,8 +247,22 @@ Use **Markdown** for formatting. Be encouraging but precise.`;
 
           {progress?.grammarHistory && progress.grammarHistory.length > 0 && !checkResult && (
             <div className="pt-4 border-t border-border-2">
-              <div className="flex items-center gap-2 text-[10px] font-bold text-text-muted uppercase tracking-widest mb-3">
-                <History size={12} /> Recent Checks
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2 text-[10px] font-bold text-text-muted uppercase tracking-widest">
+                  <History size={12} /> Recent Checks
+                </div>
+                <button 
+                  onClick={() => {
+                    if (progress) {
+                      const updatedProgress = { ...progress, grammarHistory: [] };
+                      setProgress(updatedProgress);
+                      saveProgress(updatedProgress);
+                    }
+                  }}
+                  className="text-[9px] font-bold text-red-500/70 hover:text-red-500 uppercase tracking-widest transition-colors flex items-center gap-1"
+                >
+                  <Trash2 size={10} /> Clear
+                </button>
               </div>
               <div className="space-y-2">
                 {progress.grammarHistory.slice(0, 3).map((item, i) => (
@@ -327,12 +341,12 @@ Use **Markdown** for formatting. Be encouraging but precise.`;
                                 placeholder="Type here..."
                                 value={practiceAnswers[id] || ""}
                                 onChange={(e) => setPracticeAnswers(prev => ({ ...prev, [id]: e.target.value }))}
-                                className="w-full bg-bg-1 border border-border-2 rounded-lg p-2.5 text-xs text-text-primary focus:border-blue-primary outline-none min-h-[60px] resize-none"
+                                className="textarea w-full bg-bg-1 border border-border-2 rounded-xl p-2.5 text-xs text-text-primary focus:border-blue-primary outline-none min-h-[60px] resize-none"
                               />
                               <button 
                                 onClick={() => evaluateTask(id, sec.heading, sec.content)}
                                 disabled={!practiceAnswers[id]?.trim() || isEvaluatingTask[id]}
-                                className="w-full py-2.5 bg-blue-primary text-white rounded-lg font-black text-[10px] uppercase tracking-widest disabled:opacity-50 shadow-lg shadow-blue-primary/10 transition-all active:scale-95"
+                                className="w-full py-2.5 bg-blue-primary text-white rounded-xl font-black text-[10px] uppercase tracking-widest disabled:opacity-50 shadow-lg shadow-blue-primary/10 transition-all active:scale-95"
                               >
                                 {isEvaluatingTask[id] ? (
                                   <div className="flex items-center justify-center gap-2">
@@ -373,6 +387,57 @@ Use **Markdown** for formatting. Be encouraging but precise.`;
           </div>
         ))}
       </div>
+
+      {/* Band 9.0 Grammar Checklist */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="recipe-hardware-widget p-8 border-blue-primary/20 bg-blue-primary/5"
+      >
+        <div className="flex items-center gap-3 text-blue-secondary font-black text-[11px] uppercase tracking-[0.3em] mb-6">
+          <CheckCircle2 size={16} /> Band 9.0 Grammar Checklist
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <h4 className="font-bold text-text-primary flex items-center gap-2">
+              <Sparkles size={16} className="text-blue-secondary" /> Sentence Variety
+            </h4>
+            <ul className="space-y-2 text-sm text-text-muted">
+              <li className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-secondary mt-1.5 shrink-0" />
+                Mix of simple, compound, and complex sentences.
+              </li>
+              <li className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-secondary mt-1.5 shrink-0" />
+                Use of conditional sentences (Zero, 1st, 2nd, 3rd, Mixed).
+              </li>
+              <li className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-secondary mt-1.5 shrink-0" />
+                Passive voice for objectivity in Task 2.
+              </li>
+            </ul>
+          </div>
+          <div className="space-y-4">
+            <h4 className="font-bold text-text-primary flex items-center gap-2">
+              <Sparkles size={16} className="text-blue-secondary" /> Advanced Structures
+            </h4>
+            <ul className="space-y-2 text-sm text-text-muted">
+              <li className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-secondary mt-1.5 shrink-0" />
+                Inversion for emphasis (e.g., "Not only... but also").
+              </li>
+              <li className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-secondary mt-1.5 shrink-0" />
+                Nominalization to increase academic formality.
+              </li>
+              <li className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-secondary mt-1.5 shrink-0" />
+                Reduced relative clauses for conciseness.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </motion.div>
 
       <div className="card bg-gradient-to-br from-amber-accent/10 to-bg-1 border-amber-accent/20">
         <div className="flex items-start gap-4">

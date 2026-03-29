@@ -232,7 +232,7 @@ export default function Flashcards() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search your vocabulary..."
-                className="w-full bg-bg-2 border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-text-primary focus:border-blue-primary outline-none"
+                className="input pl-10 pr-4 py-2.5"
               />
             </div>
             <button className="btn btn-primary flex items-center gap-2">

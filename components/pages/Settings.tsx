@@ -18,33 +18,50 @@ import { getProgress, saveProgress, UserProgress, defaultProgress } from "@/lib/
 import { cn } from "@/lib/utils";
 
 interface SettingsProps {
+  progress: UserProgress | null;
   onUpdate: () => void;
 }
 
-export default function Settings({ onUpdate }: SettingsProps) {
-  const [progress, setProgress] = useState<UserProgress | null>(null);
-  const [name, setName] = useState("");
-  const [target, setTarget] = useState(9.0);
+export default function Settings({ progress: initialProgress, onUpdate }: SettingsProps) {
+  const [name, setName] = useState(initialProgress?.name || "");
+  const [target, setTarget] = useState(initialProgress?.target || 9.0);
   const [isSaved, setIsSaved] = useState(false);
 
+  // Sync local state if initialProgress changes (e.g., from another update)
   useEffect(() => {
-    const load = async () => {
-      const p = await getProgress();
-      setProgress(p);
-      setName(p.name);
-      setTarget(p.target);
-    };
-    load();
-  }, []);
+    if (initialProgress) {
+      setName(initialProgress.name);
+      setTarget(initialProgress.target);
+    }
+  }, [initialProgress]);
 
-  const handleSave = () => {
-    if (!progress || !name.trim()) return;
-    const updated = { ...progress, name: name.trim(), target };
-    setProgress(updated);
-    saveProgress(updated);
+  const handleSave = async () => {
+    if (!initialProgress || !name.trim()) return;
+    const updated = { ...initialProgress, name: name.trim(), target };
+    await saveProgress(updated);
     setIsSaved(true);
     onUpdate();
     setTimeout(() => setIsSaved(false), 3000);
+  };
+
+  const handleThemeToggle = async (theme: "light" | "dark") => {
+    if (!initialProgress) return;
+    // When toggling theme, we also preserve the current name/target from inputs
+    const updated = { 
+      ...initialProgress, 
+      theme,
+      name: name.trim() || initialProgress.name,
+      target 
+    };
+    await saveProgress(updated);
+    onUpdate();
+  };
+
+  const handleGoalChange = async (m: number) => {
+    if (!initialProgress) return;
+    const updated = { ...initialProgress, dailyGoalMin: m };
+    await saveProgress(updated);
+    onUpdate();
   };
 
   const handleReset = () => {
@@ -53,8 +70,8 @@ export default function Settings({ onUpdate }: SettingsProps) {
   };
 
   const exportData = () => {
-    if (!progress) return;
-    const blob = new Blob([JSON.stringify(progress, null, 2)], { type: "application/json" });
+    if (!initialProgress) return;
+    const blob = new Blob([JSON.stringify(initialProgress, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -63,7 +80,7 @@ export default function Settings({ onUpdate }: SettingsProps) {
     URL.revokeObjectURL(url);
   };
 
-  if (!progress) return null;
+  if (!initialProgress) return null;
 
   return (
     <div className="space-y-8">
@@ -86,7 +103,7 @@ export default function Settings({ onUpdate }: SettingsProps) {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full bg-bg-2 border border-border-2 rounded-xl px-4 py-3 text-sm text-text-primary focus:border-blue-primary outline-none transition-all"
+                className="input"
               />
             </div>
 
@@ -122,6 +139,42 @@ export default function Settings({ onUpdate }: SettingsProps) {
           </button>
         </div>
 
+        {/* Theme Selection */}
+        <div className="card space-y-6">
+          <div className="flex items-center gap-2 text-amber-accent font-bold text-xs uppercase tracking-widest">
+            <Target size={14} /> Appearance
+          </div>
+          <div className="space-y-4">
+            <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-3 block">Application Theme</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => handleThemeToggle("light")}
+                className={cn(
+                  "flex items-center justify-center gap-3 py-4 rounded-2xl font-bold text-sm transition-all border-2",
+                  initialProgress.theme === "light" 
+                    ? "bg-amber-accent/10 border-amber-accent text-amber-accent" 
+                    : "bg-bg-2 border-transparent text-text-muted hover:border-border-2"
+                )}
+              >
+                <div className="w-4 h-4 rounded-full bg-white border border-gray-200" />
+                Light Mode
+              </button>
+              <button
+                onClick={() => handleThemeToggle("dark")}
+                className={cn(
+                  "flex items-center justify-center gap-3 py-4 rounded-2xl font-bold text-sm transition-all border-2",
+                  initialProgress.theme === "dark" || !initialProgress.theme
+                    ? "bg-blue-primary/10 border-blue-primary text-blue-secondary" 
+                    : "bg-bg-2 border-transparent text-text-muted hover:border-border-2"
+                )}
+              >
+                <div className="w-4 h-4 rounded-full bg-black border border-white/20" />
+                Dark Mode
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Study Goals */}
         <div className="card space-y-6">
           <div className="flex items-center gap-2 text-violet-accent font-bold text-xs uppercase tracking-widest">
@@ -132,14 +185,10 @@ export default function Settings({ onUpdate }: SettingsProps) {
               {[30, 60, 90, 120, 180, 240].map((m) => (
                 <button
                   key={m}
-                  onClick={() => {
-                    const updated = { ...progress, dailyGoalMin: m };
-                    setProgress(updated);
-                    saveProgress(updated);
-                  }}
+                  onClick={() => handleGoalChange(m)}
                   className={cn(
                     "py-2.5 rounded-xl font-bold text-xs transition-all",
-                    progress.dailyGoalMin === m 
+                    initialProgress.dailyGoalMin === m 
                       ? "bg-violet-accent/10 border-2 border-violet-accent text-violet-accent" 
                       : "bg-bg-2 border-2 border-transparent text-text-muted hover:border-border-2"
                   )}
@@ -148,7 +197,7 @@ export default function Settings({ onUpdate }: SettingsProps) {
                 </button>
               ))}
             </div>
-            <div className="text-[10px] text-text-muted font-medium italic">Current goal: <span className="text-violet-accent font-bold">{progress.dailyGoalMin} minutes per day</span></div>
+            <div className="text-[10px] text-text-muted font-medium italic">Current goal: <span className="text-violet-accent font-bold">{initialProgress.dailyGoalMin} minutes per day</span></div>
           </div>
         </div>
 

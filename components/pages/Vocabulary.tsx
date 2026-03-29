@@ -12,7 +12,8 @@ import {
   Plus,
   Bookmark,
   Sparkles,
-  CheckCircle2
+  CheckCircle2,
+  Lightbulb
 } from "lucide-react";
 import { getProgress, saveProgress, UserProgress } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -99,12 +100,24 @@ export default function Vocabulary() {
   const getAiAnalysis = async (word: string) => {
     setIsAnalyzing(true);
     setAiAnalysis(null);
-    const systemPrompt = `You are an IELTS vocabulary expert. Analyze the word "${word}".
-    Provide:
-    1. 2-3 advanced synonyms with subtle differences in meaning.
-    2. 2-3 common collocations (words that go together).
-    3. An example sentence specifically for an IELTS Writing Task 2 context.
-    Use markdown for formatting. Keep it concise and high-band.`;
+    const systemPrompt = `Act as an IELTS Expert Examiner. Analyze the word "${word}" for an IELTS Band 9.0 candidate.
+    
+    Provide a detailed analysis in Markdown format with the following sections:
+    
+    ### 1. Lexical Nuance & Precision
+    Explain the exact nuance of this word compared to common synonyms. Why would a Band 9.0 student choose this word?
+    
+    ### 2. High-Level Collocations
+    Provide 5-7 natural, academic collocations (e.g., "mitigate the impact", "profound implications").
+    
+    ### 3. IELTS Writing Task 2 Application
+    Provide 2 complex sentences using this word in the context of common Task 2 topics (e.g., Environment, Education, Technology).
+    
+    ### 4. Synonyms & Antonyms (Band 8-9 Level)
+    List 3-4 advanced synonyms and 2-3 antonyms with brief notes on their usage.
+    
+    ### 5. Common Pitfalls
+    Mention any common mistakes students make with this word (e.g., wrong preposition, incorrect register).`;
 
     try {
       const result = await callGroq(`Word: ${word}`, systemPrompt);
@@ -141,13 +154,16 @@ export default function Vocabulary() {
   const addCustomWord = async () => {
     if (!newWord.trim() || !progress) return;
     setIsAdding(true);
-    const systemPrompt = `You are an IELTS vocabulary expert. Define the word "${newWord}".
-    Provide:
-    1. Part of speech (pos).
-    2. Simple definition (def).
-    3. High-band example sentence (ex).
-    4. Estimated IELTS band (band).
-    Return in JSON format: { "w": "${newWord}", "pos": "...", "def": "...", "ex": "...", "band": "..." }`;
+    const systemPrompt = `Act as an IELTS Expert Examiner. Analyze the word "${newWord}" and provide its details for a vocabulary database.
+    
+    Return ONLY a JSON object with the following structure:
+    {
+      "w": "${newWord}",
+      "pos": "part of speech (e.g., n, v, adj)",
+      "def": "a concise, academic definition",
+      "ex": "a complex, high-band example sentence suitable for IELTS Writing Task 2",
+      "band": "estimated band score (e.g., 7.5, 8.0, 9.0)"
+    }`;
 
     try {
       const result = await callGroq(`Word: ${newWord}`, systemPrompt);
@@ -189,7 +205,7 @@ export default function Vocabulary() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search words..."
-            className="w-full bg-bg-2 border border-border rounded-[2rem] pl-14 pr-6 py-5 text-base text-text-primary focus:border-blue-primary focus:ring-8 focus:ring-blue-primary/5 outline-none transition-all shadow-inner group-hover:bg-bg-3"
+            className="input w-full bg-bg-2 border border-border rounded-2xl pl-14 pr-6 py-5 text-base text-text-primary focus:border-blue-primary focus:ring-8 focus:ring-blue-primary/5 outline-none transition-all shadow-inner group-hover:bg-bg-3"
           />
         </div>
       </div>
@@ -205,7 +221,7 @@ export default function Vocabulary() {
             value={newWord}
             onChange={(e) => setNewWord(e.target.value)}
             placeholder="Enter a new word to analyze..."
-            className="flex-1 bg-bg-1 border border-border rounded-2xl px-6 py-4 text-base text-text-primary focus:border-blue-primary outline-none shadow-inner"
+            className="input flex-1 bg-bg-1 border border-border rounded-2xl px-6 py-4 text-base text-text-primary focus:border-blue-primary outline-none shadow-inner"
           />
           <button
             onClick={addCustomWord}
@@ -219,7 +235,7 @@ export default function Vocabulary() {
 
       {/* Word of the Day Hero */}
       {progress.dailyWord && (
-        <div className="relative overflow-hidden rounded-[3rem] recipe-atmospheric-bg p-10 md:p-16 text-white shadow-2xl shadow-violet-accent/20 border border-violet-accent/20">
+        <div className="relative overflow-hidden rounded-2xl recipe-atmospheric-bg p-10 md:p-16 text-white shadow-2xl shadow-violet-accent/20 border border-violet-accent/20">
           <div className="absolute top-0 right-0 p-16 opacity-10 pointer-events-none transform translate-x-1/4 -translate-y-1/4 scale-150">
             <Sparkles size={300} />
           </div>
@@ -268,6 +284,58 @@ export default function Vocabulary() {
           </div>
         </div>
       )}
+
+      {/* Band 9.0 Vocabulary Masterclass */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="recipe-hardware-widget p-8 border-violet-accent/20 bg-violet-accent/5 mb-12"
+      >
+        <div className="flex items-center gap-3 text-violet-accent font-black text-[11px] uppercase tracking-[0.3em] mb-6">
+          <Sparkles size={16} /> Band 9.0 Vocabulary Masterclass
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="space-y-4">
+            <h4 className="font-bold text-text-primary flex items-center gap-2">
+              <BookOpen size={16} className="text-violet-accent" /> Lexical Precision
+            </h4>
+            <ul className="space-y-3 text-sm text-text-muted">
+              <li className="flex items-start gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-violet-accent mt-1.5 shrink-0 shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
+                <span><strong className="text-text-primary">Collocations:</strong> Use words that naturally go together (e.g., "mitigate risk" instead of "reduce risk").</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-violet-accent mt-1.5 shrink-0 shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
+                <span><strong className="text-text-primary">Nuance:</strong> Choose the exact word for the context (e.g., "ubiquitous" vs "common").</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-violet-accent mt-1.5 shrink-0 shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
+                <span><strong className="text-text-primary">Topic-Specific:</strong> Use terminology specific to the subject (e.g., "pedagogy" for education).</span>
+              </li>
+            </ul>
+          </div>
+          <div className="space-y-4">
+            <h4 className="font-bold text-text-primary flex items-center gap-2">
+              <Lightbulb size={16} className="text-violet-accent" /> Advanced Usage
+            </h4>
+            <ul className="space-y-3 text-sm text-text-muted">
+              <li className="flex items-start gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-violet-accent mt-1.5 shrink-0 shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
+                <span><strong className="text-text-primary">Idiomatic Expressions:</strong> Use naturally (e.g., "at a crossroads", "the tip of the iceberg").</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-violet-accent mt-1.5 shrink-0 shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
+                <span><strong className="text-text-primary">Register:</strong> Maintain a consistent academic or formal tone throughout.</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <div className="w-1.5 h-1.5 rounded-full bg-violet-accent mt-1.5 shrink-0 shadow-[0_0_8px_rgba(139,92,246,0.5)]" />
+                <span><strong className="text-text-primary">Flexibility:</strong> Show you can use various forms of the same word (e.g., "analysis", "analyse", "analytical").</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </motion.div>
 
       <div className="flex justify-center">
         <div className="flex bg-bg-2 p-1.5 rounded-2xl border border-border shadow-inner">
@@ -320,7 +388,7 @@ export default function Vocabulary() {
       {isFlashcardMode ? (
         <div className="flex flex-col items-center justify-center py-16 space-y-12">
           {filteredVocab.length === 0 ? (
-            <div className="text-center py-20 bg-bg-2 rounded-[3rem] border border-border w-full max-w-xl flex flex-col items-center justify-center space-y-4">
+            <div className="text-center py-20 bg-bg-2 rounded-2xl border border-border w-full max-w-xl flex flex-col items-center justify-center space-y-4">
               <div className="w-16 h-16 rounded-full bg-bg-3 flex items-center justify-center text-text-muted">
                 <Search size={32} />
               </div>
@@ -336,13 +404,13 @@ export default function Vocabulary() {
                   onClick={() => setIsFlipped(!isFlipped)}
                 >
                   {/* Front */}
-                  <div className="absolute inset-0 backface-hidden card bg-bg-2 border-border-2 flex flex-col items-center justify-center text-center p-12 shadow-2xl rounded-[3rem]">
+                  <div className="absolute inset-0 backface-hidden card bg-bg-2 border-border-2 flex flex-col items-center justify-center text-center p-12 shadow-2xl rounded-2xl">
                     <div className="recipe-editorial-label text-blue-secondary mb-8">Word</div>
                     <h3 className="recipe-editorial-h1 text-6xl md:text-8xl">{filteredVocab[flashcardIndex]?.w}</h3>
                     <div className="mt-12 text-[10px] font-black text-text-muted uppercase tracking-widest animate-pulse">Click to flip</div>
                   </div>
                   {/* Back */}
-                  <div className="absolute inset-0 backface-hidden card bg-bg-2 border-border-2 flex flex-col items-center justify-center text-center p-12 shadow-2xl rounded-[3rem] rotate-y-180">
+                  <div className="absolute inset-0 backface-hidden card bg-bg-2 border-border-2 flex flex-col items-center justify-center text-center p-12 shadow-2xl rounded-2xl rotate-y-180">
                     <div className="recipe-editorial-label text-green-accent mb-6">Definition</div>
                     <p className="text-xl text-text-primary leading-relaxed mb-10 font-medium">{filteredVocab[flashcardIndex]?.def}</p>
                     <div className="recipe-editorial-label text-blue-secondary mb-4">Example</div>
@@ -387,7 +455,7 @@ export default function Vocabulary() {
                   key={i}
                   onClick={() => setSelectedWord(item)}
                   className={cn(
-                    "card flex items-center gap-6 text-left hover:border-blue-primary group p-6 rounded-[2.5rem] transition-all hover:shadow-2xl hover:shadow-blue-primary/5",
+                    "card flex items-center gap-6 text-left hover:border-blue-primary group p-6 rounded-2xl transition-all hover:shadow-2xl hover:shadow-blue-primary/5",
                     isKnown && "border-green-accent/30 bg-green-accent/5"
                   )}
                 >
@@ -425,7 +493,7 @@ export default function Vocabulary() {
                   initial={{ scale: 0.95, opacity: 0, y: 20 }}
                   animate={{ scale: 1, opacity: 1, y: 0 }}
                   exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                  className="w-full max-w-4xl bg-bg-1 border border-border/50 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] relative rounded-[2.5rem]"
+                  className="w-full max-w-4xl bg-bg-1 border border-border/50 shadow-2xl overflow-hidden flex flex-col max-h-[90vh] relative rounded-2xl"
                 >
                   {/* Header Section - Compacted to maximize content space */}
                   <div className="p-6 md:p-8 bg-gradient-to-b from-blue-dim/20 to-transparent border-b border-border/50 flex-shrink-0 relative">
@@ -484,7 +552,7 @@ export default function Vocabulary() {
                     {/* Example */}
                     <div className="space-y-4">
                       <div className="recipe-editorial-label">Example Context</div>
-                      <div className="p-8 bg-bg-2/50 rounded-3xl border border-border italic text-xl text-text-secondary leading-relaxed shadow-inner">
+                      <div className="p-8 bg-bg-2/50 rounded-2xl border border-border italic text-xl text-text-secondary leading-relaxed shadow-inner">
                         &quot;{selectedWord.ex}&quot;
                       </div>
                     </div>
@@ -492,7 +560,7 @@ export default function Vocabulary() {
                     {/* AI Analysis or Practice */}
                     <div className="pt-12 border-t border-border/50">
                       {isAnalyzing ? (
-                        <div className="flex flex-col items-center justify-center gap-6 py-16 bg-blue-primary/5 rounded-3xl border border-dashed border-blue-primary/20">
+                        <div className="flex flex-col items-center justify-center gap-6 py-16 bg-blue-primary/5 rounded-2xl border border-dashed border-blue-primary/20">
                           <Loader2 size={32} className="animate-spin text-blue-primary" /> 
                           <span className="recipe-hardware-label text-blue-primary">Aria is synthesizing usage patterns...</span>
                         </div>
@@ -500,7 +568,7 @@ export default function Vocabulary() {
                         <motion.div 
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="bg-blue-dim/10 border border-blue-primary/20 p-8 md:p-10 rounded-3xl"
+                          className="bg-blue-dim/10 border border-blue-primary/20 p-8 md:p-10 rounded-2xl"
                         >
                           <div className="flex items-center gap-3 text-blue-secondary font-black text-[11px] uppercase tracking-widest mb-6">
                             <Sparkles size={16} /> AI Deep Analysis
@@ -517,7 +585,7 @@ export default function Vocabulary() {
                               value={testSentence}
                               onChange={(e) => setTestSentence(e.target.value)}
                               placeholder={`Construct a sentence using "${selectedWord.w}" in an academic context...`}
-                              className="w-full bg-bg-2 border border-border rounded-3xl p-8 text-xl text-text-primary focus:border-blue-primary focus:ring-4 focus:ring-blue-primary/10 outline-none min-h-[200px] resize-none transition-all shadow-inner"
+                              className="textarea w-full bg-bg-2 border border-border rounded-2xl p-8 text-xl text-text-primary focus:border-blue-primary focus:ring-4 focus:ring-blue-primary/10 outline-none min-h-[200px] resize-none transition-all shadow-inner"
                             />
                             <button
                               onClick={checkSentence}
@@ -532,7 +600,7 @@ export default function Vocabulary() {
                                 <motion.div 
                                   initial={{ opacity: 0, y: 20 }}
                                   animate={{ opacity: 1, y: 0 }}
-                                  className="bg-bg-2 border border-border p-8 md:p-10 rounded-3xl shadow-inner"
+                                  className="bg-bg-2 border border-border p-8 md:p-10 rounded-2xl shadow-inner"
                                 >
                                   <div className="text-[11px] font-black text-blue-secondary uppercase tracking-widest mb-6 flex items-center gap-3">
                                     <CheckCircle2 size={18} /> AI Feedback
@@ -580,7 +648,7 @@ export default function Vocabulary() {
       )}
       
       {!isFlashcardMode && (
-        <div className="mt-16 p-12 card bg-bg-2 border-dashed border-border-2 text-center rounded-[3rem] relative overflow-hidden">
+        <div className="mt-16 p-12 card bg-bg-2 border-dashed border-border-2 text-center rounded-2xl relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-primary/30 to-transparent" />
           <h3 className="recipe-editorial-h1 text-3xl mb-4">Ready for a challenge?</h3>
           <p className="text-lg text-text-muted mb-10 max-w-md mx-auto leading-relaxed font-medium">Switch to Flashcard mode to test your memory and master these words.</p>

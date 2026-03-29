@@ -19,13 +19,12 @@ import {
   BookOpenCheck
 } from "lucide-react";
 import { getProgress, saveProgress, UserProgress } from "@/lib/store";
+import { calculateReadingBand } from "@/lib/ielts";
 import { cn } from "@/lib/utils";
 import { callGroq, callGroqJSON } from "@/lib/groq";
 import ReactMarkdown from "react-markdown";
 
-const READING_SAMPLES: any[] = [];
-
-const READING_PASSAGES: any[] = [];
+import { READING_PASSAGES, READING_SAMPLES, Sample } from "@/lib/data/ielts_content";
 
 export default function Reading() {
   const [progress, setProgress] = useState<UserProgress | null>(null);
@@ -37,6 +36,60 @@ export default function Reading() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiFeedback, setAiFeedback] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [dynamicPassages, setDynamicPassages] = useState<any[]>(READING_PASSAGES);
+  const [isGeneratingMore, setIsGeneratingMore] = useState(false);
+
+  const generateMorePassages = async () => {
+    setIsGeneratingMore(true);
+    const schema = {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          title: { type: "string" },
+          difficulty: { type: "string", enum: ["Medium", "Hard"] },
+          mins: { type: "number" },
+          text: { type: "string" },
+          questions: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: "string" },
+                type: { type: "string", enum: ["multiple-choice", "tfng", "matching-headings", "matching-info", "completion"] },
+                q: { type: "string" },
+                options: { type: "array", items: { type: "string" } },
+                answer: { type: "string" },
+                explanation: { type: "string" }
+              },
+              required: ["id", "type", "q", "answer"]
+            }
+          }
+        },
+        required: ["id", "title", "difficulty", "mins", "text", "questions"]
+      }
+    };
+
+    const prompt = `Generate 3 new unique IELTS Academic Reading passages. 
+    Ensure high academic quality and varied topics (e.g., science, history, sociology). 
+    Each passage should have 13-14 questions.`;
+
+    try {
+      const result = await callGroqJSON(prompt, schema);
+      if (result && Array.isArray(result)) {
+        const newPassages = result.map((p: any) => ({
+          ...p,
+          id: `dynamic-${Date.now()}-${p.id}`
+        }));
+        setDynamicPassages(prev => [...prev, ...newPassages]);
+      }
+    } catch (error) {
+      console.error("Failed to generate more passages:", error);
+    } finally {
+      setIsGeneratingMore(false);
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -44,6 +97,10 @@ export default function Reading() {
       setProgress(p);
     };
     load();
+    // Automatically generate more content on mount to provide a dynamic experience
+    if (dynamicPassages.length <= READING_PASSAGES.length) {
+      generateMorePassages();
+    }
   }, []);
 
   useEffect(() => {
@@ -132,17 +189,27 @@ export default function Reading() {
     setShowResults(true);
     setIsAnalyzing(true);
     
-    const correctCount = activePassage.questions.filter((q: any, i: number) => userAnswers[i] === q.answer).length;
-    const score = (correctCount / activePassage.questions.length) * 9;
+    let correctCount = 0;
+    activePassage.questions.forEach((q: any, i: number) => {
+      const userAns = (userAnswers[i] || "").toString().toLowerCase().trim();
+      const correctAns = (q.answer || "").toString().toLowerCase().trim();
+      if (userAns === correctAns) {
+        correctCount++;
+      }
+    });
+
+    const band = calculateReadingBand(correctCount);
 
     if (progress) {
       const updated = { 
         ...progress, 
         studyMinutes: (progress.studyMinutes || 0) + activePassage.mins,
-        bands: { ...progress.bands, reading: Math.max(progress.bands?.reading || 0, score) }
+        bands: { ...progress.bands, reading: band },
+        bandHistory: [...progress.bandHistory, { date: new Date().toISOString().split("T")[0], band, skill: "reading" }],
+        mockHistory: [...progress.mockHistory, { date: new Date().toISOString().split("T")[0], test: `Practice: ${activePassage.title}`, band, skill: "reading" }],
       };
-      saveProgress(updated);
       setProgress(updated);
+      saveProgress(updated);
     }
 
     // AI Assessment
@@ -184,58 +251,86 @@ export default function Reading() {
           </div>
         </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full overflow-hidden">
-            <div className="space-y-4 flex flex-col h-[40vh] lg:h-full">
-              <div className="card bg-bg-2 border-border-2 flex-1 overflow-y-auto custom-scrollbar p-6">
-                <h3 className="font-serif font-bold text-xl mb-4 sticky top-0 bg-bg-2 py-2 border-b border-border-2">{activePassage.title}</h3>
-                <div className="prose prose-invert prose-sm max-w-none text-text-secondary leading-relaxed whitespace-pre-wrap">
-                  {activePassage.text}
-                </div>
+        <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-250px)] min-h-[600px]">
+          {/* Left Side: Passage */}
+          <div className="lg:w-1/2 flex flex-col h-full">
+            <div className="card bg-bg-2 border-border-2 flex-1 overflow-y-auto custom-scrollbar p-8 shadow-inner rounded-2xl">
+              <div className="flex items-center gap-2 text-emerald-600 font-black text-[10px] uppercase tracking-[0.2em] mb-6 sticky top-0 bg-bg-2 py-2 z-10">
+                <BookOpen size={14} /> Reading Passage
+              </div>
+              <h3 className="font-serif font-black text-3xl mb-8 text-text-primary leading-tight">{activePassage.title}</h3>
+              <div className="prose prose-invert prose-sm md:prose-base max-w-none text-text-secondary leading-relaxed whitespace-pre-wrap font-medium">
+                {activePassage.text}
               </div>
             </div>
+          </div>
 
-            <div className="space-y-4 flex flex-col h-[50vh] lg:h-full">
-              <div className="font-bold text-sm flex items-center gap-2 px-1 shrink-0">
-                <PenTool size={16} className="text-blue-secondary" /> Reading Questions
+          {/* Right Side: Questions */}
+          <div className="lg:w-1/2 flex flex-col h-full gap-4">
+            <div className="flex items-center justify-between px-1 shrink-0">
+              <div className="font-black text-[10px] uppercase tracking-[0.2em] flex items-center gap-2 text-blue-secondary">
+                <PenTool size={14} /> Questions 1-{activePassage.questions.length}
               </div>
-              <div className="space-y-4 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+              <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest">
+                {Object.keys(userAnswers).length}/{activePassage.questions.length} Answered
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-4">
               {activePassage.questions.map((q: any, i: number) => (
-                <div key={i} className="card border-border">
-                  <div className="text-xs font-bold text-text-primary mb-3">{i + 1}. {q.q}</div>
-                  <div className="space-y-2">
-                    {q.options.map((opt: string, optIdx: number) => (
-                      <button
-                        key={optIdx}
-                        onClick={() => !showResults && setUserAnswers({ ...userAnswers, [i]: optIdx })}
-                        className={cn(
-                          "w-full text-left p-3 rounded-xl border text-xs transition-all",
-                          userAnswers[i] === optIdx 
-                            ? "bg-blue-primary border-blue-primary text-white" 
-                            : "bg-bg border-border-2 text-text-secondary hover:border-blue-primary",
-                          showResults && optIdx === q.answer && "border-green-accent bg-green-accent/10 text-green-accent",
-                          showResults && userAnswers[i] === optIdx && optIdx !== q.answer && "border-red-accent bg-red-accent/10 text-red-accent"
-                        )}
-                      >
-                        {opt}
-                      </button>
-                    ))}
+                <div key={i} className="card border-border bg-white/5 hover:border-blue-primary/30 transition-all group rounded-xl">
+                  <div className="flex gap-4">
+                    <div className="text-lg font-serif font-black text-blue-secondary opacity-30 group-hover:opacity-100 transition-opacity shrink-0">{i + 1}.</div>
+                    <div className="flex-1 space-y-4">
+                      <p className="text-sm text-text-primary font-bold leading-relaxed">{q.q}</p>
+                      <div className="grid grid-cols-1 gap-2">
+                        {q.options.map((opt: string, optIdx: number) => (
+                          <button
+                            key={optIdx}
+                            onClick={() => !showResults && setUserAnswers({ ...userAnswers, [i]: optIdx })}
+                            className={cn(
+                              "w-full text-left p-4 rounded-xl border text-xs transition-all flex items-center gap-3",
+                              userAnswers[i] === optIdx 
+                                ? "bg-blue-primary border-blue-primary text-white shadow-lg shadow-blue-primary/20" 
+                                : "bg-white/5 border-white/10 text-text-secondary hover:bg-white/10 hover:border-blue-primary/50",
+                              showResults && optIdx === q.answer && "border-green-accent bg-green-accent/10 text-green-accent ring-1 ring-green-accent",
+                              showResults && userAnswers[i] === optIdx && optIdx !== q.answer && "border-red-accent bg-red-accent/10 text-red-accent ring-1 ring-red-accent"
+                            )}
+                          >
+                            <span className="w-6 h-6 rounded-lg bg-black/20 flex items-center justify-center font-black text-[10px] shrink-0">
+                              {String.fromCharCode(65 + optIdx)}
+                            </span>
+                            <span className="flex-1">{opt}</span>
+                          </button>
+                        ))}
+                      </div>
+                      {showResults && (
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest pt-2 border-t border-white/5">
+                          {userAnswers[i] === q.answer 
+                            ? <span className="text-green-accent flex items-center gap-1">✓ Correct</span> 
+                            : <span className="text-red-accent flex items-center gap-1">✗ Correct Answer: {String.fromCharCode(65 + q.answer)}</span>}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
 
             {!showResults ? (
-              <button onClick={handleCheck} className="btn btn-primary w-full py-4">Submit Answers</button>
+              <button onClick={handleCheck} className="btn btn-primary w-full py-5 shadow-xl shadow-blue-primary/20 shrink-0">
+                Submit Answers
+              </button>
             ) : (
-              <div className="space-y-6">
-                <div className="card bg-blue-dim/10 border-blue-primary/20 text-center py-6">
+              <div className="space-y-6 shrink-0">
+                <div className="card bg-blue-dim/10 border-blue-primary/20 text-center py-8 rounded-2xl">
                   <Trophy size={32} className="mx-auto text-yellow-500 mb-2" />
                   <div className="text-xl font-black text-blue-primary">
-                    Band {((activePassage.questions.filter((q: any, i: number) => userAnswers[i] === q.answer).length / activePassage.questions.length) * 9).toFixed(1)}
+                    Band {calculateReadingBand(activePassage.questions.filter((q: any, i: number) => userAnswers[i] === q.answer).length)}
                   </div>
                 </div>
 
-                <div className="card bg-bg-2 border-border-2 p-6">
+                <div className="card bg-bg-2 border-border-2 p-8 rounded-2xl">
                   <div className="flex items-center gap-2 text-blue-secondary font-bold text-xs uppercase tracking-widest mb-4">
                     <Sparkles size={16} /> AI Assessment & Explanations
                   </div>
@@ -261,122 +356,150 @@ export default function Reading() {
   }
 
     return (
-    <div className="space-y-8">
+    <div className="space-y-16 pb-20">
       {/* Reading Hero Section */}
-      <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-500 p-8 md:p-12 text-white shadow-2xl shadow-emerald-500/20">
-        <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none">
-          <BookOpen size={200} />
-        </div>
-        <div className="relative z-10 space-y-6">
-          <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] opacity-80">
-            <Sparkles size={14} className="animate-pulse" /> Reading Mastery
+      <div className="relative overflow-hidden rounded-3xl bg-bg-1 border border-white/5 p-8 md:p-12 lg:p-16">
+        <div className="absolute inset-0 recipe-atmospheric-bg opacity-30" />
+        <div className="absolute -top-24 -right-24 w-96 h-96 bg-emerald-500/10 rounded-full blur-[120px] animate-pulse" />
+        
+        <div className="relative z-10 flex flex-col 2xl:flex-row 2xl:items-end justify-between gap-12">
+          <div className="max-w-3xl min-w-0">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="recipe-editorial-label mb-8 flex items-center gap-3"
+            >
+              <div className="w-8 h-px bg-emerald-500/30" />
+              <BookOpen size={16} className="text-emerald-500" /> Receptive Skills
+            </motion.div>
+            
+            <motion.h2 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="recipe-editorial-h1 mb-8"
+            >
+              Reading <span className="text-emerald-500">Academy</span>
+            </motion.h2>
+            
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-xl text-text-secondary leading-relaxed font-medium max-w-2xl"
+            >
+              Master skimming, scanning, and detailed reading with our curated 
+              collection of IELTS-style passages and AI-powered feedback.
+            </motion.p>
           </div>
-          <div className="space-y-2">
-            <h3 className="font-serif text-5xl md:text-7xl font-black uppercase tracking-tighter leading-none">
-              ACADEMIC READING
-            </h3>
-            <p className="text-lg md:text-xl font-medium max-w-2xl leading-relaxed opacity-90">
-              Master skimming, scanning, and detailed reading with our curated collection of IELTS-style passages.
-            </p>
-          </div>
-          
-          <div className="flex flex-wrap gap-4 pt-4">
-            <div className="flex items-center gap-6 px-6 py-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
-              <div className="flex flex-col">
-                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Avg. Speed</span>
-                <span className="text-xl font-black">240 wpm</span>
-              </div>
-              <div className="w-px h-8 bg-white/20" />
-              <div className="flex flex-col">
-                <span className="text-[10px] font-black uppercase tracking-widest opacity-60">Accuracy</span>
-                <span className="text-xl font-black">84%</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="font-serif text-2xl font-bold mb-1">📖 Reading Academy</h2>
-          <p className="text-sm text-text-muted">Master IELTS reading with academic passages and practice</p>
-        </div>
-        <div className="flex bg-bg-2 p-1 rounded-xl border border-border">
-          <button 
-            onClick={() => setActiveTab("practice")}
-            className={cn(
-              "px-4 py-2 rounded-lg text-xs font-bold transition-all",
-              activeTab === "practice" ? "bg-blue-primary text-white shadow-lg" : "text-text-muted hover:text-text-primary"
-            )}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+            className="flex flex-wrap md:flex-nowrap bg-bg-2/50 backdrop-blur-xl p-2 rounded-2xl border border-white/5 shadow-2xl"
           >
-            Practice
-          </button>
-          <button 
-            onClick={() => setActiveTab("samples")}
-            className={cn(
-              "px-4 py-2 rounded-lg text-xs font-bold transition-all",
-              activeTab === "samples" ? "bg-blue-primary text-white shadow-lg" : "text-text-muted hover:text-text-primary"
-            )}
-          >
-            Sample Q&A
-          </button>
-          <button 
-            onClick={() => setActiveTab("ai-test")}
-            className={cn(
-              "px-4 py-2 rounded-lg text-xs font-bold transition-all",
-              activeTab === "ai-test" ? "bg-blue-primary text-white shadow-lg" : "text-text-muted hover:text-text-primary"
-            )}
-          >
-            AI Practice Test
-          </button>
+            {[
+              { id: "practice", label: "Practice", icon: BookOpen },
+              { id: "samples", label: "Samples", icon: FileText },
+              { id: "ai-test", label: "AI Test", icon: Sparkles },
+            ].map((tab) => (
+              <button 
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={cn(
+                  "flex items-center gap-2 px-8 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-500",
+                  activeTab === tab.id 
+                    ? "bg-emerald-600 text-white shadow-xl shadow-emerald-600/30 scale-105" 
+                    : "text-text-muted hover:text-text-primary hover:bg-white/5"
+                )}
+              >
+                <tab.icon size={14} />
+                <span className="hidden md:inline">{tab.label}</span>
+              </button>
+            ))}
+          </motion.div>
         </div>
       </div>
 
       {activeTab === "practice" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {READING_PASSAGES.map((passage) => (
+        <div className="space-y-8">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider">Practice Passages</h3>
             <button
-              key={passage.id}
-              onClick={() => startPassage(passage)}
-              className="group relative flex flex-col text-left bg-bg-2 border border-border rounded-[2rem] overflow-hidden transition-all hover:border-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/5 active:scale-[0.98]"
+              onClick={generateMorePassages}
+              disabled={isGeneratingMore}
+              className="flex items-center gap-2 text-[10px] font-bold text-violet-accent uppercase tracking-widest hover:underline disabled:opacity-50"
             >
-              <div className="p-8 space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className={cn(
-                    "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest",
-                    passage.difficulty === "Medium" ? "bg-amber-dim text-amber-600" : "bg-red-dim text-red-accent"
-                  )}>{passage.difficulty}</span>
-                  <span className="text-[10px] font-bold text-text-muted flex items-center gap-1">
-                    <Clock size={12} /> {passage.mins} Mins
-                  </span>
-                </div>
-                <h3 className="font-serif text-2xl font-black text-text-primary group-hover:text-emerald-600 transition-colors">{passage.title}</h3>
-                <p className="text-sm text-text-muted line-clamp-2 mb-4 leading-relaxed">
-                  {passage.text.substring(0, 150)}...
-                </p>
-                <div className="flex items-center justify-between pt-4 border-t border-border">
-                  <span className="text-[10px] font-black text-text-muted uppercase tracking-widest">{passage.questions.length} Questions</span>
-                  <div className="w-10 h-10 rounded-full bg-bg-1 border border-border flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-all">
-                    <ChevronRight size={20} />
+              {isGeneratingMore ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+              {isGeneratingMore ? "Generating..." : "Generate More Practice Passages"}
+            </button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {dynamicPassages.map((passage) => (
+              <button
+                key={passage.id}
+                onClick={() => startPassage(passage)}
+                className="group relative flex flex-col text-left bg-bg-2 border border-border rounded-[2rem] overflow-hidden transition-all hover:border-emerald-500/50 hover:shadow-xl hover:shadow-emerald-500/5 active:scale-[0.98]"
+              >
+                <div className="p-8 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className={cn(
+                      "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest",
+                      passage.difficulty === "Medium" ? "bg-amber-dim text-amber-600" : "bg-red-dim text-red-accent"
+                    )}>{passage.difficulty}</span>
+                    <span className="text-[10px] font-bold text-text-muted flex items-center gap-1">
+                      <Clock size={12} /> {passage.mins} Mins
+                    </span>
+                  </div>
+                  <h3 className="font-serif text-2xl font-black text-text-primary group-hover:text-emerald-600 transition-colors">{passage.title}</h3>
+                  <p className="text-sm text-text-muted line-clamp-2 mb-4 leading-relaxed">
+                    {passage.text.substring(0, 150)}...
+                  </p>
+                  <div className="flex items-center justify-between pt-4 border-t border-border">
+                    <span className="text-[10px] font-black text-text-muted uppercase tracking-widest">{passage.questions.length} Questions</span>
+                    <div className="w-10 h-10 rounded-full bg-bg-1 border border-border flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                      <ChevronRight size={20} />
+                    </div>
                   </div>
                 </div>
-              </div>
+              </button>
+            ))}
+          </div>
+
+          <div className="flex justify-center">
+            <button
+              onClick={generateMorePassages}
+              disabled={isGeneratingMore}
+              className="group flex items-center gap-3 px-8 py-4 bg-bg-2 border border-border rounded-xl hover:border-emerald-500/50 transition-all active:scale-95 disabled:opacity-50"
+            >
+              {isGeneratingMore ? (
+                <Loader2 size={20} className="animate-spin text-emerald-600" />
+              ) : (
+                <Sparkles size={20} className="text-emerald-600 group-hover:animate-pulse" />
+              )}
+              <span className="text-sm font-bold text-text-primary">
+                {isGeneratingMore ? "Generating New Passages..." : "Generate More Practice Passages"}
+              </span>
             </button>
-          ))}
+          </div>
         </div>
       )}
 
       {activeTab === "samples" && (
         <div className="space-y-6">
           {READING_SAMPLES.map((sample) => (
-            <div key={sample.id} className="card bg-bg-2 border-border-2 p-6">
+            <div key={sample.id} className="card bg-bg-2 border-border-2 p-8 rounded-2xl">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-text-primary">{sample.title}</h3>
-                <span className="tag tag-blue">{sample.type}</span>
+                <div className="flex items-center gap-3">
+                  <span className="tag tag-blue">{sample.type}</span>
+                  <h3 className="font-bold text-text-primary">{sample.title}</h3>
+                </div>
               </div>
               <div className="space-y-4">
-                <div className="p-4 bg-bg-1 rounded-xl border border-border-2 text-sm text-text-secondary italic">
-                  {sample.passage}
+                <div className="p-4 bg-bg-1 rounded-xl border border-border-2 text-sm text-text-secondary italic leading-relaxed">
+                  <div className="text-[10px] font-bold text-blue-primary uppercase tracking-widest mb-2">Passage Snippet</div>
+                  "{sample.passage}"
                 </div>
                 <div className="space-y-2">
                   <div className="text-xs font-bold text-text-primary">Question: {sample.question}</div>
@@ -397,6 +520,12 @@ export default function Reading() {
                     <span className="font-bold">Explanation:</span> {sample.explanation}
                   </div>
                 </div>
+                <div className="p-4 bg-violet-accent/5 border border-violet-accent/20 rounded-xl">
+                  <div className="text-[10px] font-bold text-violet-accent uppercase tracking-widest mb-1">Examiner Analysis (Band {sample.band})</div>
+                  <div className="text-xs text-text-secondary leading-relaxed">
+                    {sample.analysis}
+                  </div>
+                </div>
               </div>
             </div>
           ))}
@@ -405,7 +534,7 @@ export default function Reading() {
 
       {activeTab === "ai-test" && (
         <div className="flex flex-col items-center justify-center py-20 text-center space-y-6">
-          <div className="w-20 h-20 rounded-3xl bg-blue-primary/10 text-blue-primary flex items-center justify-center">
+          <div className="w-20 h-20 rounded-2xl bg-blue-primary/10 text-blue-primary flex items-center justify-center">
             <Sparkles size={40} />
           </div>
           <div className="max-w-md">

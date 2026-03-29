@@ -35,27 +35,11 @@ interface AppShellProps {
   children: React.ReactNode;
   activePage: string;
   setActivePage: (page: string) => void;
+  progress: UserProgress | null;
 }
 
-export default function AppShell({ children, activePage, setActivePage }: AppShellProps) {
-  const [progress, setProgress] = useState<UserProgress | null>(null);
+export default function AppShell({ children, activePage, setActivePage, progress }: AppShellProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-
-  useEffect(() => {
-    const load = async () => {
-      const p = await getProgress();
-      const updated = updateStreak(p);
-      setProgress(updated);
-      await saveProgress(updated);
-    };
-    load();
-  }, []);
-
-  useEffect(() => {
-    if (progress) {
-      saveProgress(progress);
-    }
-  }, [progress]);
 
   useEffect(() => {
     const handleNavigation = (e: any) => {
@@ -121,7 +105,7 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
   const avgBand = (progress && progress.bands) ? Object.values(progress.bands).filter(v => v > 0).reduce((a, b, _, arr) => a + b / arr.length, 0).toFixed(1) : "—";
 
   return (
-    <div id="app-shell-root" className="flex flex-col md:flex-row min-h-screen bg-bg overflow-hidden">
+    <div id="app-shell-root" className={cn("flex flex-col md:flex-row min-h-screen bg-bg overflow-hidden", progress?.theme === "light" && "light")}>
       {/* Mobile Header */}
       <header id="mobile-header" className="md:hidden fixed top-0 left-0 right-0 h-16 glass-nav border-b border-white/5 flex items-center px-4 gap-3 z-[60]">
         <div id="mobile-logo-container" className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => setActivePage("dashboard")}>
@@ -245,8 +229,8 @@ export default function AppShell({ children, activePage, setActivePage }: AppShe
         </div>
 
         {/* Page Content */}
-        <div id="page-content-viewport" className="flex-1 overflow-y-auto custom-scrollbar relative bg-gradient-to-b from-bg to-bg-1 scroll-smooth">
-          <div className="p-5 md:p-10 lg:p-14 max-w-7xl mx-auto w-full min-h-full">
+        <div id="page-content-viewport" className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar relative bg-gradient-to-b from-bg to-bg-1 scroll-smooth">
+          <div className="p-4 md:p-8 lg:p-10 max-w-7xl mx-auto w-full min-h-full">
             {children}
           </div>
           

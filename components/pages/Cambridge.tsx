@@ -262,7 +262,7 @@ export default function Cambridge() {
                   <input 
                     type="text"
                     onChange={(e) => setUserAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
-                    className="w-full bg-white border border-border-2 rounded-xl p-3 text-sm focus:border-blue-secondary outline-none"
+                    className="input"
                     placeholder="Type answer..."
                   />
                   {showResults && (
@@ -474,7 +474,7 @@ export default function Cambridge() {
             value={essay}
             onChange={(e) => setEssay(e.target.value)}
             placeholder="Type your response here..."
-            className="w-full bg-bg-1 border border-border-2 rounded-2xl p-6 text-sm text-text-primary focus:border-blue-primary outline-none min-h-[400px] resize-none font-serif leading-relaxed mb-6"
+            className="textarea min-h-[400px]"
           />
 
           <div className="flex justify-between items-center">

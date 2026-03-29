@@ -98,11 +98,17 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
       interval = setInterval(() => {
         setTimerTime(prev => prev - 1);
       }, 1000);
-    } else if (timerTime === 0) {
+    } else if (timerTime === 0 && isTimerActive) {
       setIsTimerActive(false);
+      // Update study minutes when timer finishes
+      if (progress) {
+        const updated = { ...progress, studyMinutes: (progress.studyMinutes || 0) + 25 };
+        setProgress(updated);
+        saveProgress(updated);
+      }
     }
     return () => clearInterval(interval);
-  }, [isTimerActive, timerTime]);
+  }, [isTimerActive, timerTime, progress]);
 
   const formatTimer = (s: number) => {
     const m = Math.floor(s / 60);
@@ -218,13 +224,33 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
     }
   };
 
-  const checkChallenge = () => {
+  const checkChallenge = async () => {
+    if (!userChallengeAnswer.trim() || !dailyChallenge) return;
     setIsCheckingChallenge(true);
-    setTimeout(() => {
+    try {
+      const prompt = `The student's answer to the challenge "${dailyChallenge.question}" is "${userChallengeAnswer}". 
+      The correct answer is "${dailyChallenge.answer}". 
+      Is the student's answer correct or close enough? 
+      Return ONLY a JSON object: {"isCorrect": boolean, "feedback": "Short explanation"}`;
+      
+      const result = await callGroq(prompt, "You are an IELTS expert. Return only JSON.");
+      const cleaned = result.replace(/```json|```/g, "").trim();
+      const feedback = JSON.parse(cleaned);
+      
+      setChallengeFeedback(feedback.isCorrect ? `Correct! ${feedback.feedback}` : `Not quite. ${feedback.feedback}`);
+      
+      if (feedback.isCorrect && progress) {
+        const updated = { ...progress, courseXP: (progress.courseXP || 0) + 10 };
+        setProgress(updated);
+        saveProgress(updated);
+      }
+    } catch (error) {
+      console.error("Failed to check challenge:", error);
       const isCorrect = userChallengeAnswer.toLowerCase().includes(dailyChallenge.answer.toLowerCase());
       setChallengeFeedback(isCorrect ? `Correct! ${dailyChallenge.explanation}` : `Not quite. The answer is "${dailyChallenge.answer}". ${dailyChallenge.explanation}`);
+    } finally {
       setIsCheckingChallenge(false);
-    }, 800);
+    }
   };
 
   const generateBriefing = async (p: UserProgress, force = false) => {
@@ -297,10 +323,10 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
   const getRecentActivity = () => {
     const activities: any[] = [];
     
-    progress.writingHistory.forEach(h => {
+    progress.writingHistory.slice(-3).forEach(h => {
       activities.push({
         type: "Writing",
-        detail: `Task: ${h.task}`,
+        detail: `Task: ${h.task.substring(0, 30)}...`,
         time: new Date(h.date).toLocaleDateString(),
         timestamp: new Date(h.date).getTime(),
         icon: PenTool,
@@ -308,10 +334,10 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
       });
     });
     
-    progress.quizHistory.forEach(h => {
+    progress.quizHistory.slice(-3).forEach(h => {
       activities.push({
         type: "Quiz",
-        detail: `Score: ${h.score}/${h.total}`,
+        detail: `Score: ${h.score}%`,
         time: new Date(h.date).toLocaleDateString(),
         timestamp: new Date(h.date).getTime(),
         icon: CheckCircle2,
@@ -319,7 +345,7 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
       });
     });
 
-    progress.mockHistory.forEach(h => {
+    progress.mockHistory.slice(-3).forEach(h => {
       activities.push({
         type: "Mock Test",
         detail: `Band ${h.band || "—"} achieved`,
@@ -327,6 +353,17 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
         timestamp: new Date(h.date).getTime(),
         icon: FileText,
         color: "text-pink-accent"
+      });
+    });
+
+    progress.grammarHistory.slice(-3).forEach(h => {
+      activities.push({
+        type: "Grammar",
+        detail: `Practice session`,
+        time: new Date(h.date).toLocaleDateString(),
+        timestamp: new Date(h.date).getTime(),
+        icon: Type,
+        color: "text-amber-accent"
       });
     });
 
@@ -341,7 +378,7 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
       });
     }
 
-    return activities.sort((a, b) => b.timestamp - a.timestamp).slice(0, 3);
+    return activities.sort((a, b) => b.timestamp - a.timestamp).slice(0, 5);
   };
 
   const recentActivities = getRecentActivity();
@@ -384,43 +421,45 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
       {/* Hero Card */}
       <motion.div 
         id="dashboard-hero" 
-        className="card-blue overflow-hidden relative p-8 md:p-14 group min-h-[400px] flex flex-col justify-center"
+        className="card-blue overflow-hidden relative p-8 md:p-14 group min-h-[450px] flex flex-col justify-center rounded-3xl"
         variants={{
           hidden: { opacity: 0, scale: 0.95 },
           visible: { opacity: 1, scale: 1 }
         }}
       >
+        <div className="absolute inset-0 recipe-atmospheric-bg opacity-40" />
         <div id="hero-logo-bg" className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none group-hover:scale-110 transition-transform duration-1000">
           <Logo className="w-48 h-48 md:w-96 md:h-96" />
         </div>
         
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div className="space-y-8">
+          <div className="space-y-10">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <div className="recipe-editorial-label mb-4 flex items-center gap-3">
+              <div className="recipe-editorial-label mb-6 flex items-center gap-3">
+                <div className="w-8 h-px bg-blue-secondary/30" />
                 <Sparkles size={14} className="text-blue-secondary animate-pulse" />
                 <span>{motivation || "Personalized Learning"}</span>
               </div>
-              <h3 className="recipe-editorial-h1 mb-6">
+              <h3 className="recipe-editorial-h1 mb-8">
                 Hello, <br/>
                 <span className="text-blue-secondary">{progress.name}</span>
               </h3>
-              <p className="text-lg text-text-secondary max-w-md leading-relaxed font-medium">
+              <p className="text-xl text-text-secondary max-w-md leading-relaxed font-medium">
                 {progress.streak >= 3 
                   ? `You're on a ${progress.streak}-day winning streak! Your consistency is the key to mastering the IELTS.` 
                   : "Your journey to Band 9.0 starts with a single step. Let's practice today."}
               </p>
             </motion.div>
             
-            <div className="flex flex-wrap gap-4">
-              <button onClick={() => setActivePage("course")} className="btn btn-primary px-8 py-4 text-base shadow-2xl shadow-blue-primary/30">
+            <div className="flex flex-wrap gap-6">
+              <button onClick={() => setActivePage("course")} className="btn btn-primary px-10 py-5 text-sm shadow-2xl shadow-blue-primary/40">
                 Continue Learning
               </button>
-              <button onClick={startRandomPractice} className="btn btn-ghost px-8 py-4 text-base">
+              <button onClick={startRandomPractice} className="btn btn-ghost px-10 py-5 text-sm border border-white/10">
                 Quick Practice
               </button>
             </div>
@@ -428,41 +467,41 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
 
           <div className="flex flex-col items-center lg:items-end">
             <motion.div 
-              className="recipe-hardware-widget w-full max-w-[280px] aspect-square flex flex-col items-center justify-center relative group/band"
+              className="recipe-hardware-widget w-full max-w-[300px] aspect-square flex flex-col items-center justify-center relative group/band rounded-3xl border-white/10"
               whileHover={{ scale: 1.05, rotate: 1 }}
             >
-              <div className="absolute inset-0 bg-blue-primary/5 opacity-0 group-hover/band:opacity-100 transition-opacity rounded-xl" />
-              <div className="recipe-hardware-label mb-4">Predicted Band</div>
-              <div className="font-serif text-8xl md:text-9xl font-black text-blue-secondary leading-none tracking-tighter drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+              <div className="absolute inset-0 bg-blue-primary/5 opacity-0 group-hover/band:opacity-100 transition-opacity rounded-3xl" />
+              <div className="recipe-hardware-label mb-6">Predicted Band</div>
+              <div className="font-serif text-9xl font-black text-blue-secondary leading-none tracking-tighter drop-shadow-[0_0_20px_rgba(59,130,246,0.4)]">
                 {avgBand === "0.0" ? "—" : avgBand}
               </div>
-              <div className="recipe-hardware-label mt-6 flex items-center gap-2">
+              <div className="recipe-hardware-label mt-8 flex items-center gap-3">
                 <span>Target</span>
-                <span className="text-text-primary font-black">{progress.target}</span>
+                <span className="text-text-primary font-black text-lg">{progress.target}</span>
               </div>
               
               {/* Decorative hardware elements */}
-              <div className="absolute top-3 left-3 w-1.5 h-1.5 rounded-full bg-white/10" />
-              <div className="absolute top-3 right-3 w-1.5 h-1.5 rounded-full bg-white/10" />
-              <div className="absolute bottom-3 left-3 w-1.5 h-1.5 rounded-full bg-white/10" />
-              <div className="absolute bottom-3 right-3 w-1.5 h-1.5 rounded-full bg-white/10" />
+              <div className="absolute top-4 left-4 w-2 h-2 rounded-full bg-white/10" />
+              <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-white/10" />
+              <div className="absolute bottom-4 left-4 w-2 h-2 rounded-full bg-white/10" />
+              <div className="absolute bottom-4 right-4 w-2 h-2 rounded-full bg-white/10" />
             </motion.div>
           </div>
         </div>
 
-        <div className="mt-16 space-y-4">
+        <div className="mt-20 space-y-6">
           <div className="flex justify-between items-end">
             <div className="recipe-hardware-label">Overall course progress</div>
             <div className="font-mono text-sm font-black text-blue-secondary">{progressPct}%</div>
           </div>
-          <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+          <div className="h-2 bg-white/5 rounded-full overflow-hidden">
             <motion.div 
               initial={{ width: 0 }}
               animate={{ width: `${progressPct}%` }}
               transition={{ duration: 1.5, ease: "circOut", delay: 0.5 }}
-              className="h-full bg-blue-primary relative shadow-[0_0_15px_rgba(13,122,246,0.5)]"
+              className="h-full bg-blue-primary relative shadow-[0_0_20px_rgba(13,122,246,0.6)]"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+              <div className="absolute inset-0 animate-shimmer" />
             </motion.div>
           </div>
         </div>
@@ -599,7 +638,7 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
         >
           <div>
             <div className="flex items-center justify-between mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-amber-accent/10 text-amber-accent flex items-center justify-center group-hover:scale-110 transition-transform">
+              <div className="w-12 h-12 rounded-xl bg-amber-accent/10 text-amber-accent flex items-center justify-center group-hover:scale-110 transition-transform">
                 <Zap size={24} />
               </div>
               <div className="text-right">
@@ -656,7 +695,7 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
             onClick={() => setActivePage(action.id)}
             className="card flex flex-col items-start gap-4 p-6 group"
           >
-            <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:rotate-6", action.bg)}>
+            <div className={cn("w-14 h-14 rounded-xl flex items-center justify-center transition-all duration-500 group-hover:scale-110 group-hover:rotate-6", action.bg)}>
               <action.icon size={28} className={action.color} />
             </div>
             <div>
@@ -710,10 +749,10 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
 
       {/* Aria's Daily Briefing & Daily Challenge */}
       <div className="grid md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 card recipe-atmospheric-bg border-blue-primary/20 relative overflow-hidden p-8 md:p-12">
+        <div className="md:col-span-2 card recipe-atmospheric-bg border-blue-primary/20 relative overflow-hidden p-8 md:p-12 rounded-xl">
           <div className="flex items-center justify-between mb-10">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-blue-primary/10 rounded-2xl flex items-center justify-center shadow-inner border border-blue-primary/20">
+              <div className="w-14 h-14 bg-blue-primary/10 rounded-xl flex items-center justify-center shadow-inner border border-blue-primary/20">
                 <Bot size={28} className="text-blue-secondary" />
               </div>
               <div>
@@ -754,7 +793,7 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
                 animate={{ opacity: 1, y: 0 }}
                 className="prose prose-invert prose-lg max-w-none text-text-secondary leading-relaxed font-medium"
               >
-                <div className="bg-white/5 p-8 rounded-[2rem] border border-white/5 shadow-inner">
+                <div className="bg-white/5 p-8 rounded-xl border border-white/5 shadow-inner">
                   <Markdown>{progress.dailyBriefing?.content || "Getting your briefing ready..."}</Markdown>
                 </div>
               </motion.div>
@@ -783,7 +822,7 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
             </div>
             {dailyChallenge && (
               <div className="space-y-6">
-                <div className="p-6 bg-bg-1 rounded-3xl border border-border-2 shadow-inner relative overflow-hidden">
+                <div className="p-6 bg-bg-1 rounded-xl border border-border-2 shadow-inner relative overflow-hidden">
                   <div className="absolute top-0 left-0 w-1.5 h-full bg-orange-500/50" />
                   <div className="recipe-hardware-label mb-3 flex items-center gap-2">
                     <BookOpen size={14} /> {dailyChallenge.type}
@@ -805,7 +844,7 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
                         value={userChallengeAnswer}
                         onChange={(e) => setUserChallengeAnswer(e.target.value)}
                         placeholder="Type your answer..."
-                        className="w-full bg-bg-1 border border-border-2 rounded-2xl px-6 py-4 text-sm text-text-primary outline-none focus:border-orange-500 transition-all shadow-inner"
+                        className="input w-full"
                       />
                       <button 
                         onClick={checkChallenge}
@@ -821,7 +860,7 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       className={cn(
-                        "p-8 rounded-[2.5rem] border-2 shadow-2xl relative overflow-hidden",
+                        "p-8 rounded-2xl border-2 shadow-2xl relative overflow-hidden",
                         challengeFeedback.startsWith("Correct") 
                           ? "bg-green-500/5 border-green-500/20 text-green-500" 
                           : "bg-red-500/5 border-red-500/20 text-red-500"
@@ -988,12 +1027,12 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart cx="50%" cy="50%" outerRadius="80%" data={[
-                { subject: 'Listening', A: progress.bands.listening || 0, fullMark: 9 },
-                { subject: 'Reading', A: progress.bands.reading || 0, fullMark: 9 },
-                { subject: 'Writing', A: progress.bands.writing || 0, fullMark: 9 },
-                { subject: 'Speaking', A: progress.bands.speaking || 0, fullMark: 9 },
-                { subject: 'Grammar', A: 9.0, fullMark: 9 },
-                { subject: 'Vocab', A: 8.0, fullMark: 9 },
+                { subject: 'Listening', A: progress.bands.listening || 4, fullMark: 9 },
+                { subject: 'Reading', A: progress.bands.reading || 4, fullMark: 9 },
+                { subject: 'Writing', A: progress.bands.writing || 4, fullMark: 9 },
+                { subject: 'Speaking', A: progress.bands.speaking || 4, fullMark: 9 },
+                { subject: 'Grammar', A: Math.min(9, (progress.grammarHistory.length / 10) * 9) || 5, fullMark: 9 },
+                { subject: 'Vocab', A: Math.min(9, (progress.vocabLearned / 100) * 9) || 5, fullMark: 9 },
               ]}>
                 <PolarGrid stroke="#2D3748" />
                 <PolarAngleAxis dataKey="subject" tick={{ fill: '#A0AEC0', fontSize: 10, fontWeight: 'bold' }} />
@@ -1045,19 +1084,14 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            {[
-              { title: "Early Bird", desc: "5 sessions before 8 AM", icon: "🌅", unlocked: true },
-              { title: "Vocab Master", desc: "Learn 100 new words", icon: "📚", unlocked: true },
-              { title: "Writing Pro", desc: "Submit 10 essays", icon: "✍️", unlocked: false },
-              { title: "Perfect Streak", desc: "7 days in a row", icon: "🔥", unlocked: false },
-            ].map((ach, i) => (
+            {progress.achievements.slice(0, 4).map((ach, i) => (
               <div key={i} className={cn(
                 "p-4 rounded-2xl border transition-all duration-300",
                 ach.unlocked ? "bg-bg-1 border-border-2" : "bg-bg-1/50 border-border-2 opacity-50 grayscale"
               )}>
-                <div className="text-2xl mb-2">{ach.icon}</div>
+                <div className="text-2xl mb-2">{ach.unlocked ? "🏆" : "🔒"}</div>
                 <div className="text-xs font-black text-text-primary mb-1">{ach.title}</div>
-                <div className="text-[10px] text-text-muted leading-tight">{ach.desc}</div>
+                <div className="text-[10px] text-text-muted leading-tight">{ach.description}</div>
               </div>
             ))}
           </div>

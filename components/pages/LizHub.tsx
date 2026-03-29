@@ -73,7 +73,7 @@ export default function LizHub() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search Liz's tips..."
-            className="w-full bg-bg-2 border border-border rounded-[2rem] pl-14 pr-6 py-5 text-base text-text-primary focus:border-blue-primary focus:ring-8 focus:ring-blue-primary/5 outline-none transition-all shadow-inner group-hover:bg-bg-3"
+            className="input pl-14 pr-6 py-5 rounded-[2rem]"
           />
         </div>
       </div>

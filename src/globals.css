@@ -1,28 +1,51 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #020c1b;
-  --color-bg-1: #071427;
-  --color-bg-2: #0c1d3a;
-  --color-bg-3: #112244;
-  --color-border: #1a2f52;
-  --color-border-2: #243d66;
-  --color-blue-primary: #0d7af6;
-  --color-blue-secondary: #3b82f6;
-  --color-blue-dim: #071427;
-  --color-violet-accent: #3b82f6;
-  --color-pink-accent: #db2777;
-  --color-green-accent: #009966;
-  --color-amber-accent: #d97706;
-  --color-red-accent: #dc2626;
-  --color-text-primary: #e2e8f0;
-  --color-text-secondary: #94a3b8;
-  --color-text-muted: #64748b;
-  --color-text-dark: #334155;
+  --color-bg: #050505;
+  --color-bg-1: #0A0A0A;
+  --color-bg-2: #111111;
+  --color-bg-3: #1A1A1A;
+  --color-border: #222222;
+  --color-border-2: #2A2A2A;
+  --color-blue-primary: #3B82F6;
+  --color-blue-secondary: #60A5FA;
+  --color-blue-dim: #1E3A8A;
+  --color-violet-accent: #8B5CF6;
+  --color-pink-accent: #EC4899;
+  --color-green-accent: #10B981;
+  --color-amber-accent: #F59E0B;
+  --color-red-accent: #EF4444;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #A1A1AA;
+  --color-text-muted: #71717A;
+  --color-text-dark: #3F3F46;
 
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Playfair Display", "Georgia", serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+  --radius-3xl: 3rem;
+  --radius-full: 9999px;
+}
+
+.light {
+  --color-bg: #F8FAFC;
+  --color-bg-1: #FFFFFF;
+  --color-bg-2: #F1F5F9;
+  --color-bg-3: #E2E8F0;
+  --color-border: #E2E8F0;
+  --color-border-2: #CBD5E1;
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #475569;
+  --color-text-muted: #64748B;
+  --color-text-dark: #94A3B8;
+  --color-blue-dim: #DBEAFE;
 }
 
 @layer base {
@@ -44,17 +67,23 @@
 
 @layer components {
   .card {
-    @apply bg-bg-1/80 backdrop-blur-md border border-white/5 rounded-2xl p-5 transition-all duration-300 shadow-lg hover:shadow-blue-primary/10 hover:border-blue-primary/30;
+    @apply bg-bg-1 border border-white/5 rounded-2xl p-6 transition-all duration-300 shadow-lg hover:shadow-blue-primary/10 hover:border-blue-primary/30;
   }
   .card-blue {
-    background: linear-gradient(135deg, rgba(12, 30, 61, 0.95), rgba(7, 20, 40, 0.95));
-    @apply border border-blue-dim/50 backdrop-blur-lg rounded-3xl;
+    background: linear-gradient(135deg, rgba(30, 58, 138, 0.2), rgba(10, 10, 10, 0.95));
+    @apply border border-blue-primary/20 backdrop-blur-lg rounded-2xl p-8;
+  }
+  .glass-card {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl;
   }
   .btn {
-    @apply px-6 py-3.5 rounded-xl font-bold text-sm transition-all duration-300 inline-flex items-center justify-center gap-2 relative overflow-hidden active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-6 py-3.5 rounded-xl font-black text-[11px] uppercase tracking-widest transition-all duration-300 inline-flex items-center justify-center gap-2 relative overflow-hidden active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-primary {
-    @apply bg-blue-primary text-white shadow-[0_4px_14px_rgba(37,99,235,0.3)] hover:bg-blue-secondary hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(37,99,235,0.4)] active:translate-y-0 active:shadow-none;
+    @apply bg-blue-primary text-white shadow-[0_4px_14px_rgba(59,130,246,0.3)] hover:bg-blue-secondary hover:-translate-y-0.5 hover:shadow-[0_6px_20px_rgba(59,130,246,0.4)] active:translate-y-0 active:shadow-none;
+  }
+  .btn-secondary {
+    @apply bg-bg-3 text-text-primary border border-border hover:bg-bg-2 hover:border-blue-primary/50 hover:-translate-y-0.5 active:translate-y-0;
   }
   .btn-ghost {
     @apply bg-white/5 border border-white/10 text-text-secondary hover:bg-white/10 hover:border-blue-primary/50 hover:text-blue-secondary hover:-translate-y-0.5 active:translate-y-0;
@@ -66,14 +95,22 @@
     @apply bg-bg-1/90 backdrop-blur-xl border-t border-white/5;
   }
   .tag {
-    @apply inline-block px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest;
+    @apply inline-block px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-widest border;
   }
-  .tag-blue { @apply bg-blue-dim/50 text-blue-secondary border border-blue-secondary/20; }
-  .tag-green { @apply bg-green-accent/10 text-green-accent border border-green-accent/20; }
-  .tag-amber { @apply bg-amber-accent/10 text-amber-accent border border-amber-accent/20; }
-  .tag-violet { @apply bg-violet-accent/10 text-violet-accent border border-violet-accent/20; }
-  .tag-pink { @apply bg-pink-accent/10 text-pink-accent border border-pink-accent/20; }
-  .tag-gray { @apply bg-bg-3 text-text-muted border border-border; }
+  .tag-blue { @apply bg-blue-primary/10 text-blue-secondary border-blue-primary/20; }
+  .tag-green { @apply bg-green-accent/10 text-green-accent border-green-accent/20; }
+  .tag-amber { @apply bg-amber-accent/10 text-amber-accent border-amber-accent/20; }
+  .tag-violet { @apply bg-violet-accent/10 text-violet-accent border-violet-accent/20; }
+  .tag-pink { @apply bg-pink-accent/10 text-pink-accent border-pink-accent/20; }
+  .tag-gray { @apply bg-bg-3 text-text-muted border-border; }
+  .tag-emerald { @apply bg-green-accent/10 text-green-accent border-green-accent/20; }
+
+  .input {
+    @apply w-full bg-bg-2 border border-border rounded-xl px-4 py-3.5 text-sm font-medium text-text-primary outline-none transition-all duration-300 placeholder:text-text-muted focus:border-blue-primary/50 focus:ring-4 focus:ring-blue-primary/10;
+  }
+  .textarea {
+    @apply w-full bg-bg-2 border border-border rounded-xl px-4 py-4 text-sm font-medium text-text-primary outline-none transition-all duration-300 placeholder:text-text-muted focus:border-blue-primary/50 focus:ring-4 focus:ring-blue-primary/10 resize-none;
+  }
 
   /* 3D Transform Utilities */
   .perspective-2000 { perspective: 2000px; }
@@ -83,28 +120,39 @@
 
   /* Recipe 2: Editorial / Magazine Hero */
   .recipe-editorial-h1 {
-    @apply font-serif text-5xl md:text-7xl font-black leading-[0.9] tracking-tighter uppercase;
+    @apply font-serif font-black leading-[0.9] tracking-tighter uppercase break-words;
+    font-size: clamp(2.5rem, 10vw, 5.5rem);
+  }
+  @media (min-width: 768px) {
+    .recipe-editorial-h1 {
+      font-size: clamp(3.5rem, 12vw, 7rem);
+    }
+  }
+  @media (min-width: 1280px) {
+    .recipe-editorial-h1 {
+      font-size: clamp(4.5rem, 15vw, 8.5rem);
+    }
   }
   .recipe-editorial-label {
-    @apply text-[10px] font-black uppercase tracking-[0.3em] text-blue-secondary opacity-70;
+    @apply text-[11px] font-black uppercase tracking-[0.4em] text-blue-secondary;
   }
 
   /* Recipe 3: Hardware / Specialist Tool */
   .recipe-hardware-widget {
-    @apply bg-bg-2 border border-border-2 rounded-xl p-4 shadow-2xl;
+    @apply bg-bg-2 border border-border-2 rounded-2xl p-6 shadow-2xl;
   }
   .recipe-hardware-label {
-    @apply font-mono text-[9px] font-bold uppercase tracking-widest text-text-muted;
+    @apply font-mono text-[10px] font-bold uppercase tracking-widest text-text-muted;
   }
   .recipe-hardware-value {
-    @apply font-mono text-xl font-black text-text-primary tracking-tighter;
+    @apply font-mono text-2xl font-black text-text-primary tracking-tighter;
   }
 
   /* Recipe 7: Atmospheric / Immersive Media */
   .recipe-atmospheric-bg {
     background: 
-      radial-gradient(circle at 50% 30%, rgba(59, 130, 246, 0.1) 0%, transparent 60%),
-      radial-gradient(circle at 10% 80%, rgba(13, 122, 246, 0.1) 0%, transparent 50%);
+      radial-gradient(circle at 50% 30%, rgba(59, 130, 246, 0.15) 0%, transparent 60%),
+      radial-gradient(circle at 10% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
     @apply backdrop-blur-[60px];
   }
 
@@ -125,11 +173,8 @@
   100% { background-position: 200% 0; }
 }
 
-.bar-fill::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
   background-size: 200% 100%;
   animation: shimmer 2s linear infinite;
 }

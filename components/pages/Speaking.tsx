@@ -16,25 +16,17 @@ import {
   VolumeX,
   MicOff,
   Loader2,
-  Sparkles
+  Sparkles,
+  FileText
 } from "lucide-react";
 import { getProgress, saveProgress, UserProgress } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { callGroq, callGroqChat } from "@/lib/groq";
+import { callGroq, callGroqChat, callGroqJSON } from "@/lib/groq";
 import { GoogleGenAI, Modality } from "@google/genai";
 import ReactMarkdown from "react-markdown";
 import SpeakingLiveSession from "./SpeakingLiveSession";
 
-const SPEAKING_SAMPLES: any[] = [];
-
-interface Topic {
-  id: string;
-  title: string;
-  bullets: string[];
-  hints: string;
-}
-
-const SPEAKING_TOPICS: Topic[] = [];
+import { SPEAKING_TOPICS, SPEAKING_SAMPLES, Sample, Topic } from "@/lib/data/ielts_content";
 
 
 export default function Speaking() {
@@ -56,6 +48,57 @@ export default function Speaking() {
   const [activeTab, setActiveTab] = useState<'chat' | 'vocab' | 'feedback'>('chat');
   const [isLiveSessionOpen, setIsLiveSessionOpen] = useState(false);
   const [liveMode, setLiveMode] = useState<"part1" | "part2" | "part3" | "full" | "mock">("full");
+  const [dynamicTopics, setDynamicTopics] = useState<Topic[]>(SPEAKING_TOPICS);
+  const [isGeneratingMore, setIsGeneratingMore] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      const p = await getProgress();
+      setProgress(p);
+    };
+    load();
+    // Automatically generate more content on mount to provide a dynamic experience
+    if (dynamicTopics.length <= SPEAKING_TOPICS.length) {
+      generateMoreTopics();
+    }
+  }, []);
+
+  const generateMoreTopics = async () => {
+    setIsGeneratingMore(true);
+    const schema = {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          title: { type: "string" },
+          difficulty: { type: "string", enum: ["Medium", "Hard"] },
+          bullets: { type: "array", items: { type: "string" } },
+          hints: { type: "string" }
+        },
+        required: ["id", "title", "difficulty", "bullets", "hints"]
+      }
+    };
+
+    const prompt = `Generate 3 new unique IELTS Speaking Part 2 topics (Cue Cards). 
+    Each topic should include a title, 4 bullet points (what the user should say), and examiner hints.
+    Ensure high academic quality and varied themes.`;
+
+    try {
+      const result = await callGroqJSON(prompt, schema);
+      if (result && Array.isArray(result)) {
+        const newTopics = result.map((t: any) => ({
+          ...t,
+          id: `dynamic-${Date.now()}-${t.id}`
+        }));
+        setDynamicTopics(prev => [...prev, ...newTopics]);
+      }
+    } catch (error) {
+      console.error("Failed to generate more topics:", error);
+    } finally {
+      setIsGeneratingMore(false);
+    }
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined" && ("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
@@ -225,7 +268,9 @@ export default function Speaking() {
         const updated = {
           ...progress,
           bands: { ...progress.bands, speaking: band },
-          bandHistory: [...progress.bandHistory, { date: new Date().toISOString().split("T")[0], band, skill: "speaking" }]
+          bandHistory: [...progress.bandHistory, { date: new Date().toISOString().split("T")[0], band, skill: "speaking" }],
+          mockHistory: [...progress.mockHistory, { date: new Date().toISOString().split("T")[0], test: `Practice: Speaking ${simulationMode}`, band, skill: "speaking" }],
+          studyMinutes: (progress.studyMinutes || 0) + 15,
         };
         setProgress(updated);
         saveProgress(updated);
@@ -270,7 +315,7 @@ export default function Speaking() {
         <button onClick={() => setFeedback(null)} className="flex items-center gap-2 text-text-muted hover:text-text-primary transition-colors">
           <ArrowLeft size={16} /> Back to Speaking
         </button>
-        <div className="card card-blue">
+        <div className="card card-blue p-8 rounded-2xl">
           <h3 className="text-xl font-serif font-bold mb-4">Exam Feedback</h3>
           <div className="prose prose-invert prose-sm max-w-none markdown-body">
             <ReactMarkdown>
@@ -294,14 +339,14 @@ export default function Speaking() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-3 md:space-y-4 p-3 md:p-4 bg-bg-2 rounded-2xl border border-border-2 mb-3 md:mb-4 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto space-y-3 md:space-y-4 p-3 md:p-4 bg-bg-2 rounded-xl border border-border-2 mb-3 md:mb-4 custom-scrollbar">
           {messages.map((m, i) => (
             <div key={i} className={cn(
               "flex flex-col max-w-[90%] md:max-w-[85%]",
               m.role === "user" ? "ml-auto items-end" : "items-start"
             )}>
               <div className={cn(
-                "px-3 md:px-4 py-2 md:py-3 rounded-2xl text-xs md:text-sm leading-relaxed",
+                "px-3 md:px-4 py-2 md:py-3 rounded-xl text-xs md:text-sm leading-relaxed",
                 m.role === "user" ? "bg-blue-primary text-white rounded-tr-none" : "bg-bg border border-border-2 text-text-secondary rounded-tl-none"
               )}>
                 {m.text}
@@ -335,7 +380,7 @@ export default function Speaking() {
               onChange={(e) => setUserInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
               placeholder={isListening ? "Listening..." : "Type your response..."}
-              className="flex-1 bg-bg border border-border-2 rounded-xl px-3 md:px-4 py-2 md:py-3 text-sm text-text-primary focus:border-blue-primary outline-none transition-colors"
+              className="input flex-1 bg-bg border border-border-2 rounded-xl px-3 md:px-4 py-2 md:py-3 text-sm text-text-primary focus:border-blue-primary outline-none transition-colors"
             />
             <button onClick={handleSendMessage} disabled={isTyping} className="btn btn-primary px-4 md:px-6">
               Send
@@ -370,7 +415,7 @@ export default function Speaking() {
           <ArrowLeft size={16} /> Back to Topics
         </button>
 
-        <div className="card card-blue">
+        <div className="card card-blue p-8 rounded-2xl">
           <div className="text-[10px] font-bold text-blue-secondary uppercase tracking-widest mb-2">IELTS Speaking Part 2 — Cue Card</div>
           <h3 className="text-xl font-serif font-bold mb-6 leading-relaxed">{activeTopic.title}</h3>
           <div className="text-xs text-text-muted font-bold uppercase tracking-wider mb-3">You should say:</div>
@@ -397,7 +442,7 @@ export default function Speaking() {
             </button>
           </div>
         ) : (
-          <div className="card text-center py-10 space-y-6 border-blue-primary">
+          <div className="card text-center py-12 space-y-8 border-blue-primary rounded-2xl">
             <div className="text-xs font-bold text-blue-secondary uppercase tracking-widest">
               {timerState === "prep" ? "Preparation Time" : "Speaking Time"}
             </div>
@@ -424,7 +469,7 @@ export default function Speaking() {
         <div className="pt-4">
           <button 
             onClick={() => setIsLiveSessionOpen(true)}
-            className="btn btn-primary bg-blue-primary/10 text-blue-primary hover:bg-blue-primary/20 border-blue-primary/30 w-full py-4 rounded-2xl flex items-center justify-center gap-3 group"
+            className="btn btn-primary bg-blue-primary/10 text-blue-primary hover:bg-blue-primary/20 border-blue-primary/30 w-full py-4 rounded-xl flex items-center justify-center gap-3 group"
           >
             <Sparkles size={20} className="group-hover:animate-pulse" />
             <span className="font-bold">Discuss this topic with Live AI</span>
@@ -445,40 +490,69 @@ export default function Speaking() {
   }
 
   return (
-    <div className="space-y-8 pb-10">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="font-serif text-2xl font-bold mb-1">🎤 Speaking Center</h2>
-          <p className="text-sm text-text-muted">Master all 3 parts of the IELTS speaking test</p>
-        </div>
-        <div className="flex bg-bg-2 p-1 rounded-xl border border-border">
-          <button 
-            onClick={() => setActiveModuleTab("practice")}
-            className={cn(
-              "px-4 py-2 rounded-lg text-xs font-bold transition-all",
-              activeModuleTab === "practice" ? "bg-blue-primary text-white shadow-lg shadow-blue-primary/20" : "text-text-muted hover:text-text-primary"
-            )}
+    <div className="space-y-16 pb-20">
+      {/* Speaking Hero Section */}
+      <div className="relative overflow-hidden rounded-3xl bg-bg-1 border border-white/5 p-8 md:p-12 lg:p-16">
+        <div className="absolute inset-0 recipe-atmospheric-bg opacity-30" />
+        <div className="absolute -top-24 -right-24 w-96 h-96 bg-violet-accent/10 rounded-full blur-[120px] animate-pulse" />
+        
+        <div className="relative z-10 flex flex-col 2xl:flex-row 2xl:items-end justify-between gap-12">
+          <div className="max-w-3xl min-w-0">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="recipe-editorial-label mb-8 flex items-center gap-3"
+            >
+              <div className="w-8 h-px bg-violet-accent/30" />
+              <Volume2 size={16} className="text-violet-accent" /> Productive Skills
+            </motion.div>
+            
+            <motion.h2 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="recipe-editorial-h1 mb-8"
+            >
+              Speaking <span className="text-violet-accent">Center</span>
+            </motion.h2>
+            
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-xl text-text-secondary leading-relaxed font-medium max-w-2xl"
+            >
+              Master all 3 parts of the IELTS speaking test with real-time AI 
+              simulations, voice analysis, and personalized feedback.
+            </motion.p>
+          </div>
+
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+            className="flex flex-wrap md:flex-nowrap bg-bg-2/50 backdrop-blur-xl p-2 rounded-2xl border border-white/5 shadow-2xl"
           >
-            Practice
-          </button>
-          <button 
-            onClick={() => setActiveModuleTab("samples")}
-            className={cn(
-              "px-4 py-2 rounded-lg text-xs font-bold transition-all",
-              activeModuleTab === "samples" ? "bg-blue-primary text-white shadow-lg shadow-blue-primary/20" : "text-text-muted hover:text-text-primary"
-            )}
-          >
-            Sample Q&A
-          </button>
-          <button 
-            onClick={() => setActiveModuleTab("ai-test")}
-            className={cn(
-              "px-4 py-2 rounded-lg text-xs font-bold transition-all",
-              activeModuleTab === "ai-test" ? "bg-blue-primary text-white shadow-lg shadow-blue-primary/20" : "text-text-muted hover:text-text-primary"
-            )}
-          >
-            AI Practice Test
-          </button>
+            {[
+              { id: "practice", label: "Practice", icon: Volume2 },
+              { id: "samples", label: "Samples", icon: FileText },
+              { id: "ai-test", label: "AI Test", icon: Sparkles },
+            ].map((tab) => (
+              <button 
+                key={tab.id}
+                onClick={() => setActiveModuleTab(tab.id as any)}
+                className={cn(
+                  "flex items-center gap-2 px-8 py-4 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-500",
+                  activeModuleTab === tab.id 
+                    ? "bg-violet-accent text-white shadow-xl shadow-violet-accent/30 scale-105" 
+                    : "text-text-muted hover:text-text-primary hover:bg-white/5"
+                )}
+              >
+                <tab.icon size={14} />
+                <span className="hidden md:inline">{tab.label}</span>
+              </button>
+            ))}
+          </motion.div>
         </div>
       </div>
 
@@ -492,67 +566,70 @@ export default function Speaking() {
         )}
       </AnimatePresence>
 
-      {/* Topic of the Day */}
-      <div className="card bg-gradient-to-br from-blue-dim/20 to-bg-1 border-blue-primary/30 p-5 md:p-6">
-        <div className="flex items-center gap-2 text-blue-secondary font-bold text-xs uppercase tracking-widest mb-4">
-          <Sparkles size={14} /> Speaking Topic of the Day
+      <div className="card bg-gradient-to-br from-blue-primary/10 via-bg-1 to-bg-2 border-blue-primary/20 p-8 md:p-12 rounded-xl shadow-2xl shadow-blue-primary/5 relative overflow-hidden group">
+        <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none group-hover:scale-110 transition-transform duration-700">
+          <Sparkles size={180} />
         </div>
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 md:gap-6">
-          <div>
-            <h3 className="font-serif text-2xl md:text-3xl font-black text-text-primary uppercase tracking-tighter mb-1">Describe a person who has influenced you.</h3>
-            <p className="text-xs md:text-sm text-text-muted italic mb-3 md:mb-4">Part 2 Cue Card · High Priority</p>
-            <div className="flex flex-wrap gap-2 mb-4">
-              <span className="tag tag-blue">Inspirational</span>
-              <span className="tag tag-blue">Role Model</span>
-              <span className="tag tag-blue">Resilience</span>
-            </div>
+        <div className="relative z-10">
+          <div className="recipe-editorial-label text-blue-secondary mb-6">
+            <Sparkles size={14} className="animate-pulse" /> Speaking Topic of the Day
           </div>
-          <button 
-            onClick={() => setActiveTopic(SPEAKING_TOPICS[0])}
-            className="btn btn-primary bg-blue-primary hover:bg-blue-primary/80 shadow-blue-primary/20 w-full md:w-auto text-xs md:text-sm"
-          >
-            Practice Now <ChevronRight size={18} />
-          </button>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
+            <div className="max-w-2xl">
+              <h3 className="recipe-editorial-h1 text-3xl md:text-4xl mb-4">Describe a person who has influenced you.</h3>
+              <p className="text-sm text-text-muted italic mb-6 font-medium">Part 2 Cue Card · High Priority Analysis</p>
+              <div className="flex flex-wrap gap-3 mb-6">
+                <span className="tag tag-blue px-4 py-1.5 rounded-lg">Inspirational</span>
+                <span className="tag tag-blue px-4 py-1.5 rounded-lg">Role Model</span>
+                <span className="tag tag-blue px-4 py-1.5 rounded-lg">Resilience</span>
+              </div>
+            </div>
+            <button 
+              onClick={() => setActiveTopic(SPEAKING_TOPICS[0])}
+              className="btn btn-primary px-10 py-4 text-sm shadow-xl shadow-blue-primary/20"
+            >
+              Practice Now <ChevronRight size={18} />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Vocabulary Booster & Idioms */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="card bg-bg-2 border-border-2 p-5">
-          <div className="flex items-center gap-2 text-amber-accent font-bold text-[10px] uppercase tracking-widest mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="card bg-bg-1 border-white/5 p-8 rounded-xl shadow-xl">
+          <div className="recipe-hardware-label text-amber-accent mb-6">
             <Sparkles size={14} /> Vocabulary Booster
           </div>
-          <div className="space-y-3">
+          <div className="space-y-4">
               {[
                 { word: "Ubiquitous", meaning: "Present, appearing, or found everywhere.", band: "9.0" },
                 { word: "Mitigate", meaning: "Make less severe, serious, or painful.", band: "9.0" },
                 { word: "Pragmatic", meaning: "Dealing with things sensibly and realistically.", band: "9.0" }
               ].map((v, i) => (
-              <div key={i} className="flex items-center justify-between p-3 bg-bg-1 rounded-xl border border-border">
+              <div key={i} className="flex items-center justify-between p-4 bg-bg-2/50 rounded-xl border border-white/5 hover:border-amber-accent/30 transition-all group">
                 <div>
-                  <div className="text-sm font-bold text-text-primary">{v.word}</div>
-                  <div className="text-[10px] text-text-muted">{v.meaning}</div>
+                  <div className="text-base font-bold text-text-primary group-hover:text-amber-accent transition-colors">{v.word}</div>
+                  <div className="text-xs text-text-muted leading-relaxed">{v.meaning}</div>
                 </div>
-                <div className="bg-amber-dim text-amber-accent px-2 py-1 rounded text-[10px] font-black">Band {v.band}</div>
+                <div className="bg-amber-accent/10 text-amber-accent px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest">Band {v.band}</div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="card bg-bg-2 border-border-2 p-5">
-          <div className="flex items-center gap-2 text-violet-accent font-bold text-[10px] uppercase tracking-widest mb-4">
+        <div className="card bg-bg-1 border-white/5 p-8 rounded-xl shadow-xl">
+          <div className="recipe-hardware-label text-violet-accent mb-6">
             <MessageSquare size={14} /> Common Idioms
           </div>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {[
               { idiom: "A piece of cake", meaning: "Something very easy to do.", usage: "The exam was a piece of cake." },
               { idiom: "Break the ice", meaning: "Do or say something to relieve tension.", usage: "He told a joke to break the ice." },
               { idiom: "Under the weather", meaning: "Feeling slightly unwell.", usage: "I'm feeling a bit under the weather today." }
             ].map((id, i) => (
-              <div key={i} className="p-3 bg-bg-1 rounded-xl border border-border">
-                <div className="text-sm font-bold text-text-primary">{id.idiom}</div>
-                <div className="text-[10px] text-text-muted mb-1">{id.meaning}</div>
-                <div className="text-[9px] text-violet-accent italic">"{id.usage}"</div>
+              <div key={i} className="p-4 bg-bg-2/50 rounded-xl border border-white/5 hover:border-violet-accent/30 transition-all group">
+                <div className="text-base font-bold text-text-primary group-hover:text-violet-accent transition-colors">{id.idiom}</div>
+                <div className="text-xs text-text-muted mb-2 leading-relaxed">{id.meaning}</div>
+                <div className="text-[10px] text-violet-accent font-bold italic uppercase tracking-wider">"{id.usage}"</div>
               </div>
             ))}
           </div>
@@ -660,12 +737,20 @@ export default function Speaking() {
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-text-primary uppercase tracking-wider">Part 2 Cue Cards</h3>
+              <button
+                onClick={generateMoreTopics}
+                disabled={isGeneratingMore}
+                className="flex items-center gap-2 text-[10px] font-bold text-violet-accent uppercase tracking-widest hover:underline disabled:opacity-50"
+              >
+                {isGeneratingMore ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                {isGeneratingMore ? "Generating..." : "Generate More Topics"}
+              </button>
             </div>
             <div className="space-y-3">
-              {SPEAKING_TOPICS.map((topic) => (
+              {dynamicTopics.map((topic) => (
                 <button
                   key={topic.id}
                   onClick={() => setActiveTopic(topic)}
@@ -686,24 +771,24 @@ export default function Speaking() {
       {activeModuleTab === "samples" && (
         <div className="space-y-6">
           {SPEAKING_SAMPLES.map((sample) => (
-            <div key={sample.id} className="card bg-bg-2 border-border-2 p-6">
+            <div key={sample.id} className="card bg-bg-2 border-border-2 p-8 rounded-2xl">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <span className="tag tag-blue">Part {sample.part}</span>
-                  <h3 className="font-bold text-text-primary">{sample.topic}</h3>
+                  <span className="tag tag-blue">{sample.type}</span>
+                  <h3 className="font-bold text-text-primary">{sample.title}</h3>
                 </div>
               </div>
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Question</div>
-                  <div className="text-sm font-bold text-text-primary">{sample.question}</div>
+                  <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Prompt</div>
+                  <div className="text-sm font-bold text-text-primary">{sample.prompt}</div>
                 </div>
                 <div className="p-4 bg-bg-1 rounded-xl border border-border-2 text-sm text-text-secondary italic leading-relaxed">
                   <div className="text-[10px] font-bold text-blue-primary uppercase tracking-widest mb-2">Model Answer</div>
-                  "{sample.answer}"
+                  "{sample.modelAnswer}"
                 </div>
                 <div className="p-4 bg-violet-accent/5 border border-violet-accent/20 rounded-xl">
-                  <div className="text-[10px] font-bold text-violet-accent uppercase tracking-widest mb-1">Examiner Analysis</div>
+                  <div className="text-[10px] font-bold text-violet-accent uppercase tracking-widest mb-1">Examiner Analysis (Band {sample.band})</div>
                   <div className="text-xs text-text-secondary leading-relaxed">
                     {sample.analysis}
                   </div>
@@ -716,7 +801,7 @@ export default function Speaking() {
 
       {activeModuleTab === "ai-test" && (
         <div className="flex flex-col items-center justify-center py-20 text-center space-y-6">
-          <div className="w-20 h-20 rounded-3xl bg-violet-accent/10 text-violet-accent flex items-center justify-center">
+          <div className="w-20 h-20 rounded-2xl bg-violet-accent/10 text-violet-accent flex items-center justify-center">
             <Sparkles size={40} />
           </div>
           <div className="max-w-md">

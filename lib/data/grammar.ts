@@ -27,6 +27,32 @@ export const GRAMMAR_DATA: GrammarTopic[] = [
     ]
   },
   {
+    title: "Advanced Academic Structures",
+    sections: [
+      {
+        heading: "Nominalization",
+        content: "Nominalization is the process of turning verbs or adjectives into nouns. It is a hallmark of academic writing (IELTS Writing Task 2) as it makes the tone more objective and formal.\n\n**Example:**\n*   *Verbal:* The government **decided** to **increase** taxes, which **angered** the public.\n*   *Nominalized:* The government's **decision** to implement a tax **increase** resulted in public **anger**.\n\n**Why use it?**\nIt allows you to pack more information into a single sentence and focuses on the action/concept rather than the person doing it.",
+      },
+      {
+        heading: "Hedges and Boosters",
+        content: "In academic writing, it is important to show the degree of certainty. This is called 'hedging' (being cautious) or 'boosting' (being certain).\n\n**Hedges (Cautious):**\n*   *It is possible that...*\n*   *This suggests that...*\n*   *It could be argued that...*\n*   *Evidence tends to show...*\n\n**Boosters (Certain):**\n*   *It is clear that...*\n*   *There is no doubt that...*\n*   *Undoubtedly...*\n*   *This proves that...*",
+      },
+      {
+        heading: "Complex Punctuation (Semicolons & Colons)",
+        content: "Using advanced punctuation correctly can boost your 'Grammatical Range and Accuracy' score.\n\n**Semicolons (;):**\nUsed to connect two closely related independent clauses.\n*   *Example:* The city has seen a rise in population; consequently, housing prices have soared.\n\n**Colons (:):**\nUsed to introduce a list, an explanation, or a quote.\n*   *Example:* There are three main causes of pollution: industrial waste, vehicle emissions, and deforestation.",
+      },
+    ],
+  },
+  {
+    title: "Cohesion & Coherence",
+    sections: [
+      {
+        heading: "Advanced Linking Devices",
+        content: "Move beyond 'Firstly', 'Secondly', and 'In conclusion'. Use more sophisticated connectors.\n\n**Contrast:**\n*   *Be that as it may...*\n*   *Notwithstanding the fact that...*\n*   *Conversely...*\n\n**Addition:**\n*   *Furthermore...*\n*   *Moreover...*\n*   *In addition to the aforementioned...*\n\n**Result:**\n*   *Accordingly...*\n*   *Hence...*\n*   *Thus...*",
+      },
+    ],
+  },
+  {
     title: "Advanced Tenses & Aspect",
     sections: [
       {

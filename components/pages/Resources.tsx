@@ -71,7 +71,7 @@ interface ResourcesProps {
 export default function Resources({ setActivePage }: ResourcesProps) {
   return (
     <div className="space-y-8">
-      <div className="card-blue p-8 md:p-10 relative overflow-hidden">
+      <div className="card-blue p-6 md:p-8 lg:p-10 relative overflow-hidden">
         <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
           <BookOpen className="w-48 h-48" />
         </div>

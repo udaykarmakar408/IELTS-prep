@@ -26,7 +26,7 @@ import LizHub from "../components/pages/LizHub";
 import Cambridge from "../components/pages/Cambridge";
 import SpeakingLab from "../components/pages/SpeakingLab";
 import PracticeLibrary from "../components/pages/PracticeLibrary";
-import { getProgress, UserProgress } from "../lib/store";
+import { getProgress, UserProgress, updateStreak, saveProgress } from "../lib/store";
 
 import { AnimatePresence, motion } from "motion/react";
 
@@ -38,7 +38,9 @@ export default function App() {
   useEffect(() => {
     const load = async () => {
       const p = await getProgress();
-      setProgress(p);
+      const updated = updateStreak(p);
+      setProgress(updated);
+      await saveProgress(updated);
       setIsInitialized(true);
     };
     load();
@@ -75,13 +77,13 @@ export default function App() {
       case "flashcards": return <Flashcards />;
       case "timer": return <StudyTimer />;
       case "errorlog": return <ErrorLog />;
-      case "settings": return <Settings onUpdate={async () => setProgress(await getProgress())} />;
+      case "settings": return <Settings progress={progress} onUpdate={async () => setProgress(await getProgress())} />;
       default: return <Dashboard setActivePage={setActivePage} />;
     }
   };
 
   return (
-    <AppShell activePage={activePage} setActivePage={setActivePage}>
+    <AppShell activePage={activePage} setActivePage={setActivePage} progress={progress}>
       <AnimatePresence mode="wait">
         <motion.div
           key={activePage}

@@ -61,7 +61,7 @@ export default function Setup({ onComplete }: SetupProps) {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Your name..."
-                className="w-full bg-bg border-[1.5px] border-border-2 rounded-xl px-4 py-3.5 text-text-primary focus:border-blue-primary outline-none transition-colors mb-6"
+                className="input mb-6"
                 autoFocus
                 onKeyDown={(e) => e.key === "Enter" && name.trim() && setStep(2)}
               />

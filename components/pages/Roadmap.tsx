@@ -197,7 +197,7 @@ export default function Roadmap() {
                 max="9" 
                 value={newTarget} 
                 onChange={(e) => setNewTarget(parseFloat(e.target.value))}
-                className="flex-1 bg-bg border border-border-2 rounded-xl px-4 py-2 text-sm text-text-primary outline-none focus:border-blue-primary"
+                className="input flex-1 px-4 py-2"
               />
               <button onClick={updateGoal} className="btn btn-primary px-6">Save Goal</button>
             </div>
