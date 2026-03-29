@@ -33,269 +33,10 @@ import { GoogleGenAI, Modality } from "@google/genai";
 import { pcmToWav } from "@/lib/audio";
 import ReactMarkdown from "react-markdown";
 
-const LISTENING_SAMPLES = [
-  {
-    id: "ls1",
-    title: "Sample: Form Completion",
-    type: "Form Completion",
-    script: "Woman: Hello, I'd like to book a room for two nights. Man: Certainly. Can I have your name, please? Woman: It's Sarah Jenkins. That's J-E-N-K-I-N-S.",
-    question: "Name: Sarah ________",
-    answer: "Jenkins",
-    explanation: "The speaker spells out the surname: J-E-N-K-I-N-S."
-  }
-];
+const LISTENING_SAMPLES: any[] = [];
 
-const LISTENING_SECTIONS = [
-  {
-    id: "sec1",
-    title: "University Accommodation Enquiry",
-    type: "Conversation",
-    difficulty: "Easy",
-    script: "ACCOMMODATION OFFICER: Good morning, Riverside University Student Services, how can I help you? STUDENT: Hello. I am calling about student accommodation for next year. I have just been offered a place on the biology course. OFFICER: Congratulations! Could I take some details? Your full name first, please. STUDENT: David Kamara. That is K-A-M-A-R-A.",
-    questions: [
-      { q: "Q1. Student surname:", answer: "Kamara" },
-      { q: "Q2. Course:", answer: "Biology" },
-    ]
-  },
-  {
-    id: "sec2",
-    title: "City Museum Audio Tour",
-    type: "Monologue",
-    difficulty: "Medium",
-    script: "Welcome to Hartfield City Museum. I am Sarah and I will be your guide today. The museum has three floors covering over two thousand years of local history. On the ground floor, you will find our collection of Roman artifacts discovered right here in the city center. The first floor is dedicated to the industrial revolution, while the top floor houses our modern art gallery. Please note that the museum cafe on the second floor closes at 4:30 PM, thirty minutes before the museum itself.",
-    questions: [
-      { q: "Q1. What time does the cafe close?", answer: "4:30" },
-      { q: "Q2. Which floor has Roman artifacts?", answer: "Ground" },
-    ]
-  },
-  {
-    id: "sec3",
-    title: "Environmental Science Lecture",
-    type: "Lecture",
-    difficulty: "Hard",
-    script: "Today we are discussing the impact of microplastics on marine ecosystems. Microplastics, defined as plastic particles smaller than five millimeters, have become a ubiquitous pollutant in our oceans. They originate from various sources, including the breakdown of larger plastic debris and the release of microbeads from personal care products. These tiny particles are often ingested by marine organisms, ranging from tiny zooplankton to large whales, leading to physical harm and the bioaccumulation of toxic chemicals throughout the food web.",
-    questions: [
-      { q: "Q1. Maximum size of microplastics (mm):", answer: "5" },
-      { q: "Q2. One source of microplastics mentioned:", answer: "microbeads" },
-    ]
-  },
-  {
-    id: "sec4",
-    title: "Library Membership Registration",
-    type: "Conversation",
-    difficulty: "Easy",
-    script: "LIBRARIAN: Good afternoon. How can I help you? CUSTOMER: Hi, I'd like to join the library. LIBRARIAN: Certainly. I'll need some information. Your name? CUSTOMER: It's Peter Thompson. LIBRARIAN: And your address? CUSTOMER: 42 Garden Road, London. LIBRARIAN: Great. And do you have a contact number? CUSTOMER: Yes, it's 07700 900456.",
-    questions: [
-      { q: "Q1. Customer's full name:", answer: "Peter Thompson" },
-      { q: "Q2. Street name:", answer: "Garden Road" },
-      { q: "Q3. Phone number:", answer: "07700 900456" },
-    ]
-  },
-  {
-    id: "sec5",
-    title: "Local Park Renovation Project",
-    type: "Monologue",
-    difficulty: "Medium",
-    script: "Hello everyone, I'm here to talk about the upcoming changes to Central Park. We're planning to add a new children's play area near the North Gate. The old tennis courts will be replaced with a modern skate park. We're also planting fifty new oak trees along the main path to provide more shade during the summer months. The project is expected to take six months to complete, starting this September.",
-    questions: [
-      { q: "Q1. Where will the new play area be?", answer: "North Gate" },
-      { q: "Q2. What will replace the tennis courts?", answer: "skate park" },
-      { q: "Q3. How many new trees will be planted?", answer: "50" },
-    ]
-  },
-  {
-    id: "sec6",
-    title: "Artificial Intelligence in Healthcare",
-    type: "Lecture",
-    difficulty: "Hard",
-    script: "In today's lecture, we'll explore the transformative role of AI in modern medicine. AI algorithms are now being used to analyze medical images with a level of precision that often surpasses human experts. For instance, in oncology, AI can detect early-stage tumors in lung scans that might be missed by radiologists. Furthermore, AI-driven predictive analytics are helping hospitals manage patient flow and resource allocation more efficiently, ultimately improving patient outcomes and reducing costs.",
-    questions: [
-      { q: "Q1. AI is used to analyze what kind of images?", answer: "medical" },
-      { q: "Q2. In which field can AI detect early-stage tumors?", answer: "oncology" },
-      { q: "Q3. What can AI help hospitals manage?", answer: "patient flow" },
-    ]
-  },
-  {
-    id: "sec7",
-    title: "Booking a Travel Tour",
-    type: "Conversation",
-    difficulty: "Easy",
-    script: "AGENT: Welcome to SunTravel. How can I assist you today? TRAVELER: Hi, I'm interested in the European Highlights tour. AGENT: Excellent choice. That tour lasts for 14 days. TRAVELER: And what's the price per person? AGENT: It's £1,200, which includes all accommodation and breakfast. TRAVELER: Does it include the flight? AGENT: No, flights are booked separately.",
-    questions: [
-      { q: "Q1. Duration of the tour (days):", answer: "14" },
-      { q: "Q2. Price per person (£):", answer: "1200" },
-      { q: "Q3. What is included besides accommodation?", answer: "breakfast" },
-    ]
-  },
-  {
-    id: "sec8",
-    title: "The History of Chocolate",
-    type: "Monologue",
-    difficulty: "Medium",
-    script: "Chocolate has a long and fascinating history. It was first consumed as a bitter drink by the ancient Mayans and Aztecs. They believed that cacao seeds were a gift from the gods. It wasn't until the 16th century that chocolate was introduced to Europe, where sugar was added to make it more palatable. The first solid chocolate bar was produced in 1847 by Joseph Fry. Today, chocolate is a multi-billion dollar global industry.",
-    questions: [
-      { q: "Q1. Who first consumed chocolate as a drink?", answer: "Mayans" },
-      { q: "Q2. When was chocolate introduced to Europe?", answer: "16th century" },
-      { q: "Q3. Who produced the first solid chocolate bar?", answer: "Joseph Fry" },
-    ]
-  },
-  {
-    id: "sec9",
-    title: "Renewable Energy Sources",
-    type: "Lecture",
-    difficulty: "Hard",
-    script: "Transitioning to renewable energy is crucial for combating climate change. Solar and wind power are currently the fastest-growing sources of clean energy. Solar panels convert sunlight directly into electricity, while wind turbines harness the kinetic energy of the wind. However, one of the main challenges is intermittency—the sun doesn't always shine, and the wind doesn't always blow. This necessitates the development of advanced battery storage technologies to ensure a stable energy supply.",
-    questions: [
-      { q: "Q1. What are the two fastest-growing clean energy sources?", answer: "solar and wind" },
-      { q: "Q2. What is the main challenge mentioned?", answer: "intermittency" },
-      { q: "Q3. What technology is needed for a stable supply?", answer: "battery storage" },
-    ]
-  },
-  {
-    id: "sec10",
-    title: "Job Interview Preparation",
-    type: "Conversation",
-    difficulty: "Medium",
-    script: "COACH: Okay, let's practice some common interview questions. Why do you want to work for this company? CANDIDATE: Well, I've always admired your commitment to innovation and sustainability. COACH: Good. And what are your greatest strengths? CANDIDATE: I'm a strong communicator and I enjoy working in a team. COACH: Excellent. Remember to give specific examples to back up your claims.",
-    questions: [
-      { q: "Q1. What two values of the company does the candidate admire?", answer: "innovation and sustainability" },
-      { q: "Q2. Name one of the candidate's strengths:", answer: "communicator" },
-      { q: "Q3. What should the candidate provide to back up their claims?", answer: "examples" },
-    ]
-  },
-  {
-    id: "sec11",
-    title: "The Benefits of Regular Exercise",
-    type: "Monologue",
-    difficulty: "Easy",
-    script: "Regular exercise is essential for maintaining good health. It helps to strengthen your heart, improve your mood, and boost your energy levels. You don't need to spend hours at the gym; even a thirty-minute brisk walk every day can make a big difference. Exercise also helps you sleep better and reduces the risk of chronic diseases like diabetes and heart disease. Start small and gradually increase the intensity of your workouts.",
-    questions: [
-      { q: "Q1. Name one benefit of exercise mentioned:", answer: "strengthen heart" },
-      { q: "Q2. How long should a daily walk be?", answer: "30 minutes" },
-      { q: "Q3. Exercise reduces the risk of which disease?", answer: "diabetes" },
-    ]
-  },
-  {
-    id: "sec12",
-    title: "Space Exploration: Mars Mission",
-    type: "Lecture",
-    difficulty: "Hard",
-    script: "The prospect of sending humans to Mars is one of the most ambitious goals in space exploration. Mars is often called the Red Planet due to the iron oxide on its surface. A mission to Mars would take approximately seven to nine months each way. Astronauts would face numerous challenges, including exposure to high levels of radiation and the psychological effects of long-term isolation. Scientists are currently developing life-support systems that can recycle water and oxygen to sustain a crew on the Martian surface.",
-    questions: [
-      { q: "Q1. Why is Mars called the Red Planet?", answer: "iron oxide" },
-      { q: "Q2. How long would a one-way trip to Mars take?", answer: "7 to 9 months" },
-      { q: "Q3. What are scientists developing to sustain a crew?", answer: "life-support systems" },
-    ]
-  },
-  {
-    id: "sec13",
-    title: "Enquiring about a Language Course",
-    type: "Conversation",
-    difficulty: "Easy",
-    script: "RECEPTIONIST: Hello, Language Center. How can I help? STUDENT: Hi, I'm interested in the intensive Spanish course. RECEPTIONIST: That course starts on the 5th of July. STUDENT: How many hours a week is it? RECEPTIONIST: It's 20 hours per week, from Monday to Friday. STUDENT: And what's the total cost? RECEPTIONIST: The fee is £450 for the four-week course.",
-    questions: [
-      { q: "Q1. When does the course start?", answer: "5th of July" },
-      { q: "Q2. Hours per week:", answer: "20" },
-      { q: "Q3. Total cost (£):", answer: "450" },
-    ]
-  },
-  {
-    id: "sec14",
-    title: "The Importance of Bees",
-    type: "Monologue",
-    difficulty: "Medium",
-    script: "Bees play a vital role in our ecosystem as pollinators. They are responsible for pollinating about one-third of the food we eat, including many fruits, vegetables, and nuts. Without bees, our food supply would be significantly impacted. Unfortunately, bee populations are declining due to habitat loss, pesticide use, and climate change. We can help by planting bee-friendly flowers in our gardens and avoiding the use of harmful chemicals.",
-    questions: [
-      { q: "Q1. Bees pollinate what fraction of our food?", answer: "one-third" },
-      { q: "Q2. Name one reason for the decline in bee populations:", answer: "habitat loss" },
-      { q: "Q3. How can we help bees in our gardens?", answer: "planting flowers" },
-    ]
-  },
-  {
-    id: "sec15",
-    title: "The Psychology of Consumer Behavior",
-    type: "Lecture",
-    difficulty: "Hard",
-    script: "Understanding consumer behavior is essential for effective marketing. Consumers are often influenced by psychological factors such as perception, motivation, and social influence. For example, the use of 'scarcity' in advertising—like 'limited time offer'—can create a sense of urgency and drive sales. Additionally, social proof, such as customer reviews and testimonials, can significantly impact a consumer's decision-making process. Marketers use these insights to create more persuasive campaigns.",
-    questions: [
-      { q: "Q1. Name one psychological factor mentioned:", answer: "perception" },
-      { q: "Q2. What does 'limited time offer' create?", answer: "urgency" },
-      { q: "Q3. What is an example of social proof?", answer: "customer reviews" },
-    ]
-  },
-  {
-    id: "sec16",
-    title: "Renting a Car",
-    type: "Conversation",
-    difficulty: "Easy",
-    script: "CLERK: Good morning, CarRentals. How can I help? CUSTOMER: Hi, I'd like to rent a car for three days. CLERK: Certainly. What type of car would you like? CUSTOMER: A small economy car would be fine. CLERK: We have a Ford Fiesta available for £35 a day. CUSTOMER: Does that include insurance? CLERK: Yes, basic insurance is included in the price.",
-    questions: [
-      { q: "Q1. Duration of rental (days):", answer: "3" },
-      { q: "Q2. Daily rate (£):", answer: "35" },
-      { q: "Q3. What is included in the price?", answer: "insurance" },
-    ]
-  },
-  {
-    id: "sec17",
-    title: "The Great Barrier Reef",
-    type: "Monologue",
-    difficulty: "Medium",
-    script: "The Great Barrier Reef is the world's largest coral reef system. It is located in the Coral Sea, off the coast of Queensland, Australia. The reef is home to thousands of species of marine life, including colorful corals, fish, turtles, and sharks. It is a UNESCO World Heritage site and a major tourist destination. However, the reef is under threat from coral bleaching, which is caused by rising ocean temperatures due to climate change.",
-    questions: [
-      { q: "Q1. Where is the Great Barrier Reef located?", answer: "Australia" },
-      { q: "Q2. Name one type of marine life mentioned:", answer: "turtles" },
-      { q: "Q3. What is the main threat to the reef?", answer: "coral bleaching" },
-    ]
-  },
-  {
-    id: "sec18",
-    title: "The Future of Transportation",
-    type: "Lecture",
-    difficulty: "Hard",
-    script: "The future of transportation is being shaped by automation and electrification. Self-driving cars have the potential to reduce accidents caused by human error and improve traffic flow. Electric vehicles are becoming more affordable and have a much lower environmental impact than traditional internal combustion engines. We are also seeing the development of high-speed rail and hyperloop systems that could revolutionize long-distance travel, making it faster and more sustainable.",
-    questions: [
-      { q: "Q1. What can self-driving cars potentially reduce?", answer: "accidents" },
-      { q: "Q2. What is a benefit of electric vehicles?", answer: "lower environmental impact" },
-      { q: "Q3. Name one new long-distance travel system:", answer: "hyperloop" },
-    ]
-  },
-  {
-    id: "sec19",
-    title: "Enquiring about a Gym Membership",
-    type: "Conversation",
-    difficulty: "Easy",
-    script: "STAFF: Hi there, welcome to FitLife. CUSTOMER: Hi, I'm interested in joining the gym. STAFF: We have a monthly membership for £40, or an annual one for £400. CUSTOMER: Are there any joining fees? STAFF: Yes, there's a one-off joining fee of £20. CUSTOMER: What are your opening hours? STAFF: We're open from 6 AM to 10 PM every day.",
-    questions: [
-      { q: "Q1. Monthly membership fee (£):", answer: "40" },
-      { q: "Q2. One-off joining fee (£):", answer: "20" },
-      { q: "Q3. Opening time:", answer: "6 AM" },
-    ]
-  },
-  {
-    id: "sec20",
-    title: "The History of the Printing Press",
-    type: "Monologue",
-    difficulty: "Medium",
-    script: "The invention of the printing press by Johannes Gutenberg in the 15th century was a turning point in human history. Before the printing press, books were copied by hand, which was a slow and expensive process. Gutenberg's invention made it possible to produce books quickly and affordably, leading to a massive increase in literacy and the spread of knowledge. The first book printed using the new technology was the Gutenberg Bible.",
-    questions: [
-      { q: "Q1. Who invented the printing press?", answer: "Johannes Gutenberg" },
-      { q: "Q2. What was the first book printed?", answer: "Gutenberg Bible" },
-      { q: "Q3. What was a major result of the printing press?", answer: "increase in literacy" },
-    ]
-  },
-  {
-    id: "sec21",
-    title: "The Impact of Social Media on Mental Health",
-    type: "Lecture",
-    difficulty: "Hard",
-    script: "The widespread use of social media has raised concerns about its impact on mental health, particularly among young people. Studies have shown a correlation between heavy social media use and increased rates of anxiety, depression, and loneliness. Factors such as cyberbullying, the pressure to maintain a perfect online image, and the constant comparison with others can all contribute to these negative outcomes. It is important to promote digital well-being and encourage healthy social media habits.",
-    questions: [
-      { q: "Q1. Heavy social media use is linked to which condition?", answer: "anxiety" },
-      { q: "Q2. Name one factor contributing to negative outcomes:", answer: "cyberbullying" },
-      { q: "Q3. What should be promoted to address these issues?", answer: "digital well-being" },
-    ]
-  }
-];
+const LISTENING_SECTIONS: any[] = [];
+
 
 export default function Listening() {
   const [progress, setProgress] = useState<UserProgress | null>(null);
@@ -364,10 +105,13 @@ export default function Listening() {
               type: "object",
               properties: {
                 id: { type: "string" },
+                type: { type: "string", enum: ["completion", "multiple-choice", "matching", "short-answer"] },
                 q: { type: "string" },
-                answer: { type: "string" }
+                options: { type: "array", items: { type: "string" }, description: "Only for multiple-choice" },
+                answer: { type: "string" },
+                explanation: { type: "string" }
               },
-              required: ["id", "q", "answer"]
+              required: ["id", "type", "q", "answer"]
             }
           }
         },
@@ -375,7 +119,21 @@ export default function Listening() {
       }
     };
 
-    const prompt = "Generate a full-length IELTS Listening test with 4 sections. Section 1: Social conversation. Section 2: Social monologue. Section 3: Educational conversation. Section 4: Academic monologue.";
+    const prompt = `Generate a full-length, Band 9.0 standard IELTS Listening test with 4 sections. 
+    The content must be highly academic and professional, mimicking the complexity of Cambridge IELTS 15-19.
+    
+    Section 1: A conversation between two people in a social context (e.g., a complex travel booking with specific requirements). Word count: ~800 words.
+    Section 2: A monologue in a social context (e.g., a detailed orientation for a museum or a park). Word count: ~800 words.
+    Section 3: A conversation between 2-4 people in an academic context (e.g., a tutor and students discussing a research paper). Word count: ~900 words.
+    Section 4: A monologue on an academic subject (e.g., a university lecture on a niche scientific or historical topic). Word count: ~1000 words.
+    
+    For each section, provide 10 questions. Mix these types across the test:
+    - completion: Fill in the blanks (e.g., "The ______ is located near the entrance").
+    - multiple-choice: Standard A, B, C options.
+    - matching: Match items to descriptions.
+    - short-answer: Answer in no more than 3 words.
+    
+    Ensure the questions follow the script chronologically and test for synonyms, paraphrasing, and distractors (common in Band 9.0).`;
 
     try {
       const sections = await callGroqJSON(prompt, schema, "You are an IELTS Listening expert.");
@@ -383,7 +141,10 @@ export default function Listening() {
       setIsFullTest(true);
       setCurrentSectionIndex(0);
       setActiveSection(sections[0]);
-      generateAudio(sections[0].script);
+      
+      const intro = `Part 1. You will hear a conversation between two people in a social context. First, you have some time to look at questions 1 to 10. [PAUSE] Now listen carefully and answer questions 1 to 10.`;
+      const outro = `That is the end of Part 1. You now have half a minute to check your answers. [PAUSE]`;
+      generateAudio(`${intro}\n\n${sections[0].script}\n\n${outro}`);
     } catch (error) {
       console.error(error);
     } finally {
@@ -399,7 +160,10 @@ export default function Listening() {
       setUserAnswers({});
       setShowResults(false);
       setAudioUrl(null);
-      generateAudio(fullTestSections[nextIndex].script);
+      
+      const intro = `Part ${nextIndex + 1}. You will hear a ${fullTestSections[nextIndex].title}. First, you have some time to look at questions 1 to 10. [PAUSE] Now listen carefully and answer questions 1 to 10.`;
+      const outro = `That is the end of Part ${nextIndex + 1}. You now have half a minute to check your answers. [PAUSE]`;
+      generateAudio(`${intro}\n\n${fullTestSections[nextIndex].script}\n\n${outro}`);
     } else {
       setIsFullTest(false);
       setActiveSection(null);
@@ -412,85 +176,102 @@ export default function Listening() {
     try {
       if (!text) throw new Error("No script provided for audio generation");
       
-      // Use process.env.GEMINI_API_KEY as per guidelines
       const apiKey = process.env.GEMINI_API_KEY;
-      
       if (!apiKey || apiKey === "undefined") {
         throw new Error("Gemini API key is missing or invalid. Please ensure GEMINI_API_KEY is set in your environment variables.");
       }
 
-      console.log("Initializing GoogleGenAI for TTS...");
       const ai = new GoogleGenAI({ apiKey });
       
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-preview-tts",
-        contents: [{ 
-          parts: [{ 
-            text: `Read the following IELTS listening script clearly and at a natural pace: ${text}` 
-          }] 
-        }],
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: 'Kore' },
+      // Split text into chunks for better reliability with long scripts
+      // We split by sentences to maintain natural flow
+      const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
+      const processedChunks: string[] = [];
+      let currentChunk = "";
+      
+      for (const sentence of sentences) {
+        if ((currentChunk + sentence).length > 1000) {
+          processedChunks.push(currentChunk);
+          currentChunk = sentence;
+        } else {
+          currentChunk += sentence;
+        }
+      }
+      if (currentChunk) processedChunks.push(currentChunk);
+
+      const audioParts: Uint8Array[] = [];
+      
+      for (const chunk of processedChunks) {
+        const response = await ai.models.generateContent({
+          model: "gemini-2.5-flash-preview-tts",
+          contents: [{ 
+            parts: [{ 
+              text: `Read the following IELTS listening script clearly and at a natural pace: ${chunk}` 
+            }] 
+          }],
+          config: {
+            responseModalities: [Modality.AUDIO],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName: 'Kore' },
+              },
             },
           },
-        },
-      });
+        });
 
-      // Find the audio part in the response
-      let base64Audio = "";
-      const candidates = response.candidates;
-      if (candidates && candidates.length > 0) {
-        const parts = candidates[0].content?.parts;
-        if (parts) {
-          for (const part of parts) {
-            if (part.inlineData?.data) {
-              base64Audio = part.inlineData.data;
-              break;
+        let base64Audio = "";
+        const candidates = response.candidates;
+        if (candidates && candidates.length > 0) {
+          const parts = candidates[0].content?.parts;
+          if (parts) {
+            for (const part of parts) {
+              if (part.inlineData?.data) {
+                base64Audio = part.inlineData.data;
+                break;
+              }
             }
           }
         }
-      }
 
-      if (base64Audio) {
-        try {
-          // Remove any whitespace and ensure proper padding
+        if (base64Audio) {
           const cleanBase64 = base64Audio.replace(/[\s\r\n]/g, '');
-          
           const binaryString = atob(cleanBase64);
-          const len = binaryString.length;
-          const bytes = new Uint8Array(len);
-          for (let i = 0; i < len; i++) {
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
             bytes[i] = binaryString.charCodeAt(i);
           }
-          
-          // 16-bit PCM (2 bytes per sample)
-          const evenLen = len - (len % 2);
-          const pcmBuffer = new ArrayBuffer(evenLen);
-          const pcmBytes = new Uint8Array(pcmBuffer);
-          pcmBytes.set(bytes.subarray(0, evenLen));
-          
-          const pcmData = new Int16Array(pcmBuffer);
-          
-          if (pcmData.length === 0) {
-            throw new Error("Decoded PCM data is empty");
-          }
-          
-          const wavBlob = pcmToWav(pcmData, 24000);
-          const url = URL.createObjectURL(wavBlob);
-          
-          setAudioUrl(prev => {
-            if (prev) URL.revokeObjectURL(prev);
-            return url;
-          });
-        } catch (decodeError) {
-          console.error("Audio decoding error:", decodeError);
-          throw new Error(`Failed to decode audio data: ${decodeError instanceof Error ? decodeError.message : String(decodeError)}`);
+          audioParts.push(bytes);
         }
+      }
+
+      if (audioParts.length > 0) {
+        const totalLength = audioParts.reduce((acc, curr) => acc + curr.length, 0);
+        const combinedBytes = new Uint8Array(totalLength);
+        let offset = 0;
+        for (const part of audioParts) {
+          combinedBytes.set(part, offset);
+          offset += part.length;
+        }
+        
+        const evenLen = totalLength - (totalLength % 2);
+        const pcmBuffer = new ArrayBuffer(evenLen);
+        const pcmBytes = new Uint8Array(pcmBuffer);
+        pcmBytes.set(combinedBytes.subarray(0, evenLen));
+        const pcmData = new Int16Array(pcmBuffer);
+        
+        if (pcmData.length === 0) {
+          throw new Error("Decoded PCM data is empty");
+        }
+        
+        const wavBlob = pcmToWav(pcmData, 24000);
+        const url = URL.createObjectURL(wavBlob);
+        
+        setAudioUrl(prev => {
+          if (prev) URL.revokeObjectURL(prev);
+          return url;
+        });
       } else {
-        throw new Error("The AI model did not return any audio data. This might be a temporary service issue.");
+        throw new Error("The AI model did not return any audio data.");
       }
     } catch (error) {
       console.error("Audio generation error:", error);
@@ -502,9 +283,13 @@ export default function Listening() {
 
   useEffect(() => {
     if (activeSection && !audioUrl && !isGeneratingAudio) {
-      generateAudio(activeSection.script);
+      const sectionIdx = fullTestSections.findIndex(s => s.id === activeSection.id);
+      const idx = sectionIdx !== -1 ? sectionIdx : 0;
+      const intro = `Part ${idx + 1}. You will hear a ${activeSection.title}. First, you have some time to look at questions 1 to 10. [PAUSE] Now listen carefully and answer questions 1 to 10.`;
+      const outro = `That is the end of Part ${idx + 1}. You now have half a minute to check your answers. [PAUSE]`;
+      generateAudio(`${intro}\n\n${activeSection.script}\n\n${outro}`);
     }
-  }, [activeSection, audioUrl, isGeneratingAudio, generateAudio]);
+  }, [activeSection, audioUrl, isGeneratingAudio, generateAudio, fullTestSections]);
 
   useEffect(() => {
     return () => {

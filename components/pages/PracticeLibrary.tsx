@@ -24,10 +24,12 @@ import {
   ClipboardList
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { callGroq, callGroqJSON } from "@/lib/groq";
+import { calculateListeningBand, calculateReadingBand } from "@/lib/ielts";
 import { GoogleGenAI, Modality } from "@google/genai";
+import { callGroq, callGroqJSON } from "@/lib/groq";
 import ReactMarkdown from "react-markdown";
 import { AudioPlayer } from "@/components/ui/AudioPlayer";
+import { ChartDisplay } from "@/components/ChartDisplay";
 
 type Skill = "listening" | "reading" | "writing" | "speaking";
 
@@ -139,16 +141,17 @@ export default function PracticeLibrary() {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
       
       // Split text into chunks to avoid TTS limits and ensure full length
-      const chunks = text.match(/[^.!?]+[.!?]+/g) || [text];
+      // Use a more robust splitting method for long scripts
+      const chunks = text.split(/(?<=[.!?])\s+/);
       const pcmChunks: Int16Array[] = [];
       
       // Process in small batches to avoid overwhelming the API but keep it fast
-      for (let i = 0; i < chunks.length; i += 3) {
-        const batch = chunks.slice(i, i + 3);
+      for (let i = 0; i < chunks.length; i += 2) {
+        const batch = chunks.slice(i, i + 2);
         const batchPromises = batch.map(chunk => 
           ai.models.generateContent({
             model: "gemini-2.5-flash-preview-tts",
-            contents: [{ parts: [{ text: `Read this clearly: ${chunk}` }] }],
+            contents: [{ parts: [{ text: chunk.trim() }] }],
             config: {
               responseModalities: [Modality.AUDIO],
               speechConfig: {
@@ -230,87 +233,200 @@ export default function PracticeLibrary() {
     setAudioUrl(null);
     setShowTranscript(false);
 
-    let prompt = "";
-    let schema: any = {};
-
-    if (item.skill === "listening") {
-      schema = {
-        type: "object",
-        properties: {
-          script: { type: "string" },
-          questions: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                id: { type: "string" },
-                q: { type: "string" },
-                answer: { type: "string" }
-              },
-              required: ["id", "q", "answer"]
-            }
-          }
-        },
-        required: ["script", "questions"]
-      };
-      prompt = `Generate a full-length IELTS Listening section for ${item.title}. Difficulty: ${item.difficulty}. 
-      The script should be a detailed conversation or lecture of at least 1500 words to ensure it lasts 5-8 minutes. 
-      Include exactly 10 questions with unique IDs. 
-      IMPORTANT: All questions must be answerable ONLY using information provided in the script, and the answers must be directly derived from the script.
-      Also provide a list of 5-10 "keyVocabulary" items from the script with definitions and example sentences.`;
-    } else if (item.skill === "reading") {
-      schema = {
-        type: "object",
-        properties: {
-          passage: { type: "string" },
-          questions: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                id: { type: "string" },
-                q: { type: "string" },
-                answer: { type: "string" }
-              },
-              required: ["id", "q", "answer"]
-            }
-          }
-        },
-        required: ["passage", "questions"]
-      };
-      prompt = `Generate a full-length IELTS Reading passage (approx 1000-1200 words) for ${item.title}. Difficulty: ${item.difficulty}. Include exactly 10 questions with unique IDs. IMPORTANT: All questions must be answerable ONLY using information provided in the passage, and the answers must be directly derived from the passage.
-      Also provide a list of 5-10 "keyVocabulary" items from the passage with definitions and example sentences.`;
-    } else if (item.skill === "writing") {
-      schema = {
-        type: "object",
-        properties: {
-          prompt: { type: "string" },
-          type: { type: "string" },
-          sampleAnswer: { type: "string" }
-        },
-        required: ["prompt", "type", "sampleAnswer"]
-      };
-      prompt = `Generate a full-length IELTS Writing Task 2 topic for ${item.title}. Difficulty: ${item.difficulty}. Include a high-scoring sample answer that directly addresses the prompt.`;
-    } else if (item.skill === "speaking") {
-      schema = {
-        type: "object",
-        properties: {
-          topic: { type: "string" },
-          part1: { type: "array", items: { type: "string" } },
-          part2: { type: "string" },
-          part3: { type: "array", items: { type: "string" } },
-          sampleAnswer: { type: "string" }
-        },
-        required: ["topic", "part1", "part2", "part3", "sampleAnswer"]
-      };
-      prompt = `Generate a full IELTS Speaking test outline (Parts 1, 2, and 3) for ${item.title}. Difficulty: ${item.difficulty}. Ensure all questions are relevant to the main topic. Also provide a Band 9.0 sample answer for the Part 2 Cue Card.`;
-    }
-
     try {
-      const data = await callGroqJSON(prompt, schema, "You are an IELTS expert examiner.");
-      setTaskData(data);
       if (item.skill === "listening") {
-        generateAudio(data.script);
+        const parts = [];
+        const partPrompts = [
+          "Part 1: Social context, 2 speakers (10 questions). Everyday social situation, e.g., booking a hotel or asking for information. Include a mix of form completion and multiple choice.",
+          "Part 2: Social context, 1 speaker (10 questions). Monologue on a social topic, e.g., a local facility or a radio talk. Include map/plan labeling or matching questions.",
+          "Part 3: Educational context, 2-4 speakers (10 questions). Discussion between students or a student and a tutor. Focus on academic discussion and multiple choice.",
+          "Part 4: Academic lecture, 1 speaker (10 questions). A formal lecture on an academic subject. Focus on note completion or summary completion."
+        ];
+
+        for (let i = 0; i < 4; i++) {
+          const partSchema = {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              script: { type: "string" },
+              questions: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: { type: "string" },
+                    q: { type: "string" },
+                    answer: { type: "string" }
+                  },
+                  required: ["id", "q", "answer"]
+                }
+              }
+            },
+            required: ["title", "script", "questions"]
+          };
+          const partData = await callGroqJSON(
+            `Generate a FULL IELTS Listening ${partPrompts[i]} for the topic: ${item.title}. 
+            Difficulty: Band 9.0 (Highest Standard). 
+            The script MUST be extremely detailed, natural, and approximately 1000-1200 words to ensure a realistic 6-8 minute duration per part. 
+            Include natural pauses, hesitations, and corrections (self-repair) as found in real IELTS tests.
+            Questions must be challenging and answerable ONLY from the script.`,
+            partSchema,
+            "You are an expert IELTS Listening examiner and content creator for Band 9.0 materials."
+          );
+          parts.push(partData);
+        }
+        
+        const keyVocabSchema = {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              word: { type: "string" },
+              definition: { type: "string" },
+              example: { type: "string" }
+            }
+          }
+        };
+        const keyVocab = await callGroqJSON(
+          `Extract 10 high-level Band 9.0 vocabulary words from these scripts: ${parts.map(p => p.script).join(" ")}`,
+          keyVocabSchema,
+          "You are an IELTS vocabulary expert."
+        );
+
+        const data = { parts, keyVocabulary: keyVocab };
+        setTaskData(data);
+        const fullScript = data.parts.map((p: any) => p.script).join("\n\n[NEW SECTION]\n\n");
+        generateAudio(fullScript);
+      } else if (item.skill === "reading") {
+        const parts = [];
+        const passagePrompts = [
+          "Passage 1: Descriptive/factual (13 questions). Topic: ${item.title}. Focus on True/False/Not Given and Note Completion.",
+          "Passage 2: Discursive/analytical (13 questions). Topic: ${item.title}. Focus on Matching Headings and Multiple Choice.",
+          "Passage 3: Complex argument (14 questions). Topic: ${item.title}. Focus on Yes/No/Not Given and Summary Completion."
+        ];
+
+        for (let i = 0; i < 3; i++) {
+          const passageSchema = {
+            type: "object",
+            properties: {
+              title: { type: "string" },
+              passage: { type: "string" },
+              questions: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    id: { type: "string" },
+                    q: { type: "string" },
+                    answer: { type: "string" }
+                  },
+                  required: ["id", "q", "answer"]
+                }
+              }
+            },
+            required: ["title", "passage", "questions"]
+          };
+          const passageData = await callGroqJSON(
+            `Generate a FULL IELTS Academic Reading ${passagePrompts[i]} 
+            Difficulty: Band 9.0 (Highest Standard). 
+            The passage MUST be 1200-1500 words, using sophisticated academic vocabulary and complex sentence structures. 
+            Questions must be highly challenging and answerable ONLY from the passage.`,
+            passageSchema,
+            "You are an expert IELTS Reading examiner and content creator for Band 9.0 materials."
+          );
+          parts.push(passageData);
+        }
+
+        const keyVocabSchema = {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              word: { type: "string" },
+              definition: { type: "string" },
+              example: { type: "string" }
+            }
+          }
+        };
+        const keyVocab = await callGroqJSON(
+          `Extract 10 high-level Band 9.0 vocabulary words from these passages: ${parts.map(p => p.passage).join(" ")}`,
+          keyVocabSchema,
+          "You are an IELTS vocabulary expert."
+        );
+
+        setTaskData({ parts, keyVocabulary: keyVocab });
+      } else if (item.skill === "writing") {
+        const schema = {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            task1: {
+              type: "object",
+              properties: {
+                prompt: { type: "string" },
+                chartType: { type: "string" },
+                chartData: { type: "object" },
+                modelAnswer: { type: "string" }
+              },
+              required: ["prompt", "chartType", "chartData", "modelAnswer"]
+            },
+            task2: {
+              type: "object",
+              properties: {
+                prompt: { type: "string" },
+                modelAnswer: { type: "string" }
+              },
+              required: ["prompt", "modelAnswer"]
+            }
+          },
+          required: ["title", "task1", "task2"]
+        };
+        const data = await callGroqJSON(
+          `Generate a FULL Academic IELTS Writing section (Task 1 and Task 2) for ${item.title}. Difficulty: Band 9.0. Task 1 MUST be a Map, Process Diagram, or complex Chart. Provide Band 9.0 model answers.`,
+          schema,
+          "You are an IELTS Writing expert."
+        );
+        setTaskData(data);
+      } else if (item.skill === "speaking") {
+        const schema = {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            parts: {
+              type: "object",
+              properties: {
+                part1: { type: "array", items: { type: "string" } },
+                part2: { type: "string" },
+                part3: { type: "array", items: { type: "string" } }
+              },
+              required: ["part1", "part2", "part3"]
+            },
+            modelAnswer: { type: "string" }
+          },
+          required: ["title", "parts", "modelAnswer"]
+        };
+        const data = await callGroqJSON(
+          `Generate a FULL IELTS Speaking test (Parts 1, 2, and 3) for the topic: ${item.title}. 
+          Difficulty: Band 9.0 (Highest Standard). 
+          Part 1 should have 4-5 questions. 
+          Part 2 should be a full cue card with 4 bullet points. 
+          Part 3 should have 4-5 abstract, analytical questions related to the Part 2 topic. 
+          Provide a Band 9.0 model answer for the entire test.`,
+          schema,
+          "You are an expert IELTS Speaking examiner."
+        );
+        setTaskData(data);
+        
+        // Generate audio for the examiner's prompts
+        const fullSpeakingScript = [
+          "Part 1 questions:",
+          ...data.parts.part1,
+          "Part 2 cue card:",
+          data.parts.part2,
+          "Part 3 questions:",
+          ...data.parts.part3
+        ].join("\n\n");
+        generateAudio(fullSpeakingScript);
       }
     } catch (error) {
       console.error("Generation failed:", error);
@@ -326,15 +442,18 @@ export default function PracticeLibrary() {
     
     let prompt = "";
     if (activeSkill === "writing") {
-      prompt = `Assess this IELTS Writing response for Module #${selectedItem?.id}:\n\nPrompt: ${taskData.prompt}\n\nUser Response: ${userAnswers.writing}\n\nProvide a detailed band score breakdown and a "Path to 9.0" section with specific, actionable steps to reach Band 9.0 from the current level.`;
+      prompt = `Assess this IELTS Writing response for Module #${selectedItem?.id}:\n\nTask 1 Prompt: ${taskData.task1.prompt}\nTask 2 Prompt: ${taskData.task2.prompt}\n\nUser Response: ${userAnswers.writing}\n\nProvide a detailed band score breakdown for both tasks and a "Path to 9.0" section with specific, actionable steps to reach Band 9.0 from the current level.`;
     } else if (activeSkill === "speaking") {
-      prompt = `Assess this IELTS Speaking practice session for Module #${selectedItem?.id}:\n\nTopic: ${taskData.topic}\n\nUser Notes/Transcript: ${userAnswers.speaking}\n\nProvide a detailed band score breakdown and a "Path to 9.0" section with specific, actionable steps to reach Band 9.0 from the current level.`;
+      prompt = `Assess this IELTS Speaking practice session for Module #${selectedItem?.id}:\n\nParts 1, 2, 3 Prompts: ${JSON.stringify(taskData.parts)}\n\nUser Notes/Transcript: ${userAnswers.speaking}\n\nProvide a detailed band score breakdown and a "Path to 9.0" section with specific, actionable steps to reach Band 9.0 from the current level.`;
     } else {
       // For listening/reading, we can just compare answers
-      const correctCount = taskData.questions.filter((q: any) => 
+      const allQuestions = taskData.parts?.flatMap((p: any) => p.questions) || taskData.questions || [];
+      const correctCount = allQuestions.filter((q: any) => 
         userAnswers[q.id]?.toLowerCase().trim() === q.answer.toLowerCase().trim()
       ).length;
-      setFeedback(`You got ${correctCount} out of ${taskData.questions.length} correct.`);
+      
+      const band = activeSkill === "listening" ? calculateListeningBand(correctCount) : calculateReadingBand(correctCount);
+      setFeedback(`You got ${correctCount} out of ${allQuestions.length} correct. Estimated Band: ${band}`);
       setIsGenerating(false);
       return;
     }
@@ -511,7 +630,6 @@ export default function PracticeLibrary() {
                   </button>
                 </div>
               )}
-            </div>
 
             {taskData && (
               <div className="space-y-8">
@@ -543,110 +661,169 @@ export default function PracticeLibrary() {
                           {showTranscript ? "Hide Transcript" : "Show Transcript"}
                         </button>
                       )}
-                      {showTranscript && taskData.script && (
+                      {showTranscript && taskData.parts && (
                         <div className="w-full p-4 bg-bg-1 border border-border rounded-xl text-xs text-text-muted leading-relaxed max-h-48 overflow-y-auto">
-                          <ReactMarkdown>{ensureString(taskData.script)}</ReactMarkdown>
+                          {taskData.parts.map((p: any, i: number) => (
+                            <div key={i} className="mb-4">
+                              <p className="font-bold mb-1">{p.title}</p>
+                              <ReactMarkdown>{ensureString(p.script)}</ReactMarkdown>
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
 
-                    <div className="space-y-6">
-                      <h4 className="font-bold text-text-primary flex items-center gap-2">
-                        <BookOpenCheck size={18} className="text-blue-primary" />
-                        Questions
-                      </h4>
-                      <div className="space-y-4">
-                        {taskData.questions?.map((q: any, idx: number) => (
-                          <div key={`listening-${q.id || idx}`} className="space-y-2">
-                            <div className="text-sm font-medium text-text-primary">{idx + 1}. {ensureString(q.q)}</div>
-                            <input 
-                              type="text"
-                              value={userAnswers[q.id] || ""}
-                              onChange={(e) => setUserAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
-                              disabled={showResults}
-                              placeholder="Type your answer..."
-                              className="w-full p-3 bg-bg-1 border border-border rounded-xl text-sm focus:ring-2 focus:ring-blue-primary/20 outline-none"
-                            />
-                            {showResults && (
-                              <div className={cn(
-                                "text-xs font-bold flex items-center gap-1.5",
-                                userAnswers[q.id]?.toLowerCase().trim() === String(q.answer || "").toLowerCase().trim() ? "text-emerald-500" : "text-red-500"
-                              )}>
-                                {userAnswers[q.id]?.toLowerCase().trim() === String(q.answer || "").toLowerCase().trim() ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
-                                Correct Answer: {ensureString(q.answer)}
+                    <div className="space-y-12">
+                      {taskData.parts?.map((part: any, pIdx: number) => (
+                        <div key={pIdx} className="space-y-6">
+                          <h4 className="font-bold text-text-primary flex items-center gap-2 border-b border-border pb-2">
+                            <BookOpenCheck size={18} className="text-blue-primary" />
+                            {part.title}
+                          </h4>
+                          <div className="space-y-4">
+                            {part.questions?.map((q: any, idx: number) => (
+                              <div key={`listening-${q.id || idx}`} className="space-y-2">
+                                <div className="text-sm font-medium text-text-primary">{q.id}. {ensureString(q.q)}</div>
+                                <input 
+                                  type="text"
+                                  value={userAnswers[q.id] || ""}
+                                  onChange={(e) => setUserAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                                  disabled={showResults}
+                                  placeholder="Type your answer..."
+                                  className="w-full p-3 bg-bg-1 border border-border rounded-xl text-sm focus:ring-2 focus:ring-blue-primary/20 outline-none"
+                                />
+                                {showResults && (
+                                  <div className={cn(
+                                    "text-xs font-bold flex items-center gap-1.5",
+                                    userAnswers[q.id]?.toLowerCase().trim() === String(q.answer || "").toLowerCase().trim() ? "text-emerald-500" : "text-red-500"
+                                  )}>
+                                    {userAnswers[q.id]?.toLowerCase().trim() === String(q.answer || "").toLowerCase().trim() ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                                    Correct Answer: {ensureString(q.answer)}
+                                  </div>
+                                )}
                               </div>
-                            )}
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
 
                 {activeSkill === "reading" && (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="space-y-4">
-                      <h4 className="font-bold text-text-primary uppercase tracking-widest text-xs">Passage</h4>
-                      <div className="prose prose-sm max-w-none text-text-secondary leading-relaxed bg-bg-1 p-6 rounded-2xl border border-border h-[500px] overflow-y-auto custom-scrollbar">
-                        <ReactMarkdown>{ensureString(taskData.passage)}</ReactMarkdown>
-                      </div>
-                    </div>
-                    <div className="space-y-6">
-                      <h4 className="font-bold text-text-primary uppercase tracking-widest text-xs">Questions</h4>
-                      <div className="space-y-6">
-                        {taskData.questions?.map((q: any, idx: number) => (
-                          <div key={`reading-${q.id || idx}`} className="space-y-2">
-                            <div className="text-sm font-medium text-text-primary">{idx + 1}. {ensureString(q.q)}</div>
-                            <input 
-                              type="text"
-                              value={userAnswers[q.id] || ""}
-                              onChange={(e) => setUserAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
-                              disabled={showResults}
-                              placeholder="Type your answer..."
-                              className="w-full p-3 bg-bg-1 border border-border rounded-xl text-sm focus:ring-2 focus:ring-blue-primary/20 outline-none"
-                            />
-                            {showResults && (
-                              <div className={cn(
-                                "text-xs font-bold flex items-center gap-1.5",
-                                userAnswers[q.id]?.toLowerCase().trim() === String(q.answer || "").toLowerCase().trim() ? "text-emerald-500" : "text-red-500"
-                              )}>
-                                {userAnswers[q.id]?.toLowerCase().trim() === String(q.answer || "").toLowerCase().trim() ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
-                                Correct Answer: {ensureString(q.answer)}
-                              </div>
-                            )}
+                  <div className="space-y-12">
+                    {taskData.parts?.map((part: any, pIdx: number) => (
+                      <div key={pIdx} className="grid grid-cols-1 lg:grid-cols-2 gap-8 border-b border-border pb-12 last:border-0">
+                        <div className="space-y-4">
+                          <h4 className="font-bold text-text-primary uppercase tracking-widest text-xs">{part.title}</h4>
+                          <div className="prose prose-sm max-w-none text-text-secondary leading-relaxed bg-bg-1 p-6 rounded-2xl border border-border h-[500px] overflow-y-auto custom-scrollbar">
+                            <ReactMarkdown>{ensureString(part.passage)}</ReactMarkdown>
                           </div>
-                        ))}
+                        </div>
+                        <div className="space-y-6">
+                          <h4 className="font-bold text-text-primary uppercase tracking-widest text-xs">Questions</h4>
+                          <div className="space-y-6">
+                            {part.questions?.map((q: any, idx: number) => (
+                              <div key={`reading-${q.id || idx}`} className="space-y-2">
+                                <div className="text-sm font-medium text-text-primary">{q.id}. {ensureString(q.q)}</div>
+                                <input 
+                                  type="text"
+                                  value={userAnswers[q.id] || ""}
+                                  onChange={(e) => setUserAnswers(prev => ({ ...prev, [q.id]: e.target.value }))}
+                                  disabled={showResults}
+                                  placeholder="Type your answer..."
+                                  className="w-full p-3 bg-bg-1 border border-border rounded-xl text-sm focus:ring-2 focus:ring-blue-primary/20 outline-none"
+                                />
+                                {showResults && (
+                                  <div className={cn(
+                                    "text-xs font-bold flex items-center gap-1.5",
+                                    userAnswers[q.id]?.toLowerCase().trim() === String(q.answer || "").toLowerCase().trim() ? "text-emerald-500" : "text-red-500"
+                                  )}>
+                                    {userAnswers[q.id]?.toLowerCase().trim() === String(q.answer || "").toLowerCase().trim() ? <CheckCircle2 size={12} /> : <AlertCircle size={12} />}
+                                    Correct Answer: {ensureString(q.answer)}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
                 )}
 
-                {activeSkill === "writing" && (
-                  <div className="space-y-6">
-                    <div className="p-6 bg-bg-2 rounded-2xl border border-border">
-                      <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2">{ensureString(taskData.type)}</div>
-                      <div className="text-lg font-bold text-text-primary leading-relaxed">{ensureString(taskData.prompt)}</div>
+                {activeSkill === "writing" && taskData.task1 && taskData.task2 && (
+                  <div className="space-y-12">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                      <div className="space-y-6">
+                        <div className="p-6 bg-bg-2 rounded-2xl border border-border">
+                          <div className="text-[10px] font-bold text-blue-primary uppercase tracking-widest mb-2">Writing Task 1</div>
+                          <div className="prose prose-sm max-w-none text-text-primary leading-relaxed mb-6">
+                            <ReactMarkdown>{ensureString(taskData.task1.prompt)}</ReactMarkdown>
+                          </div>
+                          {taskData.task1.chartData && (
+                            <div className="bg-white p-6 rounded-2xl border border-border shadow-sm">
+                              <ChartDisplay 
+                                type={taskData.task1.chartType as any} 
+                                data={taskData.task1.chartData} 
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="space-y-6">
+                        <div className="p-6 bg-bg-2 rounded-2xl border border-border">
+                          <div className="text-[10px] font-bold text-violet-accent uppercase tracking-widest mb-2">Writing Task 2</div>
+                          <div className="prose prose-sm max-w-none text-text-primary leading-relaxed">
+                            <ReactMarkdown>{ensureString(taskData.task2.prompt)}</ReactMarkdown>
+                          </div>
+                        </div>
+                      </div>
                     </div>
+
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-bold text-text-primary">Your Response</h4>
+                        <h4 className="text-sm font-bold text-text-primary">Your Response (Task 1 & 2)</h4>
                         <span className="text-xs text-text-muted">{userAnswers.writing?.split(/\s+/).filter(Boolean).length || 0} words</span>
                       </div>
                       <textarea 
                         value={userAnswers.writing || ""}
                         onChange={(e) => setUserAnswers(prev => ({ ...prev, writing: e.target.value }))}
                         disabled={showResults}
-                        placeholder="Type your essay here (min 250 words)..."
-                        className="w-full h-80 p-6 bg-bg-1 border border-border rounded-2xl text-sm focus:ring-2 focus:ring-blue-primary/20 outline-none resize-none leading-relaxed"
+                        placeholder="Type both Task 1 and Task 2 responses here. Clearly label them."
+                        className="w-full h-96 p-6 bg-bg-1 border border-border rounded-2xl text-sm focus:ring-2 focus:ring-blue-primary/20 outline-none resize-none leading-relaxed"
                       />
                     </div>
+
+                    {showResults && (
+                      <div className="p-8 bg-bg-2 border border-border rounded-3xl space-y-6">
+                        <h4 className="text-lg font-bold text-text-primary flex items-center gap-2">
+                          <CheckCircle2 size={24} className="text-emerald-500" />
+                          Model Answers (Band 9.0)
+                        </h4>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                          <div className="space-y-4">
+                            <div className="text-xs font-bold text-blue-primary uppercase tracking-widest">Task 1 Model Answer</div>
+                            <div className="prose prose-sm max-w-none text-text-secondary leading-relaxed bg-bg-1 p-6 rounded-2xl border border-border">
+                              <ReactMarkdown>{ensureString(taskData.task1.modelAnswer)}</ReactMarkdown>
+                            </div>
+                          </div>
+                          <div className="space-y-4">
+                            <div className="text-xs font-bold text-violet-accent uppercase tracking-widest">Task 2 Model Answer</div>
+                            <div className="prose prose-sm max-w-none text-text-secondary leading-relaxed bg-bg-1 p-6 rounded-2xl border border-border">
+                              <ReactMarkdown>{ensureString(taskData.task2.modelAnswer)}</ReactMarkdown>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {activeSkill === "speaking" && (
+                {activeSkill === "speaking" && taskData.parts && !Array.isArray(taskData.parts) && (
                   <div className="space-y-8">
                     <div className="p-6 bg-bg-2 rounded-2xl border border-border text-center">
-                      <h4 className="text-xl font-bold text-text-primary mb-2">{ensureString(taskData.topic)}</h4>
+                      <h4 className="text-xl font-bold text-text-primary mb-2">{ensureString(taskData.title)}</h4>
                       <p className="text-sm text-text-muted">Practice these questions using the Speaking Lab or record your notes below.</p>
                     </div>
                     
@@ -654,7 +831,7 @@ export default function PracticeLibrary() {
                       <div className="space-y-4">
                         <div className="text-xs font-black text-blue-primary uppercase tracking-widest">Part 1</div>
                         <ul className="space-y-2">
-                          {taskData.part1?.map((q: any, i: number) => (
+                          {taskData.parts.part1?.map((q: any, i: number) => (
                             <li key={`part1-${i}`} className="text-sm text-text-secondary leading-relaxed">• {ensureString(q)}</li>
                           ))}
                         </ul>
@@ -662,20 +839,22 @@ export default function PracticeLibrary() {
                       <div className="space-y-4">
                         <div className="text-xs font-black text-violet-accent uppercase tracking-widest">Part 2</div>
                         <div className="p-4 bg-bg-1 rounded-xl border border-border text-sm text-text-secondary leading-relaxed italic">
-                          {ensureString(taskData.part2)}
+                          <ReactMarkdown>{ensureString(taskData.parts.part2)}</ReactMarkdown>
                         </div>
                       </div>
                       <div className="space-y-4">
                         <div className="text-xs font-black text-emerald-accent uppercase tracking-widest">Part 3</div>
                         <ul className="space-y-2">
-                          {taskData.part3?.map((q: any, i: number) => (
+                          {taskData.parts.part3?.map((q: any, i: number) => (
                             <li key={`part3-${i}`} className="text-sm text-text-secondary leading-relaxed">• {ensureString(q)}</li>
                           ))}
                         </ul>
                       </div>
                     </div>
+                  </div>
+                )}
 
-                    <div className="space-y-4">
+                <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <h4 className="text-sm font-bold text-text-primary">Practice Notes / Transcript</h4>
                         <button 
@@ -699,6 +878,18 @@ export default function PracticeLibrary() {
                         className="w-full h-40 p-6 bg-bg-1 border border-border rounded-2xl text-sm focus:ring-2 focus:ring-blue-primary/20 outline-none resize-none leading-relaxed"
                       />
                     </div>
+
+                    {showResults && taskData.modelAnswer && (
+                      <div className="p-8 bg-bg-2 border border-border rounded-3xl">
+                        <h4 className="text-lg font-bold text-text-primary mb-4 flex items-center gap-2">
+                          <CheckCircle2 size={24} className="text-emerald-500" />
+                          Model Answer (Band 9.0)
+                        </h4>
+                        <div className="prose prose-sm max-w-none text-text-secondary leading-relaxed bg-bg-1 p-6 rounded-2xl border border-border">
+                          <ReactMarkdown>{ensureString(taskData.modelAnswer)}</ReactMarkdown>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -771,10 +962,9 @@ export default function PracticeLibrary() {
                   )}
                 </div>
               </div>
-            )}
-          </div>
-        </motion.div>
-      )}
-    </div>
-  );
-}
+            </div>
+          </motion.div>
+        )}
+      </div>
+    );
+  }

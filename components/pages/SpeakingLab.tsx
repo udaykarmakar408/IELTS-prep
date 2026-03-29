@@ -44,13 +44,15 @@ const CUE_CARDS = [
 export default function SpeakingLab() {
   const [activeCard, setActiveCard] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [cueCardData, setCueCardData] = useState<any>(null);
+  const [testData, setTestData] = useState<any>(null);
+  const [currentPart, setCurrentPart] = useState(1);
   const [timer, setTimer] = useState(0);
   const [isTimerActive, setIsTimerActive] = useState(false);
-  const [phase, setPhase] = useState<"prep" | "speak" | "feedback">("prep");
+  const [phase, setPhase] = useState<"intro" | "prep" | "speak" | "feedback">("intro");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [transcription, setTranscription] = useState("");
+  const [fullTranscript, setFullTranscript] = useState<{part: number, text: string}[]>([]);
   const [recognition, setRecognition] = useState<any>(null);
   const [pronunciationFeedback, setPronunciationFeedback] = useState<any>(null);
   const [isAnalyzingPronunciation, setIsAnalyzingPronunciation] = useState(false);
@@ -60,29 +62,60 @@ export default function SpeakingLab() {
   const generateAudio = async (text: string) => {
     setIsAudioLoading(true);
     try {
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text: `Say clearly and professionally as an IELTS examiner: ${text}` }] }],
-        config: {
-          responseModalities: ["AUDIO"],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: "Puck" },
+      // Split text into chunks of ~4000 characters to avoid Gemini limits
+      const chunks = text.match(/[^.!?]+[.!?]+/g) || [text];
+      const combinedChunks: string[] = [];
+      let currentChunk = "";
+      
+      for (const chunk of chunks) {
+        if ((currentChunk + chunk).length > 4000) {
+          combinedChunks.push(currentChunk);
+          currentChunk = chunk;
+        } else {
+          currentChunk += chunk;
+        }
+      }
+      if (currentChunk) combinedChunks.push(currentChunk);
+
+      const audioChunks: Int16Array[] = [];
+      
+      for (const chunkText of combinedChunks) {
+        const response = await ai.models.generateContent({
+          model: "gemini-2.5-flash-preview-tts",
+          contents: [{ parts: [{ text: `Say clearly and professionally as an IELTS examiner: ${chunkText}` }] }],
+          config: {
+            responseModalities: ["AUDIO"],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName: "Puck" },
+              },
             },
           },
-        },
-      });
+        });
 
-      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      if (base64Audio) {
-        const binaryString = atob(base64Audio);
-        const len = binaryString.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
+        const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+        if (base64Audio) {
+          const binaryString = atob(base64Audio);
+          const len = binaryString.length;
+          const bytes = new Uint8Array(len);
+          for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          audioChunks.push(new Int16Array(bytes.buffer));
         }
-        const pcmData = new Int16Array(bytes.buffer);
-        const wavBlob = pcmToWav(pcmData, 24000);
+      }
+
+      if (audioChunks.length > 0) {
+        // Concatenate all chunks
+        const totalLength = audioChunks.reduce((acc, curr) => acc + curr.length, 0);
+        const combinedPcm = new Int16Array(totalLength);
+        let offset = 0;
+        for (const chunk of audioChunks) {
+          combinedPcm.set(chunk, offset);
+          offset += chunk.length;
+        }
+
+        const wavBlob = pcmToWav(combinedPcm, 24000);
         const wavUrl = URL.createObjectURL(wavBlob);
         setAudioUrl(wavUrl);
         const audio = new Audio(wavUrl);
@@ -128,29 +161,60 @@ export default function SpeakingLab() {
   const startPractice = async (topic?: string) => {
     setIsGenerating(true);
     setFeedback(null);
-    setPhase("prep");
+    setPhase("intro");
     setTranscription("");
-    setTimer(60); // 1 minute prep time
-    setIsTimerActive(true);
+    setFullTranscript([]);
+    setCurrentPart(1);
     
     try {
-      const prompt = `Generate an IELTS Speaking Part 2 Cue Card for the topic: "${topic || "A random interesting topic"}".
-      Include:
-      1. The main topic statement (Describe a...)
-      2. 4 bullet points (You should say: who/what/where/when, why, how you felt, etc.)
-      Return in JSON format: { "topic": "...", "bullets": ["...", "...", "...", "..."] }`;
+      const prompt = `Generate a FULL IELTS Speaking Test (Parts 1, 2, and 3) for the theme: "${topic || "A random interesting theme"}".
+      
+      Structure:
+      - Part 1: 3-5 introductory questions about the theme.
+      - Part 2: A Cue Card (Describe a...). Include 4 bullet points.
+      - Part 3: 3-5 abstract discussion questions related to Part 2.
+      
+      Return in JSON format: 
+      { 
+        "theme": "...",
+        "part1": ["q1", "q2", "q3"],
+        "part2": { "topic": "...", "bullets": ["...", "...", "...", "..."] },
+        "part3": ["q1", "q2", "q3"]
+      }`;
       
       const result = await callGroq(prompt, "You are an IELTS Speaking examiner.");
       const data = JSON.parse(result.replace(/```json\n?|\n?```/g, ''));
-      setCueCardData(data);
+      setTestData(data);
       
-      const audioText = `Now, I'd like you to speak about a topic for one to two minutes. You have one minute to prepare. Here is your topic: ${data.topic}. You should say: ${data.bullets.join(", ")}. Your preparation time starts now.`;
+      const audioText = `Good morning. My name is Aria, and I will be your examiner today. We will start with Part 1. I'd like to ask you some questions about ${data.theme}. First, ${data.part1[0]}`;
       generateAudio(audioText);
     } catch (error) {
       console.error(error);
-      setCueCardData({ topic: topic || "A random interesting topic", bullets: ["Who it was", "When it happened", "What you did", "Why it was important"] });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const nextPart = () => {
+    setFullTranscript(prev => [...prev, { part: currentPart, text: transcription }]);
+    setTranscription("");
+    
+    if (currentPart === 1) {
+      setCurrentPart(2);
+      setPhase("prep");
+      setTimer(60); // 1 minute prep time
+      setIsTimerActive(true);
+      const audioText = `Now, we move to Part 2. I'm going to give you a topic and I'd like you to speak about it for one to two minutes. You have one minute to prepare. Here is your topic: ${testData.part2.topic}. You should say: ${testData.part2.bullets.join(", ")}. Your preparation time starts now.`;
+      generateAudio(audioText);
+    } else if (currentPart === 2) {
+      setCurrentPart(3);
+      setPhase("speak");
+      setTimer(300); // 5 mins for Part 3
+      setIsTimerActive(true);
+      const audioText = `Thank you. Now, for Part 3, I'd like to discuss some more abstract questions related to this. First, ${testData.part3[0]}. [PAUSE] Then, ${testData.part3[1] || ""}. I'll also ask you to elaborate on your views.`;
+      generateAudio(audioText);
+    } else {
+      getAIAnalysis();
     }
   };
 
@@ -187,32 +251,48 @@ export default function SpeakingLab() {
     setIsAnalyzing(true);
     setIsAnalyzingPronunciation(true);
     try {
-      const prompt = `Simulate an IELTS Speaking Part 2 feedback for the topic: "${cueCardData.topic}".
-      The student's transcribed response was: "${transcription || "No response recorded."}"
+      const finalTranscriptText = [...fullTranscript, { part: currentPart, text: transcription }]
+        .map(t => `Part ${t.part}: ${t.text}`)
+        .join("\n\n");
+
+      const prompt = `You are a Senior IELTS Speaking Examiner. Evaluate the following FULL TEST response based on the 4 official Band 9.0 criteria.
       
-      Provide a detailed evaluation:
-      1. Estimated Band (0-9)
-      2. Fluency & Coherence: Analyze pace, hesitation, and logical flow.
-      3. Lexical Resource: Identify good vocabulary used and suggest 5-10 more advanced words/collocations for this topic.
-      4. Grammatical Range & Accuracy: Point out specific grammatical errors in the transcript and suggest corrections.
-      5. Pronunciation: Based on the transcript (if available), suggest focus areas.
-      6. Band 9.0 Sample Answer: Provide a high-scoring sample answer for this specific cue card topic.
+      Theme: "${testData.theme}"
+      Student Transcript:
+      ${finalTranscriptText}
       
-      Return in clean Markdown with bold headers.`;
+      Provide a detailed evaluation in JSON format with:
+      - overallBand: Overall band score (1.0 to 9.0).
+      - criteria: {
+          fluencyCoherence: { score: number, feedback: string },
+          lexicalResource: { score: number, feedback: string },
+          grammaticalRange: { score: number, feedback: string },
+          pronunciation: { score: number, feedback: string }
+        }
+      - detailedFeedback: A comprehensive markdown report.
+      - path9: Specific, actionable steps to reach Band 9.0.
+      - band9Samples: { part2: string, part3: string }
       
-      const result = await callGroq(prompt, "You are a senior IELTS examiner.");
-      setFeedback(result);
+      Be extremely critical. Band 9.0 requires natural speed, sophisticated vocabulary, and error-free complex grammar.`;
       
-      // Separate Pronunciation Analysis
-      const pronPrompt = `Analyze the following transcript for potential pronunciation challenges common for IELTS students. 
+      const result = await callGroq(prompt, "Return ONLY JSON.");
+      let data;
+      try {
+        const jsonMatch = result.match(/\{[\s\S]*\}/);
+        data = JSON.parse(jsonMatch ? jsonMatch[0] : result);
+        setFeedback(data.detailedFeedback);
+      } catch (e) {
+        console.error("Failed to parse feedback JSON", e);
+        setFeedback(result); // Fallback
+      }
+      
+      // Separate Pronunciation Analysis (Clarify it's text-based)
+      const pronPrompt = `Analyze the following transcript for potential pronunciation challenges. 
+      Note: This is a text-based analysis of likely mispronunciations based on the transcribed words.
+      
       Transcript: "${transcription}"
       
-      Identify 3-5 specific words from the transcript that are often mispronounced or could be improved.
-      For each word, provide:
-      1. The word
-      2. Phonetic transcription (IPA)
-      3. A tip for better pronunciation.
-      
+      Identify 3-5 specific words from the transcript that are often mispronounced by non-native speakers.
       Return in JSON format: { "score": 0-100, "words": [{ "word": "...", "ipa": "...", "tip": "..." }] }`;
       
       const pronResult = await callGroq(pronPrompt, "You are a pronunciation coach.");
@@ -245,10 +325,10 @@ export default function SpeakingLab() {
         </div>
       </div>
 
-      {!cueCardData ? (
+      {!testData ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
-            <h3 className="font-bold text-sm uppercase tracking-widest text-text-muted px-1">Popular Topics</h3>
+            <h3 className="font-bold text-sm uppercase tracking-widest text-text-muted px-1">Practice Themes</h3>
             <div className="grid gap-3">
               {CUE_CARDS.map((card, i) => (
                 <button 
@@ -274,26 +354,26 @@ export default function SpeakingLab() {
             <div className="w-16 h-16 bg-violet-accent rounded-full flex items-center justify-center text-white mb-6 shadow-xl shadow-violet-accent/20">
               <Sparkles size={32} />
             </div>
-            <h3 className="font-serif text-2xl font-black text-text-primary mb-2">Surprise Me!</h3>
-            <p className="text-xs text-text-secondary mb-8 max-w-[200px]">Let Aria generate a random, challenging topic for you.</p>
+            <h3 className="font-serif text-2xl font-black text-text-primary mb-2">Full Test Simulation</h3>
+            <p className="text-xs text-text-secondary mb-8 max-w-[200px]">Experience a complete 3-part IELTS Speaking test with Aria.</p>
             <button 
               onClick={() => startPractice()}
               disabled={isGenerating}
               className="btn btn-primary bg-violet-accent hover:bg-violet-accent/80 border-none w-full"
             >
-              {isGenerating ? <Loader2 size={18} className="animate-spin" /> : "Generate Random Card"}
+              {isGenerating ? <Loader2 size={18} className="animate-spin" /> : "Start Full Test"}
             </button>
           </div>
         </div>
       ) : (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <button onClick={() => setCueCardData(null)} className="text-xs font-bold text-text-muted hover:text-text-primary uppercase tracking-widest flex items-center gap-2">
-              <RefreshCw size={14} /> Change Topic
+            <button onClick={() => setTestData(null)} className="text-xs font-bold text-text-muted hover:text-text-primary uppercase tracking-widest flex items-center gap-2">
+              <RefreshCw size={14} /> Reset Test
             </button>
             <div className={cn(
               "flex items-center gap-3 font-mono text-2xl font-black px-6 py-2 rounded-2xl border",
-              timer < 15 ? "text-red-accent border-red-accent/30 bg-red-accent/5 animate-pulse" : "text-blue-secondary border-blue-secondary/30 bg-blue-secondary/5"
+              timer < 15 && timer > 0 ? "text-red-accent border-red-accent/30 bg-red-accent/5 animate-pulse" : "text-blue-secondary border-blue-secondary/30 bg-blue-secondary/5"
             )}>
               <Clock size={24} /> {Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, "0")}
             </div>
@@ -303,28 +383,67 @@ export default function SpeakingLab() {
             <div id="cue-card-section" className="md:col-span-2 space-y-6 md:space-y-8">
               <div id="cue-card-display" className="card border-blue-primary/30 bg-gradient-to-br from-blue-primary/5 to-bg-1 p-8 md:p-12 relative overflow-hidden min-h-[400px] flex flex-col">
                 <div className="absolute top-0 right-0 p-6 md:p-10">
-                  <div className="tag tag-blue">Part 2</div>
+                  <div className="tag tag-blue">Part {currentPart}</div>
                 </div>
                 
                 <div className="flex-1">
-                  <div className="text-[10px] md:text-sm text-blue-secondary font-black uppercase tracking-[0.25em] mb-6 md:mb-8">IELTS Speaking Topic</div>
-                  <h3 id="cue-card-topic" className="font-serif text-3xl md:text-5xl font-black text-text-primary mb-8 md:mb-12 leading-tight tracking-tight">
-                    {cueCardData.topic}
-                  </h3>
+                  <div className="text-[10px] md:text-sm text-blue-secondary font-black uppercase tracking-[0.25em] mb-6 md:mb-8">IELTS Speaking {currentPart === 2 ? "Cue Card" : "Discussion"}</div>
                   
-                  <div className="space-y-6 md:space-y-8">
-                    <p className="text-xs md:text-sm font-bold text-text-muted uppercase tracking-widest">You should say:</p>
-                    <ul id="cue-card-points" className="space-y-4 md:space-y-6">
-                      {cueCardData.bullets.map((bullet: string, i: number) => (
-                        <li key={i} className="flex items-start gap-4 md:gap-6 text-text-secondary group">
-                          <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-blue-secondary/10 flex items-center justify-center text-blue-secondary text-[10px] md:text-xs font-black mt-0.5 group-hover:bg-blue-secondary group-hover:text-white transition-colors">
-                            {i+1}
-                          </div>
-                          <span className="text-sm md:text-lg font-medium leading-relaxed">{bullet}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  {currentPart === 1 && (
+                    <div className="space-y-6">
+                      <h3 className="font-serif text-3xl md:text-4xl font-black text-text-primary leading-tight tracking-tight">
+                        Introduction & Interview
+                      </h3>
+                      <p className="text-text-secondary text-lg italic">Topic: {testData.theme}</p>
+                      <ul className="space-y-4">
+                        {testData.part1.map((q: string, i: number) => (
+                          <li key={i} className="flex gap-3 text-text-secondary">
+                            <span className="text-blue-primary font-bold">•</span>
+                            {q}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {currentPart === 2 && (
+                    <div className="space-y-6">
+                      <h3 id="cue-card-topic" className="font-serif text-3xl md:text-5xl font-black text-text-primary mb-8 md:mb-12 leading-tight tracking-tight">
+                        {testData.part2.topic}
+                      </h3>
+                      
+                      <div className="space-y-6 md:space-y-8">
+                        <p className="text-xs md:text-sm font-bold text-text-muted uppercase tracking-widest">You should say:</p>
+                        <ul id="cue-card-points" className="space-y-4 md:space-y-6">
+                          {testData.part2.bullets.map((bullet: string, i: number) => (
+                            <li key={i} className="flex items-start gap-4 md:gap-6 text-text-secondary group">
+                              <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-blue-secondary/10 flex items-center justify-center text-blue-secondary text-[10px] md:text-xs font-black mt-0.5 group-hover:bg-blue-secondary group-hover:text-white transition-colors">
+                                {i+1}
+                              </div>
+                              <span className="text-sm md:text-lg font-medium leading-relaxed">{bullet}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+
+                  {currentPart === 3 && (
+                    <div className="space-y-6">
+                      <h3 className="font-serif text-3xl md:text-4xl font-black text-text-primary leading-tight tracking-tight">
+                        Two-way Discussion
+                      </h3>
+                      <p className="text-text-secondary text-lg italic">Abstract questions related to the topic.</p>
+                      <ul className="space-y-4">
+                        {testData.part3.map((q: string, i: number) => (
+                          <li key={i} className="flex gap-3 text-text-secondary">
+                            <span className="text-blue-primary font-bold">•</span>
+                            {q}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-12 pt-8 border-t border-white/5 flex items-center justify-between">
@@ -333,8 +452,10 @@ export default function SpeakingLab() {
                       <Clock size={20} className="text-text-muted" />
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Preparation</p>
-                      <p className="text-sm font-black text-text-primary">1 Minute</p>
+                      <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Duration</p>
+                      <p className="text-sm font-black text-text-primary">
+                        {currentPart === 1 ? "4-5 Mins" : currentPart === 2 ? "3-4 Mins" : "4-5 Mins"}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
@@ -342,8 +463,8 @@ export default function SpeakingLab() {
                       <Mic size={20} className="text-text-muted" />
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Speaking</p>
-                      <p className="text-sm font-black text-text-primary">2 Minutes</p>
+                      <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Status</p>
+                      <p className="text-sm font-black text-text-primary uppercase">{phase}</p>
                     </div>
                   </div>
                 </div>
@@ -355,7 +476,9 @@ export default function SpeakingLab() {
                     <Mic size={40} />
                   </div>
                   <h4 className="text-lg md:text-xl font-serif font-black text-text-primary mb-2">Recording in Progress</h4>
-                  <p className="text-[10px] md:text-xs text-text-muted uppercase tracking-widest font-bold mb-4">Speak for 1-2 minutes</p>
+                  <p className="text-[10px] md:text-xs text-text-muted uppercase tracking-widest font-bold mb-4">
+                    {currentPart === 2 ? "Speak for 1-2 minutes" : "Answer the examiner's questions"}
+                  </p>
                   
                   <div className="w-full max-w-md bg-bg-1/50 rounded-xl p-4 border border-red-accent/10 min-h-[100px] text-xs text-text-secondary italic leading-relaxed">
                     {transcription || "Listening for your voice..."}
@@ -366,10 +489,38 @@ export default function SpeakingLab() {
                       setIsTimerActive(false); 
                       setTimer(0); 
                       if (recognition) recognition.stop();
+                      nextPart();
                     }}
                     className="btn btn-ghost mt-6 md:mt-8 border-red-accent/30 text-red-accent hover:bg-red-accent hover:text-white"
                   >
-                    <Square size={16} /> Finish Speaking
+                    <Square size={16} /> {currentPart === 3 ? "Finish Test" : "Next Part"}
+                  </button>
+                </div>
+              )}
+
+              {phase === "intro" && (
+                <div className="card bg-blue-primary/5 border-blue-primary/20 flex flex-col items-center justify-center py-8 md:py-12 text-center">
+                  <div className="w-16 h-16 md:w-20 md:h-20 bg-blue-primary rounded-full flex items-center justify-center text-white mb-4 md:mb-6 shadow-2xl shadow-blue-primary/40">
+                    <Play size={40} />
+                  </div>
+                  <h4 className="text-lg md:text-xl font-serif font-black text-text-primary mb-2">Ready to Start?</h4>
+                  <p className="text-[10px] md:text-xs text-text-muted uppercase tracking-widest font-bold">Part 1: Introduction & Interview</p>
+                  <button 
+                    onClick={() => { 
+                      setPhase("speak"); 
+                      setTimer(300); 
+                      setIsTimerActive(true);
+                      if (recognition) {
+                        try {
+                          recognition.start();
+                        } catch (e) {
+                          console.error("Failed to start recognition", e);
+                        }
+                      }
+                    }}
+                    className="btn btn-primary bg-blue-primary hover:bg-blue-primary/80 border-none mt-6 md:mt-8"
+                  >
+                    Start Part 1
                   </button>
                 </div>
               )}
@@ -385,6 +536,7 @@ export default function SpeakingLab() {
                     onClick={() => { 
                       setPhase("speak"); 
                       setTimer(120); 
+                      setIsTimerActive(true);
                       if (recognition) {
                         try {
                           recognition.start();
@@ -531,8 +683,8 @@ export default function SpeakingLab() {
                     <div className="prose prose-invert prose-sm max-w-none text-text-secondary leading-relaxed markdown-body">
                       <ReactMarkdown>{feedback}</ReactMarkdown>
                     </div>
-                    <button onClick={() => { setCueCardData(null); setFeedback(null); setPronunciationFeedback(null); }} className="btn btn-ghost w-full mt-8 border-violet-accent/20 text-violet-accent hover:bg-violet-accent hover:text-white transition-all">
-                      Try Another Topic
+                    <button onClick={() => { setTestData(null); setFeedback(null); setPronunciationFeedback(null); }} className="btn btn-ghost w-full mt-8 border-violet-accent/20 text-violet-accent hover:bg-violet-accent hover:text-white transition-all">
+                      Try Another Test
                     </button>
                   </motion.div>
                 </div>

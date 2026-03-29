@@ -22,16 +22,7 @@ import { cn } from "@/lib/utils";
 import { callGroq, callGroqJSON } from "@/lib/groq";
 import ReactMarkdown from "react-markdown";
 
-const WRITING_SAMPLES = [
-  {
-    id: "ws1",
-    title: "Task 2: Education",
-    type: "Task 2",
-    question: "Some people think that it is better to educate boys and girls in separate schools. Others, however, believe that mixed schools are more beneficial. Discuss both views and give your opinion.",
-    sampleAnswer: "The question of whether single-sex or co-educational schools are more effective for children's development is a subject of ongoing debate. While some argue that separate education allows for better focus and tailored teaching, I believe that mixed schools provide a more realistic and beneficial environment for future success...",
-    analysis: "This essay follows a clear structure: Introduction, Body Paragraph 1 (Separate schools), Body Paragraph 2 (Mixed schools), and Conclusion with Opinion. It uses a wide range of vocabulary (e.g., 'co-educational', 'ongoing debate', 'tailored teaching') and complex sentence structures."
-  }
-];
+const WRITING_SAMPLES: any[] = [];
 import { ChartDisplay } from "@/components/ChartDisplay";
 import { STRUCTURE_TASKS, WRITING_TASKS } from "@/lib/content";
 
@@ -63,27 +54,6 @@ export default function Writing() {
   const [structureFeedback, setStructureFeedback] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simple real-time band estimator logic
-    const words = userText.trim() ? userText.trim().split(/\s+/).length : 0;
-    const sentences = userText.split(/[.!?]+/).filter(s => s.trim().length > 0).length;
-    
-    let estimate = 1.0;
-    
-    // Word count factor
-    if (words > 50) estimate += 1.0;
-    if (words > 150) estimate += 1.5;
-    if (words > 250) estimate += 1.0;
-    
-    // Sentence complexity factor (very simple proxy)
-    const avgSentenceLength = sentences > 0 ? words / sentences : 0;
-    if (avgSentenceLength > 10) estimate += 1.0;
-    if (avgSentenceLength > 20) estimate += 1.0;
-    
-    // Cap it at 9.0 for the live estimate
-    setLiveBandEstimate(Math.min(9.0, estimate));
-  }, [userText]);
-
-  useEffect(() => {
     const load = async () => {
       const p = await getProgress();
       setProgress(p);
@@ -111,7 +81,7 @@ export default function Writing() {
     setTimeLeft(task.mins * 60);
   };
 
-  const generateAIPractice = async () => {
+  const generateAIPractice = async (type: "Task 1" | "Task 2") => {
     setIsGenerating(true);
     const schema = {
       type: "object",
@@ -119,6 +89,14 @@ export default function Writing() {
         title: { type: "string" },
         type: { type: "string" },
         prompt: { type: "string" },
+        chartData: { 
+          type: "object",
+          properties: {
+            type: { type: "string" },
+            data: { type: "array", items: { type: "object" } },
+            labels: { type: "array", items: { type: "string" } }
+          }
+        },
         wordCount: { type: "number" },
         mins: { type: "number" },
         difficulty: { type: "string" }
@@ -126,7 +104,13 @@ export default function Writing() {
       required: ["title", "type", "prompt", "wordCount", "mins", "difficulty"]
     };
 
-    const prompt = "Generate a unique IELTS Writing Task 2 prompt. The topic should be modern and relevant (e.g., technology, environment, society).";
+    const prompt = type === "Task 2" 
+      ? `Generate a high-quality, Band 9.0 standard IELTS Writing Task 2 prompt. 
+         The topic should be a complex societal, environmental, or technological issue that requires critical thinking and nuanced argumentation.
+         The prompt should be phrased in the standard IELTS Task 2 format (e.g., "To what extent do you agree or disagree?", "Discuss both views and give your opinion.").`
+      : `Generate a high-quality, Band 9.0 standard IELTS Writing Task 1 prompt (Academic).
+         Include a complex data set (Chart, Table, or Process) for the user to describe.
+         Return the data in the 'chartData' field.`;
 
     try {
       const result = await callGroqJSON(prompt, schema, "You are an IELTS Writing expert.");
@@ -208,63 +192,47 @@ export default function Writing() {
     if (userText.trim().length < 50) return;
     setIsAnalyzing(true);
     
-    const systemPrompt = `You are an expert IELTS Writing Examiner. Analyze the following essay for ${activeTask.type}.
-    Provide a detailed report in JSON format with the following structure:
-    {
-      "overallBand": number,
-      "criteria": {
-        "taskResponse": { "score": number, "feedback": "string" },
-        "coherenceCohesion": { "score": number, "feedback": "string" },
-        "lexicalResource": { "score": number, "feedback": "string" },
-        "grammaticalRange": { "score": number, "feedback": "string" }
-      },
-      "detailedFeedback": "string (markdown)",
-      "keyImprovement": "string"
-    }
-    Essay: ${userText}`;
-
-    const smartReviewPrompt = `Analyze the following IELTS essay for grammar, spelling, and vocabulary errors. 
-    Return ONLY a JSON array of objects:
-    [
-      { "original": "text with error", "correction": "corrected text", "type": "grammar" | "spelling" | "vocabulary", "explanation": "brief explanation" }
-    ]
-    Essay: ${userText}`;
-
-    const band9Prompt = `You are an IELTS Band 9 candidate. Rewrite the following student essay to achieve a perfect Band 9 score. 
-    Maintain the student's original ideas but use sophisticated vocabulary, complex grammatical structures, and perfect cohesion.
-    Essay: ${userText}`;
+    const systemPrompt = `You are a Senior IELTS Writing Examiner. Evaluate the following ${activeTask.type} response based on the 4 official Band 9.0 criteria.
+    
+    Task: ${activeTask.title}
+    Task Description: ${activeTask.description}
+    Student Response: ${userText}
+    
+    Provide a detailed evaluation in JSON format with:
+    - overallBand: Overall band score (1.0 to 9.0).
+    - criteria: {
+        taskResponse: { score: number, feedback: string },
+        coherenceCohesion: { score: number, feedback: string },
+        lexicalResource: { score: number, feedback: string },
+        grammaticalRange: { score: number, feedback: string }
+      }
+    - detailedFeedback: A comprehensive markdown report.
+    - keyImprovement: The single most important thing to fix.
+    - smartReview: Array of { original: string, correction: string, type: "grammar" | "spelling" | "vocabulary", explanation: string } for specific improvements.
+    - band9Version: A complete Band 9.0 version of the essay.
+    
+    Be extremely critical. Band 9.0 requires perfect cohesion, sophisticated vocabulary, and error-free complex grammar.`;
 
     try {
-      const [result, smartResult, band9Result] = await Promise.all([
-        callGroq(systemPrompt, "Return ONLY JSON."),
-        callGroq(smartReviewPrompt, "Return ONLY JSON."),
-        callGroq(userText, band9Prompt)
-      ]);
-
+      const result = await callGroq(systemPrompt, "Return ONLY JSON.");
+      
+      let data;
       try {
         const jsonMatch = result.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          setFeedback(JSON.parse(jsonMatch[0]));
-        }
+        data = JSON.parse(jsonMatch ? jsonMatch[0] : result);
       } catch (e) {
-        console.error("Failed to parse main feedback JSON", e);
-        setFeedback({ detailedFeedback: result }); // Fallback
+        console.error("Failed to parse feedback JSON", e);
+        throw new Error("Invalid feedback format from AI");
       }
 
-      setBand9Version(band9Result);
-      try {
-        const jsonMatch = smartResult.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          setSmartReview(JSON.parse(jsonMatch[0]));
-        }
-      } catch (e) {
-        console.error("Failed to parse smart review JSON", e);
-      }
+      setFeedback(data);
+      setBand9Version(data.band9Version);
+      setSmartReview(data.smartReview);
       
       if (progress) {
         const updated = { 
           ...progress, 
-          studyMinutes: (progress.studyMinutes || 0) + activeTask.mins,
+          studyMinutes: (progress.studyMinutes || 0) + (activeTask.mins || 40),
           courseXP: progress.courseXP + 100
         };
         saveProgress(updated);
@@ -989,17 +957,30 @@ export default function Writing() {
               </p>
             </div>
 
-            <button 
-              onClick={generateAIPractice}
-              disabled={isGenerating}
-              className="group relative overflow-hidden btn btn-primary px-12 py-6 rounded-2xl text-xs font-black uppercase tracking-[0.3em] shadow-3xl shadow-blue-primary/30"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-              <div className="flex items-center gap-4">
-                {isGenerating ? <Loader2 size={24} className="animate-spin" /> : <Sparkles size={24} />}
-                {isGenerating ? "Synthesizing Prompt..." : "Generate New Prompt"}
-              </div>
-            </button>
+            <div className="flex flex-col sm:flex-row gap-6">
+              <button 
+                onClick={() => generateAIPractice("Task 1")}
+                disabled={isGenerating}
+                className="group relative overflow-hidden btn btn-secondary px-12 py-6 rounded-2xl text-xs font-black uppercase tracking-[0.3em] shadow-3xl shadow-blue-primary/10"
+              >
+                <div className="flex items-center gap-4">
+                  {isGenerating ? <Loader2 size={24} className="animate-spin" /> : <FileText size={24} />}
+                  {isGenerating ? "Synthesizing..." : "Task 1 (Academic)"}
+                </div>
+              </button>
+
+              <button 
+                onClick={() => generateAIPractice("Task 2")}
+                disabled={isGenerating}
+                className="group relative overflow-hidden btn btn-primary px-12 py-6 rounded-2xl text-xs font-black uppercase tracking-[0.3em] shadow-3xl shadow-blue-primary/30"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                <div className="flex items-center gap-4">
+                  {isGenerating ? <Loader2 size={24} className="animate-spin" /> : <Sparkles size={24} />}
+                  {isGenerating ? "Synthesizing..." : "Task 2 (Essay)"}
+                </div>
+              </button>
+            </div>
           </div>
         </div>
       )}

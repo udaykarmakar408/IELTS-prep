@@ -31,10 +31,22 @@ import Markdown from "react-markdown";
 
 import { ChartDisplay } from "@/components/ChartDisplay";
 
+import { calculateListeningBand, calculateReadingBand } from "@/lib/ielts";
+
 interface GeneratedTask {
   title: string;
-  passage?: string;
-  script?: string;
+  parts?: {
+    title: string;
+    passage?: string;
+    script?: string;
+    questions: {
+      id: number;
+      text: string;
+      type: "mcq" | "gap-fill" | "tfng" | "matching";
+      options?: string[];
+      answer: string;
+    }[];
+  }[];
   prompt?: string;
   modelAnswer?: string;
   chartType?: string;
@@ -44,7 +56,7 @@ interface GeneratedTask {
     part2: string;
     part3: string[];
   };
-  questions: {
+  questions?: { // Fallback for single-part tasks
     id: number;
     text: string;
     type: "mcq" | "gap-fill" | "tfng" | "matching";
@@ -133,11 +145,39 @@ export default function MockTests() {
   const [speakingPrompt, setSpeakingPrompt] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [speakingPartIndex, setSpeakingPartIndex] = useState(0);
+  const [speakingTranscript, setSpeakingTranscript] = useState("");
+  const [fullSpeakingTranscript, setFullSpeakingTranscript] = useState<{part: string, text: string}[]>([]);
+  const [recognition, setRecognition] = useState<any>(null);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && (window.webkitSpeechRecognition || window.SpeechRecognition)) {
+      const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+      const recog = new SpeechRecognition();
+      recog.continuous = true;
+      recog.interimResults = true;
+      recog.lang = "en-US";
+
+      recog.onresult = (event: any) => {
+        let finalTranscript = "";
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          }
+        }
+        setSpeakingTranscript(prev => prev + finalTranscript);
+      };
+
+      setRecognition(recog);
+    }
+  }, []);
 
   const handleNextSpeakingPart = () => {
     if (!testTask?.speakingParts) return;
     
+    setFullSpeakingTranscript(prev => [...prev, { part: `${speakingStage} (Q${speakingPartIndex + 1})`, text: speakingTranscript }]);
+    setSpeakingTranscript("");
+
     let nextPrompt = "";
     if (speakingStage === "part1") {
       if (speakingPartIndex < testTask.speakingParts.part1.length - 1) {
@@ -285,37 +325,99 @@ export default function MockTests() {
     try {
       setGenerationStep(`Generating challenging ${currentSkill} content...`);
       
-      const prompt = `Generate a realistic, challenging Academic IELTS task EXCLUSIVELY for the ${currentSkill} section.
-      Difficulty: Band 9.0 level. Use complex academic vocabulary and sophisticated grammatical structures.
-      
-      CRITICAL: ONLY return data for the ${currentSkill} skill. DO NOT include fields for other skills.
-      
-      If ${currentSkill} is 'writing': Provide a prompt (Task 1 or Task 2), chartType (if Task 1), chartData (if Task 1), and a modelAnswer (Band 9.0 level).
-      If ${currentSkill} is 'reading': Provide a 1000-1200 word academic passage and 10 questions (mcq, gap-fill, tfng). Ensure questions are strictly answerable ONLY from the passage.
-      If ${currentSkill} is 'listening': Provide a detailed script for a conversation or talk (at least 1500 words for a 5-8 minute experience) and 10 questions.
-      If ${currentSkill} is 'speaking': Provide 3 parts of questions. Part 1: Personal (3-4 questions), Part 2: Cue Card (topic + 4 bullets), Part 3: Discussion (3-4 abstract questions). Also provide a modelAnswer for Part 2 (Cue Card).
-      
-      Return as JSON matching this structure:
-      {
-        "title": "string",
-        "passage": "string (only if reading)",
-        "script": "string (only if listening)",
-        "prompt": "string (only if writing)",
-        "modelAnswer": "string (only if writing or speaking)",
-        "chartType": "string (only if writing task 1)",
-        "chartData": "any (only if writing task 1)",
-        "speakingParts": { "part1": ["string"], "part2": "string", "part3": ["string"] } (only if speaking),
-        "questions": [
-          { "id": number, "text": "string", "type": "mcq|gap-fill|tfng", "options": ["string"] (optional), "answer": "string" }
-        ] (only if reading or listening)
-      }`;
+      let prompt = "";
+      if (currentSkill === 'reading') {
+        prompt = `Generate a FULL Academic IELTS Reading section (3 passages, 40 questions total).
+        Difficulty: Band 9.0 level. Use complex academic vocabulary and sophisticated grammatical structures.
+        
+        Structure:
+        - Passage 1: Descriptive/factual (13 questions). Mix MCQ and TFNG.
+        - Passage 2: Discursive/analytical (13 questions). Mix Matching Headings and Matching Information.
+        - Passage 3: Complex argument (14 questions). Mix Summary Completion and MCQ.
+        
+        Return as JSON:
+        {
+          "title": "Academic Reading Full Test",
+          "parts": [
+            {
+              "title": "Passage 1: [Title]",
+              "passage": "[1000-1200 words]",
+              "questions": [
+                { "id": 1, "text": "...", "type": "mcq|gap-fill|tfng|matching", "options": ["..."], "answer": "..." }
+              ]
+            },
+            { "title": "Passage 2: [Title]", "passage": "...", "questions": [...] },
+            { "title": "Passage 3: [Title]", "passage": "...", "questions": [...] }
+          ]
+        }`;
+      } else if (currentSkill === 'listening') {
+        prompt = `Generate a FULL IELTS Listening section (4 parts, 40 questions total).
+        Difficulty: Band 9.0 level. Mimic the complexity of Cambridge IELTS 15-19.
+        
+        Structure:
+        - Part 1: Social context, 2 speakers (10 questions). Focus on Note Completion (names, dates, numbers).
+        - Part 2: Social context, 1 speaker (10 questions). Focus on Multiple Choice and Map/Plan Labeling.
+        - Part 3: Educational context, 2-4 speakers (10 questions). Focus on Matching and Multiple Choice.
+        - Part 4: Academic lecture, 1 speaker (10 questions). Focus on Summary/Note Completion.
+        
+        Return as JSON:
+        {
+          "title": "Listening Full Test",
+          "parts": [
+            {
+              "title": "Part 1: Social Context",
+              "script": "[Full script for Part 1]",
+              "questions": [
+                { "id": 1, "text": "...", "type": "mcq|gap-fill|matching", "answer": "..." }
+              ]
+            },
+            { "title": "Part 2: Social Context", "script": "...", "questions": [...] },
+            { "title": "Part 3: Educational Context", "script": "...", "questions": [...] },
+            { "title": "Part 4: Academic Lecture", "script": "...", "questions": [...] }
+          ]
+        }`;
+      } else if (currentSkill === 'writing') {
+        prompt = `Generate a FULL Academic IELTS Writing section (Task 1 and Task 2).
+        Difficulty: Band 9.0 level.
+        
+        Task 1: MUST be either a Map, Process Diagram, or complex Chart.
+        Task 2: Academic Essay.
+        
+        Return as JSON:
+        {
+          "title": "Academic Writing Full Test",
+          "prompt": "### Task 1\\n[Prompt]\\n\\n### Task 2\\n[Prompt]",
+          "chartType": "map|process|line|bar|pie",
+          "chartData": { "labels": [...], "datasets": [...] },
+          "modelAnswer": "### Task 1 Model Answer\\n[Band 9.0 Answer]\\n\\n### Task 2 Model Answer\\n[Band 9.0 Answer]"
+        }`;
+      } else if (currentSkill === 'speaking') {
+        prompt = `Generate a FULL IELTS Speaking test (Parts 1, 2, and 3).
+        Difficulty: Band 9.0 level.
+        
+        Return as JSON:
+        {
+          "title": "Speaking Full Simulation",
+          "speakingParts": {
+            "part1": ["Question 1", "Question 2", "Question 3", "Question 4"],
+            "part2": "Cue Card Topic: [Topic]\\n- Bullet 1\\n- Bullet 2\\n- Bullet 3\\n- Bullet 4",
+            "part3": ["Abstract Question 1", "Abstract Question 2", "Abstract Question 3", "Abstract Question 4"]
+          },
+          "modelAnswer": "### Part 2 Model Answer\\n[Band 9.0 Answer]"
+        }`;
+      }
       
       const result = await callGroqJSON(prompt, "You are an expert IELTS content creator for the British Council. You strictly follow formatting constraints.");
       setTestTask(result as any);
       
-      if (currentSkill === 'listening' && result.script) {
-        setGenerationStep("Generating high-quality audio...");
-        generateAudio(result.script);
+      if (currentSkill === 'listening' && result.parts) {
+        setGenerationStep("Generating high-quality audio with instructions...");
+        const fullScript = result.parts.map((p: any, i: number) => {
+          const intro = `Part ${i + 1}. You will hear a ${p.title}. First, you have some time to look at questions 1 to 10. [PAUSE] Now listen carefully and answer questions 1 to 10.`;
+          const outro = `That is the end of Part ${i + 1}. You now have half a minute to check your answers. [PAUSE]`;
+          return `${intro}\n\n${p.script}\n\n${outro}`;
+        }).join("\n\n[NEW SECTION]\n\n");
+        generateAudio(fullScript);
       }
 
       if (currentSkill === 'speaking' && result.speakingParts) {
@@ -339,29 +441,51 @@ export default function MockTests() {
 
     const isWriting = activeTest.skill === 'writing' || testStage === 'writing';
     const isSpeaking = activeTest.skill === 'speaking' || testStage === 'speaking';
+    const isReading = activeTest.skill === 'reading' || testStage === 'reading';
+    const isListening = activeTest.skill === 'listening' || testStage === 'listening';
     
     let submission = "";
     if (isWriting) submission = writingAnswer;
-    else if (isSpeaking) submission = "Simulated Speaking Session Completed.";
+    else if (isSpeaking) {
+      const finalTranscript = [...fullSpeakingTranscript, { part: `${speakingStage} (Q${speakingPartIndex + 1})`, text: speakingTranscript }]
+        .map(t => `${t.part}: ${t.text}`)
+        .join("\n\n");
+      submission = finalTranscript || "Simulated Speaking Session Completed.";
+    }
     else submission = JSON.stringify(userAnswers);
 
-    const systemPrompt = `You are a strict, world-class IELTS examiner. Analyze the student's performance.
-    Task was: ${JSON.stringify(testTask)}
-    Student Submission: ${submission}
-    
-    If Writing: Evaluate based on Task Response, Coherence/Cohesion, Lexical Resource, Grammatical Range/Accuracy.
-    If Speaking: Evaluate based on Fluency/Coherence, Lexical Resource, Grammatical Range/Accuracy, Pronunciation.
-    If Reading/Listening: Compare userAnswers to the correct answers in the task.
-    
-    Provide a detailed breakdown, an Overall Band (0-9), and a "Path to 9.0" section with specific, actionable steps to reach Band 9.0 from the current level.
-    Format as Markdown. End with "Overall Band: X.X"`;
+    let band = 6.0;
+    let result = "";
+
+    if (isReading || isListening) {
+      // Calculate raw score
+      let correct = 0;
+      const allQuestions = testTask?.parts?.flatMap(p => p.questions) || testTask?.questions || [];
+      allQuestions.forEach(q => {
+        if (userAnswers[q.id]?.toLowerCase().trim() === q.answer.toLowerCase().trim()) {
+          correct++;
+        }
+      });
+      
+      band = isListening ? calculateListeningBand(correct) : calculateReadingBand(correct);
+      result = `### Section Results\n\nRaw Score: ${correct} / ${allQuestions.length}\nEstimated Band: ${band}\n\n#### Detailed Feedback\n\n${allQuestions.map(q => `**Q${q.id}:** ${q.text}\n- Your Answer: ${userAnswers[q.id] || "No Answer"}\n- Correct Answer: ${q.answer}\n`).join('\n')}`;
+    } else {
+      const systemPrompt = `You are a strict, world-class IELTS examiner. Analyze the student's performance.
+      Task was: ${JSON.stringify(testTask)}
+      Student Submission: ${submission}
+      
+      If Writing: Evaluate based on Task Response, Coherence/Cohesion, Lexical Resource, Grammatical Range/Accuracy.
+      If Speaking: Evaluate based on Fluency/Coherence, Lexical Resource, Grammatical Range/Accuracy, Pronunciation.
+      
+      Provide a detailed breakdown, an Overall Band (0-9), and a "Path to 9.0" section with specific, actionable steps to reach Band 9.0 from the current level.
+      Format as Markdown. End with "Overall Band: X.X"`;
+
+      result = await callGroq(`Evaluate this IELTS ${activeTest.skill} submission.`, systemPrompt);
+      const bandMatch = result.match(/Overall Band:\s*([0-9]\.?[0-9]?)/i);
+      band = bandMatch ? parseFloat(bandMatch[1]) : 6.0;
+    }
 
     try {
-      const result = await callGroq(`Evaluate this IELTS ${activeTest.skill} submission.`, systemPrompt);
-      
-      const bandMatch = result.match(/Overall Band:\s*([0-9]\.?[0-9]?)/i);
-      const band = bandMatch ? parseFloat(bandMatch[1]) : 6.0;
-
       if (activeTest.id === 'full-mock') {
         const nextStageMap: any = { listening: "reading", reading: "writing", writing: "speaking", speaking: "result" };
         const currentSkill = testStage || "listening";
@@ -383,9 +507,6 @@ export default function MockTests() {
         setEstimatedBand(band);
 
         if (band) {
-          setFeedback(result);
-          setEstimatedBand(band);
-          
           const updated = {
             ...progress,
             bands: { ...progress.bands, [activeTest.skill]: band },
@@ -601,8 +722,26 @@ export default function MockTests() {
 
                       <div className="flex flex-col items-center gap-4">
                         <button 
-                          onMouseDown={() => setIsRecording(true)}
-                          onMouseUp={() => setIsRecording(false)}
+                          onMouseDown={() => {
+                            setIsRecording(true);
+                            if (recognition) {
+                              try {
+                                recognition.start();
+                              } catch (e) {
+                                console.error("Failed to start recognition", e);
+                              }
+                            }
+                          }}
+                          onMouseUp={() => {
+                            setIsRecording(false);
+                            if (recognition) {
+                              try {
+                                recognition.stop();
+                              } catch (e) {
+                                console.error("Failed to stop recognition", e);
+                              }
+                            }
+                          }}
                           className={cn(
                             "w-20 h-20 rounded-full flex items-center justify-center transition-all shadow-xl",
                             isRecording ? "bg-red-500 scale-110 shadow-red-500/20" : "bg-blue-primary hover:bg-blue-primary/90 shadow-blue-primary/20"
@@ -614,6 +753,13 @@ export default function MockTests() {
                           Hold to Speak
                         </p>
                         
+                        {speakingTranscript && (
+                          <div className="w-full p-4 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-500 italic text-center">
+                            "{speakingTranscript}"
+                          </div>
+                        )}
+                      </div>
+                        
                         <button 
                           onClick={handleNextSpeakingPart}
                           className="mt-4 px-8 py-3 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-all text-xs uppercase tracking-widest"
@@ -621,11 +767,26 @@ export default function MockTests() {
                           {speakingStage === 'part3' && speakingPartIndex === (testTask.speakingParts.part3.length - 1) ? "Finish Speaking" : "Next Question"}
                         </button>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
 
                   <div className="prose prose-sm max-w-none text-gray-600 leading-relaxed font-serif">
-                    {testTask?.passage && (activeTest.skill === 'reading' || testStage === 'reading') && <Markdown>{testTask.passage}</Markdown>}
+                    {testTask?.parts && (activeTest.skill === 'reading' || testStage === 'reading' || activeTest.skill === 'listening' || testStage === 'listening') && (
+                      <div className="space-y-12">
+                        {testTask.parts.map((part, pIdx) => (
+                          <div key={pIdx} className="space-y-4">
+                            <h3 className="text-xl font-bold text-blue-primary border-b border-blue-primary/10 pb-2">{part.title}</h3>
+                            {part.passage && <Markdown>{part.passage}</Markdown>}
+                            {part.script && (
+                              <div className="bg-gray-50 p-4 rounded-lg border border-gray-100 text-xs italic">
+                                <p className="font-bold mb-2">Transcript (Part {pIdx + 1}):</p>
+                                <Markdown>{part.script}</Markdown>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {testTask?.prompt && (activeTest.skill === 'writing' || testStage === 'writing') && <Markdown>{testTask.prompt}</Markdown>}
                     {!testTask && <Markdown>{activeTest.desc}</Markdown>}
                   </div>
@@ -636,7 +797,6 @@ export default function MockTests() {
                     </div>
                   )}
                 </div>
-              </div>
 
               {/* Right Pane: Input */}
               <div className="w-full md:w-1/2 bg-[#F4F7F9] overflow-y-auto p-4 md:p-8 custom-scrollbar h-[60vh] md:h-full">
@@ -661,7 +821,7 @@ export default function MockTests() {
                           </div>
                         ) : (
                           <div className="space-y-6">
-                            {testTask.questions.map((q, idx) => (
+                            {(testTask.parts ? testTask.parts.flatMap(p => p.questions) : testTask.questions || []).map((q, idx) => (
                               <div 
                                 key={q.id} 
                                 className={cn(

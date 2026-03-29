@@ -25,24 +25,7 @@ import { GoogleGenAI, Modality } from "@google/genai";
 import ReactMarkdown from "react-markdown";
 import SpeakingLiveSession from "./SpeakingLiveSession";
 
-const SPEAKING_SAMPLES = [
-  {
-    id: "ss1",
-    part: 1,
-    topic: "Hometown",
-    question: "Where is your hometown?",
-    answer: "My hometown is a vibrant city located in the southern part of the country. It's famous for its historical landmarks and delicious local cuisine. I've lived there all my life, and I really enjoy the sense of community there.",
-    analysis: "This answer is direct and provides relevant details. It uses good vocabulary like 'vibrant' and 'historical landmarks'."
-  },
-  {
-    id: "ss2",
-    part: 2,
-    topic: "A memorable journey",
-    question: "Describe a memorable journey you have taken.",
-    answer: "One of the most memorable journeys I've ever had was a road trip through the mountains last summer. I went with a group of close friends, and we spent a week exploring different trails and camping under the stars. The scenery was absolutely breathtaking, and the experience brought us all much closer together.",
-    analysis: "The speaker uses a range of narrative tenses and descriptive adjectives like 'memorable' and 'breathtaking'. The structure follows the cue card prompts well."
-  }
-];
+const SPEAKING_SAMPLES: any[] = [];
 
 interface Topic {
   id: string;
@@ -51,239 +34,7 @@ interface Topic {
   hints: string;
 }
 
-const SPEAKING_TOPICS: Topic[] = [
-  {
-    id: "t1",
-    title: "Describe a person who has influenced you.",
-    bullets: [
-      "Who this person is",
-      "How you know them",
-      "What qualities they have",
-      "Explain why they influenced you"
-    ],
-    hints: "Think about a teacher, family member, or mentor. Focus on specific qualities like resilience or kindness."
-  },
-  {
-    id: "t2",
-    title: "Describe a place in nature you have visited.",
-    bullets: [
-      "Where this place is",
-      "When you visited it",
-      "What you did there",
-      "Explain how you felt about it"
-    ],
-    hints: "Use sensory details: what you saw, heard, and felt. Use adjectives like 'tranquil', 'breathtaking', or 'serene'."
-  },
-  {
-    id: "t3",
-    title: "Describe a useful piece of technology you own.",
-    bullets: [
-      "What it is",
-      "How long you have had it",
-      "What you use it for",
-      "Explain why it is useful to you"
-    ],
-    hints: "Don't just say 'smartphone'. Think about a specific app, a laptop, or even a kitchen appliance. Focus on utility."
-  },
-  {
-    id: "t4",
-    title: "Describe a time you helped someone.",
-    bullets: [
-      "Who you helped",
-      "What the situation was",
-      "How you helped them",
-      "Explain how you felt about it"
-    ],
-    hints: "Use narrative tenses (Past Simple, Past Continuous). Focus on the emotional outcome and the impact of your help."
-  },
-  {
-    id: "t5",
-    title: "Describe a book or film that had a significant impact on you.",
-    bullets: [
-      "What it was about",
-      "When you read/watched it",
-      "Why it affected you",
-      "Explain if you would recommend it to others"
-    ],
-    hints: "Focus on the theme or message. Use words like 'thought-provoking', 'inspiring', or 'eye-opening'."
-  },
-  {
-    id: "t6",
-    title: "Describe a city you would like to visit in the future.",
-    bullets: [
-      "Where it is",
-      "What it is famous for",
-      "What you would do there",
-      "Explain why you want to visit this city"
-    ],
-    hints: "Think about architecture, culture, or food. Use future forms like 'I would love to...' or 'I am keen on visiting...'"
-  },
-  {
-    id: "t7",
-    title: "Describe a memorable event from your childhood.",
-    bullets: [
-      "What the event was",
-      "How old you were",
-      "Who was with you",
-      "Explain why it was memorable"
-    ],
-    hints: "Focus on emotions and specific details. Use childhood vocabulary like 'nostalgic', 'vivid memory', or 'carefree'."
-  },
-  {
-    id: "t8",
-    title: "Describe a hobby you enjoy doing in your free time.",
-    bullets: [
-      "What the hobby is",
-      "How you started it",
-      "How often you do it",
-      "Explain why you enjoy it"
-    ],
-    hints: "Talk about the benefits of the hobby, such as stress relief or skill-building. Use 'passionate about' or 'engrossed in'."
-  },
-  {
-    id: "t9",
-    title: "Describe a piece of art you like.",
-    bullets: [
-      "What it is",
-      "Where you saw it",
-      "What it looks like",
-      "Explain why you like it"
-    ],
-    hints: "It could be a painting, sculpture, or even a mural. Use descriptive language like 'abstract', 'vibrant', or 'intricate'."
-  },
-  {
-    id: "t10",
-    title: "Describe a time you learned a new skill.",
-    bullets: [
-      "What the skill was",
-      "How you learned it",
-      "Who helped you",
-      "Explain how you felt after learning it"
-    ],
-    hints: "Focus on the challenge and the reward. Use 'steep learning curve', 'mastered', or 'proficient'."
-  },
-  {
-    id: "t11",
-    title: "Describe a gift you received that was special to you.",
-    bullets: [
-      "What the gift was",
-      "Who gave it to you",
-      "When you received it",
-      "Explain why it was special"
-    ],
-    hints: "Focus on the sentimental value. Use words like 'cherished', 'thoughtful', or 'meaningful'."
-  },
-  {
-    id: "t12",
-    title: "Describe a sport you enjoy watching or playing.",
-    bullets: [
-      "What the sport is",
-      "How it is played",
-      "Why you like it",
-      "Explain its popularity in your country"
-    ],
-    hints: "Talk about the rules, the excitement, and the community aspect. Use 'competitive', 'teamwork', or 'adrenaline rush'."
-  },
-  {
-    id: "t13",
-    title: "Describe a historical building you have visited.",
-    bullets: [
-      "Where it is",
-      "What it looks like",
-      "What its history is",
-      "Explain why you found it interesting"
-    ],
-    hints: "Use architectural terms like 'facade', 'heritage', or 'ancient'. Focus on the significance of the building."
-  },
-  {
-    id: "t14",
-    title: "Describe a time you had a disagreement with someone.",
-    bullets: [
-      "Who it was with",
-      "What the disagreement was about",
-      "How you resolved it",
-      "Explain what you learned from the experience"
-    ],
-    hints: "Focus on communication and conflict resolution. Use 'compromise', 'perspective', or 'reconciliation'."
-  },
-  {
-    id: "t15",
-    title: "Describe a website you visit frequently.",
-    bullets: [
-      "What the website is",
-      "How you found it",
-      "What you use it for",
-      "Explain why you visit it often"
-    ],
-    hints: "Talk about the features, the layout, and the content. Use 'user-friendly', 'informative', or 'addictive'."
-  },
-  {
-    id: "t16",
-    title: "Describe a job you would like to have in the future.",
-    bullets: [
-      "What the job is",
-      "What qualifications you need",
-      "What the daily tasks would be",
-      "Explain why you are interested in this job"
-    ],
-    hints: "Think about your passions and career goals. Use 'ambitious', 'fulfilling', or 'career path'."
-  },
-  {
-    id: "t17",
-    title: "Describe a festival or celebration in your country.",
-    bullets: [
-      "What the festival is",
-      "When it takes place",
-      "What people do during the festival",
-      "Explain why it is important"
-    ],
-    hints: "Focus on traditions, food, and atmosphere. Use 'festive', 'cultural heritage', or 'communal'."
-  },
-  {
-    id: "t18",
-    title: "Describe a time you were surprised by something.",
-    bullets: [
-      "What the surprise was",
-      "When it happened",
-      "How you felt",
-      "Explain why it was a surprise"
-    ],
-    hints: "Use descriptive language for emotions. Use 'unexpected', 'astonished', or 'speechless'."
-  },
-  {
-    id: "t19",
-    title: "Describe a piece of clothing you wear often.",
-    bullets: [
-      "What it is",
-      "Where you got it",
-      "When you wear it",
-      "Explain why you like it"
-    ],
-    hints: "Talk about comfort, style, or a special memory. Use 'versatile', 'fashionable', or 'sentimental'."
-  },
-  {
-    id: "t20",
-    title: "Describe a journey you went on that was memorable.",
-    bullets: [
-      "Where you went",
-      "How you traveled",
-      "Who was with you",
-      "Explain why it was memorable"
-    ],
-    hints: "Focus on the scenery, the experiences, and the people. Use 'scenic', 'adventure', or 'unforgettable'."
-  },
-  {
-    id: "t21",
-    title: "Describe a person you admire for their success.",
-    bullets: [
-      "Who the person is",
-      "What they have achieved",
-      "How they became successful",
-      "Explain why you admire them"
-    ],
-    hints: "Focus on hard work, determination, and impact. Use 'inspirational', 'role model', or 'accomplished'."
-  }
-];
+const SPEAKING_TOPICS: Topic[] = [];
 
 
 export default function Speaking() {
@@ -404,13 +155,15 @@ export default function Speaking() {
     setFeedback(null);
     setIsTyping(true);
 
-    const systemPrompt = `You are a certified IELTS Speaking Examiner. 
+    const systemPrompt = `You are a certified, high-level IELTS Speaking Examiner aiming for Band 9.0 standards. 
     Mode: ${mode === "part1" ? "Part 1 (Introduction & Interview)" : mode === "part2" ? "Part 2 (Long Turn/Cue Card)" : "Part 3 (Discussion)"}.
-    Conduct a realistic speaking test. 
-    Part 1: Ask 3-4 simple questions about hobbies, home, or work.
-    Part 2: Provide a cue card topic and ask the student to speak for 2 minutes.
-    Part 3: Ask follow-up, abstract questions related to the Part 2 topic.
-    Be professional, encouraging, and strictly follow IELTS standards.
+    
+    Conduct a realistic, challenging speaking test. 
+    Part 1: Ask 3-4 sophisticated questions about hobbies, home, work, or abstract topics.
+    Part 2: Provide a complex cue card topic and ask the student to speak for 2 minutes.
+    Part 3: Ask deep, abstract, and analytical follow-up questions related to the Part 2 topic.
+    
+    Be professional, use natural examiner language, and strictly follow Band 9.0 IELTS standards.
     Start by introducing yourself and asking the first question.`;
 
     try {
