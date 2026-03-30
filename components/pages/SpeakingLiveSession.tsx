@@ -31,6 +31,13 @@ export default function SpeakingLiveSession({ onClose, topic, mode = "full" }: S
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [transcription, setTranscription] = useState<string>("");
   const [aiTranscription, setAiTranscription] = useState<string>("");
+  const [pronunciationFeedback, setPronunciationFeedback] = useState<{
+    clarity?: string;
+    intonation?: string;
+    stress?: string;
+    overall?: string;
+    score?: number;
+  } | null>(null);
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -103,8 +110,8 @@ export default function SpeakingLiveSession({ onClose, topic, mode = "full" }: S
           speechConfig: {
             voiceConfig: { prebuiltVoiceConfig: { voiceName: "Zephyr" } },
           },
-          systemInstruction: `You are a certified, high-level IELTS Speaking Examiner aiming for Band 9.0 standards. 
-          Your goal is to conduct a realistic, challenging, and professional speaking test.
+          systemInstruction: `You are a certified, high-level IELTS Speaking Examiner and Pronunciation Coach aiming for Band 9.0 standards. 
+          Your goal is to conduct a realistic, challenging, and professional speaking test while providing real-time pronunciation feedback.
           
           Current Mode: ${mode === "part1" ? "Part 1 (Introduction & Interview)" : mode === "part2" ? "Part 2 (Long Turn/Cue Card)" : mode === "part3" ? "Part 3 (Discussion)" : mode === "mock" ? "Full Mock Test (Parts 1, 2, and 3)" : "General Practice"}.
           Topic: ${topic || "General IELTS Speaking Practice"}.
@@ -113,6 +120,16 @@ export default function SpeakingLiveSession({ onClose, topic, mode = "full" }: S
           ${mode === "part2" ? "Part 2 Instructions: Provide a complex cue card topic (if not already specified) and ask the student to speak for 2 minutes. Listen carefully and do not interrupt until they finish or 2 minutes pass. Use standard IELTS phrasing." : ""}
           ${mode === "part3" ? "Part 3 Instructions: Ask deep, abstract, and analytical follow-up questions related to the Part 2 topic. Challenge the student to provide detailed, complex, and well-structured answers suitable for Band 9.0." : ""}
           ${mode === "mock" ? "Mock Test Instructions: Conduct a full IELTS Speaking test. Start with Part 1 (3-4 mins), then Part 2 (3-4 mins including prep), then Part 3 (4-5 mins). Manage the time and transition between parts naturally and professionally." : ""}
+          
+          PRONUNCIATION FEEDBACK GUIDELINES:
+          - After the student speaks, analyze their:
+            1. Clarity (vowel/consonant precision)
+            2. Intonation (sentence-level pitch patterns)
+            3. Word Stress (syllable emphasis)
+          - Provide your response in two parts:
+            1. Your natural examiner response (spoken).
+            2. A structured JSON-like block at the end of your text output (not spoken) containing the pronunciation analysis. 
+               Format: [PRONUNCIATION_FEEDBACK: {"clarity": "...", "intonation": "...", "stress": "...", "overall": "...", "score": 8.5}]
           
           Conduct the conversation naturally using sophisticated examiner language. Ask probing follow-up questions. 
           Maintain a professional yet neutral tone, typical of a real IELTS interview.
@@ -149,7 +166,24 @@ export default function SpeakingLiveSession({ onClose, topic, mode = "full" }: S
             }
 
             if (message.serverContent?.modelTurn?.parts?.[0]?.text) {
-              setAiTranscription(prev => prev + " " + message.serverContent?.modelTurn?.parts?.[0]?.text);
+              const text = message.serverContent.modelTurn.parts[0].text;
+              
+              // Extract pronunciation feedback if present
+              const feedbackMatch = text.match(/\[PRONUNCIATION_FEEDBACK:\s*({.*?})\]/);
+              if (feedbackMatch) {
+                try {
+                  const feedbackData = JSON.parse(feedbackMatch[1]);
+                  setPronunciationFeedback(feedbackData);
+                  // Remove feedback block from visible transcription
+                  const cleanText = text.replace(/\[PRONUNCIATION_FEEDBACK:.*?\]/, "").trim();
+                  if (cleanText) setAiTranscription(prev => prev + " " + cleanText);
+                } catch (e) {
+                  console.error("Failed to parse pronunciation feedback", e);
+                  setAiTranscription(prev => prev + " " + text);
+                }
+              } else {
+                setAiTranscription(prev => prev + " " + text);
+              }
             }
           },
           onerror: (err) => {
@@ -322,9 +356,36 @@ export default function SpeakingLiveSession({ onClose, topic, mode = "full" }: S
             </div>
           </div>
 
-          {/* Transcriptions */}
+          {/* Transcriptions & Feedback */}
           <div className="w-full max-w-2xl space-y-4 relative z-10">
             <AnimatePresence mode="wait">
+              {pronunciationFeedback && (
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4"
+                >
+                  {[
+                    { label: "Clarity", value: pronunciationFeedback.clarity, color: "blue" },
+                    { label: "Intonation", value: pronunciationFeedback.intonation, color: "violet" },
+                    { label: "Stress", value: pronunciationFeedback.stress, color: "emerald" },
+                    { label: "Band", value: pronunciationFeedback.score?.toFixed(1) || "N/A", color: "amber" }
+                  ].map((item, i) => (
+                    <div key={i} className="p-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md">
+                      <div className="text-[8px] font-black uppercase tracking-widest text-text-muted mb-1">{item.label}</div>
+                      <div className={cn(
+                        "text-[10px] font-bold truncate",
+                        item.color === "blue" ? "text-blue-primary" : 
+                        item.color === "violet" ? "text-violet-accent" : 
+                        item.color === "emerald" ? "text-emerald-accent" : "text-amber-accent"
+                      )}>
+                        {item.value}
+                      </div>
+                    </div>
+                  ))}
+                </motion.div>
+              )}
+
               {aiTranscription && (
                 <motion.div 
                   initial={{ opacity: 0, y: 10 }}
@@ -337,6 +398,16 @@ export default function SpeakingLiveSession({ onClose, topic, mode = "full" }: S
                   <p className="text-sm text-text-secondary leading-relaxed line-clamp-3">
                     {aiTranscription}
                   </p>
+                  {pronunciationFeedback?.overall && (
+                    <div className="mt-4 pt-4 border-t border-white/5">
+                      <div className="flex items-center gap-2 text-[8px] font-black text-amber-accent uppercase tracking-widest mb-1">
+                        <Sparkles size={10} /> Feedback
+                      </div>
+                      <p className="text-[11px] text-text-muted italic">
+                        {pronunciationFeedback.overall}
+                      </p>
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>

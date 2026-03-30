@@ -25,6 +25,7 @@ import { callGroq, callGroqChat, callGroqJSON } from "@/lib/groq";
 import { GoogleGenAI, Modality } from "@google/genai";
 import ReactMarkdown from "react-markdown";
 import SpeakingLiveSession from "./SpeakingLiveSession";
+import PronunciationCoach from "./PronunciationCoach";
 
 import { SPEAKING_TOPICS, SPEAKING_SAMPLES, Sample, Topic } from "@/lib/data/ielts_content";
 
@@ -47,6 +48,7 @@ export default function Speaking() {
   const [highlightedVocab, setHighlightedVocab] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<'chat' | 'vocab' | 'feedback'>('chat');
   const [isLiveSessionOpen, setIsLiveSessionOpen] = useState(false);
+  const [isPronunciationCoachOpen, setIsPronunciationCoachOpen] = useState(false);
   const [liveMode, setLiveMode] = useState<"part1" | "part2" | "part3" | "full" | "mock">("full");
   const [dynamicTopics, setDynamicTopics] = useState<Topic[]>(SPEAKING_TOPICS);
   const [isGeneratingMore, setIsGeneratingMore] = useState(false);
@@ -576,6 +578,9 @@ export default function Speaking() {
             mode={liveMode}
           />
         )}
+        {isPronunciationCoachOpen && (
+          <PronunciationCoach onClose={() => setIsPronunciationCoachOpen(false)} />
+        )}
       </AnimatePresence>
 
       <div className="card bg-gradient-to-br from-blue-primary/10 via-bg-1 to-bg-2 border-blue-primary/20 p-8 md:p-12 rounded-xl shadow-2xl shadow-blue-primary/5 relative overflow-hidden group">
@@ -650,23 +655,28 @@ export default function Speaking() {
 
       {activeModuleTab === "practice" && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {[
               { id: "part1", label: "Part 1", title: "Introduction", desc: "Personal questions", color: "blue" },
               { id: "part2", label: "Part 2", title: "Cue Card", desc: "Long turn talk", color: "violet" },
-              { id: "part3", label: "Part 3", title: "Discussion", desc: "Abstract topics", color: "emerald" }
+              { id: "part3", label: "Part 3", title: "Discussion", desc: "Abstract topics", color: "emerald" },
+              { id: "coach", label: "AI Coach", title: "Pronunciation", desc: "Clarity & Stress", color: "amber" }
             ].map((sim) => (
               <div
                 key={sim.id}
                 className={cn(
                   "card text-left group transition-all flex flex-col justify-between",
-                  sim.color === "blue" ? "hover:border-blue-primary" : sim.color === "violet" ? "hover:border-violet-accent" : "hover:border-emerald-accent"
+                  sim.color === "blue" ? "hover:border-blue-primary" : 
+                  sim.color === "violet" ? "hover:border-violet-accent" : 
+                  sim.color === "emerald" ? "hover:border-emerald-accent" : "hover:border-amber-accent"
                 )}
               >
                 <div>
                   <div className={cn(
                     "text-[10px] font-bold uppercase tracking-widest mb-1",
-                    sim.color === "blue" ? "text-blue-secondary" : sim.color === "violet" ? "text-violet-accent" : "text-emerald-accent"
+                    sim.color === "blue" ? "text-blue-secondary" : 
+                    sim.color === "violet" ? "text-violet-accent" : 
+                    sim.color === "emerald" ? "text-emerald-accent" : "text-amber-accent"
                   )}>
                     {sim.label}
                   </div>
@@ -675,25 +685,38 @@ export default function Speaking() {
                 </div>
                 
                 <div className="flex flex-col gap-2">
-                  <button
-                    onClick={() => startSimulation(sim.id as any)}
-                    className="btn btn-ghost w-full py-2 text-[10px] font-bold uppercase tracking-widest border border-border-2 hover:bg-bg-2"
-                  >
-                    Text Practice
-                  </button>
-                  <button
-                    onClick={() => {
-                      setLiveMode(sim.id as any);
-                      setIsLiveSessionOpen(true);
-                    }}
-                    className={cn(
-                      "btn w-full py-2 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2",
-                      sim.color === "blue" ? "bg-blue-primary text-white" : sim.color === "violet" ? "bg-violet-accent text-white" : "bg-emerald-accent text-white"
-                    )}
-                  >
-                    <Mic size={12} />
-                    Voice Chat
-                  </button>
+                  {sim.id === "coach" ? (
+                    <button
+                      onClick={() => setIsPronunciationCoachOpen(true)}
+                      className="btn w-full py-2 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 bg-amber-accent text-white"
+                    >
+                      <Sparkles size={12} />
+                      Start Coaching
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => startSimulation(sim.id as any)}
+                        className="btn btn-ghost w-full py-2 text-[10px] font-bold uppercase tracking-widest border border-border-2 hover:bg-bg-2"
+                      >
+                        Text Practice
+                      </button>
+                      <button
+                        onClick={() => {
+                          setLiveMode(sim.id as any);
+                          setIsLiveSessionOpen(true);
+                        }}
+                        className={cn(
+                          "btn w-full py-2 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2",
+                          sim.color === "blue" ? "bg-blue-primary text-white" : 
+                          sim.color === "violet" ? "bg-violet-accent text-white" : "bg-emerald-accent text-white"
+                        )}
+                      >
+                        <Mic size={12} />
+                        Voice Chat
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             ))}
