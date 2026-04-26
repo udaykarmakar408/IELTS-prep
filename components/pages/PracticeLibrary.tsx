@@ -305,14 +305,17 @@ export default function PracticeLibrary() {
     setAudioUrl(null);
     setShowTranscript(false);
 
+    const userDifficulty = progress?.difficulty || "intermediate";
+    const itemDifficulty = item.difficulty;
+
     try {
       if (item.skill === "listening") {
         const parts = [];
         const partPrompts: Record<string, string> = {
-          "Part 1": "Part 1: Social context, 2 speakers (10 questions). Everyday social situation, e.g., booking a hotel or asking for information. Include a mix of form completion and multiple choice.",
-          "Part 2": "Part 2: Social context, 1 speaker (10 questions). Monologue on a social topic, e.g., a local facility or a radio talk. Include map/plan labeling or matching questions.",
-          "Part 3": "Part 3: Educational context, 2-4 speakers (10 questions). Discussion between students or a student and a tutor. Focus on academic discussion and multiple choice.",
-          "Part 4": "Part 4: Academic lecture, 1 speaker (10 questions). A formal lecture on an academic subject. Focus on note completion or summary completion."
+          "Part 1": `Part 1: Social context, 2 speakers (10 questions). Everyday social situation. Difficulty: ${itemDifficulty} (matching ${userDifficulty} level student).`,
+          "Part 2": `Part 2: Social context, 1 speaker (10 questions). Monologue on a social topic. Difficulty: ${itemDifficulty} (matching ${userDifficulty} level student).`,
+          "Part 3": `Part 3: Educational context, 2-4 speakers (10 questions). Discussion between students. Difficulty: ${itemDifficulty} (matching ${userDifficulty} level student).`,
+          "Part 4": `Part 4: Academic lecture, 1 speaker (10 questions). Formal lecture. Difficulty: ${itemDifficulty} (matching ${userDifficulty} level student).`
         };
 
         const partToGenerate = item.part || "Part 1";
@@ -339,12 +342,11 @@ export default function PracticeLibrary() {
 
         const partData = await callGroqJSON(
           `Generate a FULL IELTS Listening ${partPrompts[partToGenerate]} for the topic: ${item.title}. 
-          Difficulty: Band 9.0 (Highest Standard). 
-          The script MUST be extremely detailed, natural, and approximately 1000-1200 words to ensure a realistic 6-8 minute duration. 
-          Include natural pauses, hesitations, and corrections (self-repair) as found in real IELTS tests.
+          Adapt content for ${itemDifficulty} difficulty for a ${userDifficulty} level learner. 
+          The script MUST be detailed and realistic.
           Questions must be challenging and answerable ONLY from the script.`,
           partSchema,
-          "You are an expert IELTS Listening examiner and content creator for Band 9.0 materials."
+          "You are an expert IELTS Listening examiner."
         );
         parts.push(partData);
         
@@ -372,9 +374,9 @@ export default function PracticeLibrary() {
       } else if (item.skill === "reading") {
         const parts = [];
         const passagePrompts: Record<string, string> = {
-          "Passage 1": "Passage 1: Descriptive/factual (13 questions). Topic: ${item.title}. Focus on True/False/Not Given and Note Completion.",
-          "Passage 2": "Passage 2: Discursive/analytical (13 questions). Topic: ${item.title}. Focus on Matching Headings and Multiple Choice.",
-          "Passage 3": "Passage 3: Complex argument/opinion (14 questions). Topic: ${item.title}. Focus on Yes/No/Not Given and Summary Completion."
+          "Passage 1": `Passage 1: Descriptive/factual (13 questions). Topic: ${item.title}. Difficulty: ${itemDifficulty} (for ${userDifficulty} student).`,
+          "Passage 2": `Passage 2: Discursive/analytical (13 questions). Topic: ${item.title}. Difficulty: ${itemDifficulty} (for ${userDifficulty} student).`,
+          "Passage 3": `Passage 3: Complex argument/opinion (14 questions). Topic: ${item.title}. Difficulty: ${itemDifficulty} (for ${userDifficulty} student).`
         };
 
         const partToGenerate = item.part || "Passage 1";
@@ -401,11 +403,11 @@ export default function PracticeLibrary() {
 
         const passageData = await callGroqJSON(
           `Generate a FULL IELTS Reading ${passagePrompts[partToGenerate]} for the topic: ${item.title}. 
-          Difficulty: Band 9.0 (Highest Standard). 
-          The passage MUST be approximately 1200-1500 words, academic in tone, and highly complex.
+          Difficulty: ${itemDifficulty} for a ${userDifficulty} level learner. 
+          The passage MUST be academic in tone.
           Questions must be challenging and require deep understanding of the text.`,
           passageSchema,
-          "You are an expert IELTS Reading examiner and content creator for Band 9.0 materials."
+          "You are an expert IELTS Reading examiner."
         );
         parts.push(passageData);
 
@@ -430,8 +432,8 @@ export default function PracticeLibrary() {
         setTaskData(data);
       } else if (item.skill === "writing") {
         const taskPrompts: Record<string, string> = {
-          "Task 1": "Task 1: Academic Report (150 words). Summarize a graph, table, or diagram. Topic: ${item.title}.",
-          "Task 2": "Task 2: Discursive Essay (250 words). Discuss an opinion or problem. Topic: ${item.title}."
+          "Task 1": `Task 1: Academic Report (150 words). Topic: ${item.title}. Difficulty: ${itemDifficulty}.`,
+          "Task 2": `Task 2: Discursive Essay (250 words). Topic: ${item.title}. Difficulty: ${itemDifficulty}.`
         };
 
         const partToGenerate = item.part || "Task 1";
@@ -459,9 +461,9 @@ export default function PracticeLibrary() {
         };
 
         const writingData = await callGroqJSON(
-          `Generate an IELTS Writing ${taskPrompts[partToGenerate]}. 
-          Difficulty: Band 9.0. 
-          Include a high-level model answer and specific Band 9.0 vocabulary.`,
+          `Generate an IELTS Writing ${taskPrompts[partToGenerate]} for a ${userDifficulty} level student. 
+          Difficulty: ${itemDifficulty}. 
+          Include a high-level model answer.`,
           writingSchema,
           "You are an expert IELTS Writing examiner."
         );
@@ -488,7 +490,7 @@ export default function PracticeLibrary() {
         const speakingData = await callGroqJSON(
           `Generate a FULL IELTS Speaking test for the topic: ${item.title}. 
           Focus specifically on ${item.part || "all parts"}.
-          Difficulty: Band 9.0. 
+          Difficulty: ${itemDifficulty} for a ${userDifficulty} student. 
           Include a model answer and key vocabulary.`,
           speakingSchema,
           "You are an expert IELTS Speaking examiner."
@@ -511,10 +513,11 @@ export default function PracticeLibrary() {
     let band = 6.0;
     let result = "";
 
+    const userDifficulty = progress?.difficulty || "intermediate";
     if (activeSkill === "writing") {
-      prompt = `Assess this IELTS Writing response for Module #${selectedItem?.id}:\n\nTask 1 Prompt: ${taskData.task1.prompt}\nTask 2 Prompt: ${taskData.task2.prompt}\n\nUser Response: ${userAnswers.writing}\n\nProvide a detailed band score breakdown for both tasks and a "Path to 9.0" section with specific, actionable steps to reach Band 9.0 from the current level. Format as Markdown. End with "Overall Band: X.X"`;
+      prompt = `Assess this IELTS Writing response for Module #${selectedItem?.id} at ${userDifficulty} level:\n\nTask 1 Prompt: ${taskData.task1.prompt}\nTask 2 Prompt: ${taskData.task2.prompt}\n\nUser Response: ${userAnswers.writing}\n\nProvide a detailed band score breakdown for both tasks and a "Path to 9.0" section with specific, actionable steps based on their current ${userDifficulty} level. Format as Markdown. End with "Overall Band: X.X"`;
     } else if (activeSkill === "speaking") {
-      prompt = `Assess this IELTS Speaking practice session for Module #${selectedItem?.id}:\n\nParts 1, 2, 3 Prompts: ${JSON.stringify(taskData.parts)}\n\nUser Notes/Transcript: ${userAnswers.speaking}\n\nProvide a detailed band score breakdown and a "Path to 9.0" section with specific, actionable steps to reach Band 9.0 from the current level. Format as Markdown. End with "Overall Band: X.X"`;
+      prompt = `Assess this IELTS Speaking practice session for Module #${selectedItem?.id} at ${userDifficulty} level:\n\nParts 1, 2, 3 Prompts: ${JSON.stringify(taskData.parts)}\n\nUser Notes/Transcript: ${userAnswers.speaking}\n\nProvide a detailed band score breakdown and a "Path to 9.0" section with specific, actionable steps based on their current ${userDifficulty} level. Format as Markdown. End with "Overall Band: X.X"`;
     } else {
       // For listening/reading, we can just compare answers
       const allQuestions = taskData.parts?.flatMap((p: any) => p.questions) || taskData.questions || [];
@@ -620,10 +623,17 @@ export default function PracticeLibrary() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="recipe-editorial-h1 mb-8"
+              className="recipe-editorial-h1 mb-2"
             >
               Practice <span className="text-blue-primary">Library</span>
             </motion.h2>
+
+            <div className="flex items-center gap-2 mb-8 px-4 py-1.5 bg-blue-primary/10 border border-blue-primary/20 rounded-full w-fit">
+              <Sparkles size={14} className="text-blue-primary" />
+              <span className="text-[10px] font-bold text-blue-primary uppercase tracking-[0.2em]">
+                Target Level: {progress?.difficulty || "intermediate"}
+              </span>
+            </div>
             
             <motion.p 
               initial={{ opacity: 0, y: 20 }}

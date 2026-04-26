@@ -101,7 +101,12 @@ export default function Listening() {
       }
     };
 
-    const prompt = `Generate 4 new unique IELTS Listening practice sections (one for each Part 1-4). 
+    const difficulty = progress?.difficulty || "intermediate";
+    const prompt = `Generate 4 new unique IELTS Listening practice sections (one for each Part 1-4) tailored for a ${difficulty} level student. 
+    (Beginner: Clearer audio scenarios, more predictable answers.
+     Intermediate: Standard exam complexity.
+     Advanced: Complex accents, heavy use of distractors, subtle paraphrasing).
+    
     Ensure high academic quality and varied topics. 
     Part 1: Social context, 2 speakers.
     Part 2: Social context, 1 speaker.
@@ -181,21 +186,14 @@ export default function Listening() {
       }
     };
 
-    const prompt = `Generate a full-length, Band 9.0 standard IELTS Listening test with 4 sections. 
-    The content must be highly academic and professional, mimicking the complexity of Cambridge IELTS 15-19.
+    const difficulty = progress?.difficulty || "intermediate";
+    const prompt = `Generate a full-length IELTS Listening test with 4 sections tailored for ${difficulty} level. 
+    Difficulty Focus: ${difficulty === "beginner" ? "Focus on clarity and common social interactions" : difficulty === "advanced" ? "Extreme complexity, fast speech, and complex academic topics" : "Standard Cambridge IELTS complexity"}.
     
-    Section 1: A conversation between two people in a social context (e.g., a complex travel booking with specific requirements). Word count: ~800 words.
-    Section 2: A monologue in a social context (e.g., a detailed orientation for a museum or a park). Word count: ~800 words.
-    Section 3: A conversation between 2-4 people in an academic context (e.g., a tutor and students discussing a research paper). Word count: ~900 words.
-    Section 4: A monologue on an academic subject (e.g., a university lecture on a niche scientific or historical topic). Word count: ~1000 words.
-    
-    For each section, provide 10 questions. Mix these types across the test:
-    - completion: Fill in the blanks (e.g., "The ______ is located near the entrance").
-    - multiple-choice: Standard A, B, C options.
-    - matching: Match items to descriptions.
-    - short-answer: Answer in no more than 3 words.
-    
-    Ensure the questions follow the script chronologically and test for synonyms, paraphrasing, and distractors (common in Band 9.0).`;
+    Section 1: A conversation between two people in a social context.
+    Section 2: A monologue in a social context.
+    Section 3: A conversation between 2-4 people in an academic context.
+    Section 4: A monologue on an academic subject.`;
 
     try {
       const sections = await callGroqJSON(prompt, schema, "You are an IELTS Listening expert.");
@@ -385,13 +383,14 @@ export default function Listening() {
     }
 
     try {
-      const prompt = `You are an IELTS Listening tutor. A student has completed a listening task.
+      const difficulty = progress?.difficulty || "intermediate";
+      const prompt = `You are an IELTS Listening tutor. A student has completed a listening task at ${difficulty} level.
       Task Title: ${activeSection.title}
       Transcript: ${activeSection.script}
       Questions and Correct Answers: ${JSON.stringify(activeSection.questions)}
       Student's Answers: ${JSON.stringify(userAnswers)}
       
-      Provide constructive feedback. Analyze their mistakes if any. Explain why the correct answers are correct based on the transcript. Give tips for improving listening skills for this type of task (${activeSection.type}).
+      Provide constructive feedback for a ${difficulty} learner. Analyze their mistakes if any. Explain why the correct answers are correct based on the transcript. Give tips for improving listening skills for this type of task (${activeSection.type}).
       Use markdown for formatting. Keep it concise but helpful.`;
 
       const result = await callGroq(prompt, "You are an IELTS Listening tutor.");
@@ -716,10 +715,17 @@ export default function Listening() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="recipe-editorial-h1 mb-8"
+              className="recipe-editorial-h1 mb-2"
             >
               Listening <span className="text-blue-primary">Lab</span>
             </motion.h2>
+
+            <div className="flex items-center gap-2 mb-8 px-4 py-1.5 bg-blue-primary/10 border border-blue-primary/20 rounded-full w-fit">
+              <Sparkles size={14} className="text-blue-primary" />
+              <span className="text-[10px] font-bold text-blue-primary uppercase tracking-[0.2em]">
+                Level: {progress.difficulty} {progress.adaptiveDifficulty && "(Adaptive)"}
+              </span>
+            </div>
             
             <motion.p 
               initial={{ opacity: 0, y: 20 }}

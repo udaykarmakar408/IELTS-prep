@@ -26,7 +26,7 @@ import LizHub from "../components/pages/LizHub";
 import Cambridge from "../components/pages/Cambridge";
 import SpeakingLab from "../components/pages/SpeakingLab";
 import PracticeLibrary from "../components/pages/PracticeLibrary";
-import { getProgress, UserProgress, updateStreak, saveProgress } from "../lib/store";
+import { getProgress, UserProgress, updateStreak, saveProgress, syncAdaptiveDifficulty } from "../lib/store";
 
 import { AnimatePresence, motion } from "motion/react";
 
@@ -38,9 +38,10 @@ export default function App() {
   useEffect(() => {
     const load = async () => {
       const p = await getProgress();
-      const updated = updateStreak(p);
-      setProgress(updated);
-      await saveProgress(updated);
+      const updatedStreak = updateStreak(p);
+      const syncedDifficulty = syncAdaptiveDifficulty(updatedStreak);
+      setProgress(syncedDifficulty);
+      await saveProgress(syncedDifficulty);
       setIsInitialized(true);
     };
     load();

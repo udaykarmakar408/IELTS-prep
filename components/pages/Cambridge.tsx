@@ -217,6 +217,12 @@ export default function Cambridge() {
     setIsGrading(true);
     setFeedback(null);
     const systemPrompt = `You are an IELTS Writing Examiner. Grade the student's Writing Task 2 essay from ${activeBook.title} ${activeTest.label}.
+    
+    User's Current Level: ${progress?.difficulty || "intermediate"}
+    (If Level is Beginner: Focusing on basic grammar and structure.
+     If Level is Intermediate: Focus on coherence and vocabulary variety.
+     If Level is Advanced: Focus on academic tone and complex structures).
+
     Provide:
     1. Overall Band Score (0-9).
     2. Feedback on: Task Response, Coherence & Cohesion, Lexical Resource, Grammatical Range & Accuracy.
@@ -414,6 +420,8 @@ export default function Cambridge() {
       const data = TEST_DATA[testId]?.speaking;
       
       const prompt = `You are an expert IELTS Speaking Examiner. Analyze the provided audio response for an IELTS Speaking Part 2 task.
+      
+      User's Current Level: ${progress?.difficulty || "intermediate"} (Provide feedback helpful for this level)
       
       Topic: ${data?.topic || "General Topic"}
       Prompts: ${data?.prompts?.join(', ') || "General prompts"}

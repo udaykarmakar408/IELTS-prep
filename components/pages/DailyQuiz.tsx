@@ -57,6 +57,32 @@ export default function DailyQuiz() {
     load();
   }, []);
 
+  const generateAIQuiz = async () => {
+    if (!progress) return;
+    setIsGenerating(true);
+    const difficultyLevel = progress.difficulty || "intermediate";
+    
+    const prompt = `Generate a 5-question IELTS quiz for a ${difficultyLevel} level student. 
+    Mix vocabulary, grammar, and test strategies.
+    Return ONLY a JSON array of objects with fields: type, q, opts (4 options), ans (0-3), exp.
+    Target specific level needs:
+    - Beginner: Common errors, high-frequency vocab.
+    - Intermediate: Academic transitions, nuanced meaning.
+    - Advanced: Sophisticated collocations, rare idioms, complex grammar patterns.`;
+
+    try {
+      const result = await callGroq(prompt, "Return ONLY JSON array.");
+      const jsonMatch = result.match(/\[[\s\S]*\]/);
+      const newQuestions = JSON.parse(jsonMatch ? jsonMatch[0] : result);
+      setQuestions(newQuestions);
+      startQuiz();
+    } catch (error) {
+      console.error("Failed to generate AI quiz:", error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
   const startQuiz = () => {
     setQuizState("active");
     setCurrentIdx(0);
@@ -97,26 +123,6 @@ export default function DailyQuiz() {
     setProgress(updated);
     saveProgress(updated);
     setQuizState("results");
-  };
-
-  const generateAIQuiz = async () => {
-    setIsGenerating(true);
-    try {
-      const prompt = `Generate exactly 5 original IELTS quiz questions in JSON format. 
-      Mix types: Vocabulary, Grammar, Reading.
-      Each question must have exactly 4 options and an explanation.
-      Return ONLY a JSON array: [{"type": "...", "q": "...", "opts": ["...", "...", "...", "..."], "ans": 0, "exp": "..."}]`;
-      
-      const result = await callGroq(prompt, "You are an IELTS expert. Return only valid JSON.");
-      const cleanJson = result.replace(/```json|```/g, "").trim();
-      const newQs = JSON.parse(cleanJson);
-      setQuestions(newQs);
-      startQuiz();
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsGenerating(false);
-    }
   };
 
   if (!progress) return null;

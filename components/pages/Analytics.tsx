@@ -12,6 +12,7 @@ import {
   AlertCircle,
   ChevronRight,
   Trophy,
+  Sparkles,
   LineChart as LineChartIcon
 } from "lucide-react";
 import { 
@@ -23,7 +24,12 @@ import {
   Tooltip, 
   ResponsiveContainer,
   AreaChart,
-  Area
+  Area,
+  Radar,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis
 } from "recharts";
 import { UserProgress, getProgress } from "@/lib/store";
 import { cn, getBandColor } from "@/lib/utils";
@@ -52,6 +58,13 @@ export default function Analytics() {
     { key: "speaking", label: "Speaking", color: "#0d7af6", icon: "🎤" },
     { key: "listening", label: "Listening", color: "#009966", icon: "🎧" },
   ];
+
+  // Radar Data
+  const radarData = skills.map(s => ({
+    subject: s.label,
+    A: (progress.bands?.[s.key as keyof typeof progress.bands] || 0),
+    fullMark: 9,
+  }));
 
   // Prepare chart data
   const chartData = (progress.bandHistory || []).slice(-10).map(h => ({
@@ -331,14 +344,62 @@ export default function Analytics() {
         </motion.div>
       </motion.div>
 
-      {/* Skill Bands */}
-      <motion.div 
-        className="card"
-        variants={{
-          hidden: { opacity: 0, y: 20 },
-          visible: { opacity: 1, y: 0 }
-        }}
-      >
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Radar Chart */}
+        <motion.div 
+          className="card overflow-hidden"
+          variants={{
+            hidden: { opacity: 0, scale: 0.95 },
+            visible: { opacity: 1, scale: 1 }
+          }}
+        >
+          <div className="flex items-center justify-between mb-6">
+            <div className="text-sm font-bold uppercase tracking-widest text-text-muted">Proficiency Radar</div>
+            <div className="text-[10px] font-bold text-amber-accent uppercase tracking-widest flex items-center gap-1">
+              <Sparkles size={12} /> Skill Balance
+            </div>
+          </div>
+          <div className="h-[300px] w-full flex items-center justify-center">
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData}>
+                <PolarGrid stroke="rgba(255,255,255,0.1)" />
+                <PolarAngleAxis 
+                  dataKey="subject" 
+                  tick={{ fill: "#64748b", fontSize: 10, fontWeight: "bold" }}
+                />
+                <PolarRadiusAxis 
+                  angle={30} 
+                  domain={[0, 9]} 
+                  tick={false}
+                  axisLine={false}
+                />
+                <Radar
+                  name="Current Band"
+                  dataKey="A"
+                  stroke="#0d7af6"
+                  strokeWidth={3}
+                  fill="#0d7af6"
+                  fillOpacity={0.2}
+                />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: 'rgba(7, 20, 39, 0.9)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', fontSize: '12px', backdropFilter: 'blur(10px)' }}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-4 p-4 bg-bg-2 rounded-2xl text-[10px] text-text-muted font-medium text-center">
+            A balanced radar indicates consistent performance across all modules. Focus on the indented areas.
+          </div>
+        </motion.div>
+
+        {/* Skill Bands */}
+        <motion.div 
+          className="card"
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0 }
+          }}
+        >
         <div className="font-bold text-sm uppercase tracking-widest text-text-muted mb-6">Skill Breakdown</div>
         <div className="space-y-6">
           {skills.map((s) => {
@@ -375,6 +436,7 @@ export default function Analytics() {
           })}
         </div>
       </motion.div>
+      </div>
 
       {/* Recommendations */}
       <motion.div 

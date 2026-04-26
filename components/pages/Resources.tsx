@@ -79,27 +79,120 @@ interface ResourcesProps {
   setActivePage: (page: string) => void;
 }
 
+const MASTERCLASSES = [
+  {
+    title: "Speaking Band 8.5 Strategy",
+    duration: "45 mins",
+    difficulty: "Advanced",
+    tutor: "Liz Hub",
+    tags: ["Speaking", "Part 2", "Vocabulary"],
+    thumbnail: "https://picsum.photos/seed/ielts1/800/450",
+    url: "https://www.youtube.com/watch?v=sRFEVszAt7s"
+  },
+  {
+    title: "Essay Structure Mastery",
+    duration: "30 mins",
+    difficulty: "Essential",
+    tutor: "IELTS Advantage",
+    tags: ["Writing", "Task 2", "Coherence"],
+    thumbnail: "https://picsum.photos/seed/ielts2/800/450",
+    url: "https://www.youtube.com/watch?v=G4m9MvOnCNo"
+  },
+  {
+    title: "Listening Section 4 Hacks",
+    duration: "25 mins",
+    difficulty: "High Band",
+    tutor: "E2 Language",
+    tags: ["Listening", "Section 4", "Notes"],
+    thumbnail: "https://picsum.photos/seed/ielts3/800/450",
+    url: "https://www.youtube.com/watch?v=pS3sX9_y7Is"
+  }
+];
+
 export default function Resources({ setActivePage }: ResourcesProps) {
   return (
-    <div className="space-y-8">
-      <div className="card-blue p-6 md:p-8 lg:p-10 relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-          <BookOpen className="w-48 h-48" />
+    <div className="space-y-12 pb-20">
+      <div className="card-blue p-8 md:p-14 relative overflow-hidden rounded-[2.5rem]">
+        <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none">
+          <BookOpen className="w-64 h-64" />
         </div>
-        <div className="relative z-10 space-y-4">
-          <div className="text-[10px] text-blue-secondary font-black uppercase tracking-[0.2em]">Curated Library</div>
-          <h2 className="font-serif text-4xl md:text-5xl font-black text-text-primary leading-tight tracking-tight">
-            IELTS <span className="text-blue-secondary">Resources</span>
+        <div className="relative z-10 space-y-6">
+          <div className="flex items-center gap-2 text-[10px] text-blue-secondary font-black uppercase tracking-[0.3em]">
+            <Star size={14} className="fill-blue-secondary" /> Expert Knowledge Base
+          </div>
+          <h2 className="recipe-editorial-h1 text-5xl md:text-7xl !mb-4">
+            Masterclass <br/> <span className="text-blue-secondary">Curriculum</span>
           </h2>
-          <p className="text-sm md:text-base text-text-secondary max-w-md leading-relaxed">
-            A hand-picked collection of the best free materials, tools, and channels to help you reach Band 8.0+.
+          <p className="text-lg text-text-secondary max-w-xl leading-relaxed font-medium">
+            A scientifically curated syllabus combining official British Council resources, Cambridge deep-dives, and elite strategy guides.
           </p>
-          <button 
-            onClick={() => setActivePage("lizhub")}
-            className="btn btn-primary flex items-center gap-2"
-          >
-            <Star size={16} className="fill-white" /> Go to Liz Hub
-          </button>
+          <div className="flex gap-4 pt-4">
+            <button 
+              onClick={() => setActivePage("lizhub")}
+              className="btn btn-primary px-8 py-4 text-xs shadow-2xl shadow-blue-primary/40"
+            >
+              Start Course Path
+            </button>
+            <div className="flex -space-x-3 items-center ml-4">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="w-10 h-10 rounded-full border-4 border-bg-1 overflow-hidden shadow-xl">
+                  <img src={`https://picsum.photos/seed/tutor${i}/40/40`} alt="Tutor" className="w-full h-full object-cover" />
+                </div>
+              ))}
+              <span className="ml-6 text-[10px] font-black uppercase tracking-widest text-text-muted">Top Rated Strategies</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Recommended Masterclasses */}
+      <div className="space-y-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="recipe-editorial-h2 mb-1">Featured Masterclasses</h3>
+            <p className="text-xs text-text-muted font-bold uppercase tracking-widest">Video Lessons from top examiners</p>
+          </div>
+          <div className="flex gap-2">
+            <div className="px-3 py-1 bg-violet-accent/10 border border-violet-accent/20 rounded-full text-[9px] font-black uppercase text-violet-accent tracking-tighter">Premium Content</div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {MASTERCLASSES.map((mc, idx) => (
+            <motion.div 
+              key={idx}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.1 }}
+              className="group cursor-pointer"
+              onClick={() => window.open(mc.url, '_blank')}
+            >
+              <div className="relative aspect-video rounded-3xl overflow-hidden mb-5 shadow-xl transition-all group-hover:scale-[1.02] group-hover:shadow-blue-primary/20">
+                <img src={mc.thumbnail} alt={mc.title} className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                  <div className="w-14 h-14 bg-white/20 backdrop-blur-xl rounded-full flex items-center justify-center border border-white/30 text-white scale-0 group-hover:scale-100 transition-transform duration-500">
+                    <PlayCircle size={24} className="fill-white" />
+                  </div>
+                </div>
+                <div className="absolute bottom-4 left-4 right-4 flex justify-between items-center">
+                  <span className="px-3 py-1 bg-black/60 backdrop-blur-md rounded-full text-[9px] font-black text-white uppercase tracking-widest">{mc.duration}</span>
+                  <span className={cn(
+                    "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest",
+                    mc.difficulty === "Advanced" ? "bg-red-accent/90 text-white" : "bg-green-accent/90 text-white"
+                  )}>{mc.difficulty}</span>
+                </div>
+              </div>
+              <h4 className="text-lg font-serif font-black text-text-primary leading-tight mb-2 group-hover:text-blue-secondary transition-colors line-clamp-1">{mc.title}</h4>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[10px] font-bold text-text-muted">by {mc.tutor}</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {mc.tags.map(tag => (
+                  <span key={tag} className="px-2 py-0.5 bg-bg-2 rounded-lg text-[9px] font-bold text-text-muted border border-border">{tag}</span>
+                ))}
+              </div>
+            </motion.div>
+          ))}
         </div>
       </div>
 

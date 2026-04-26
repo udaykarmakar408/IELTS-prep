@@ -308,6 +308,7 @@ export default function MockTests() {
     
     const currentSkill = stage || test.skill;
     setGenerationStep(`Analyzing ${currentSkill} requirements...`);
+    const difficulty = progress?.difficulty || "intermediate";
     
     // Set stage-specific timing for full mock test
     if (test.id === 'full-mock') {
@@ -327,8 +328,12 @@ export default function MockTests() {
       
       let prompt = "";
       if (currentSkill === 'reading') {
-        prompt = `Generate a FULL Academic IELTS Reading section (3 passages, 40 questions total).
-        Difficulty: Band 9.0 level. Use complex academic vocabulary and sophisticated grammatical structures.
+        prompt = `Generate a FULL Academic IELTS Reading section (3 passages, 40 questions total) for a ${difficulty} level student.
+        
+        Difficulty Focus: 
+        - Beginner: Familiar topics, explicit information.
+        - Intermediate: Standard Academic level.
+        - Advanced: Dense academic texts, indirect information, and complex inferences.
         
         Structure:
         - Passage 1: Descriptive/factual (13 questions). Mix MCQ and TFNG.
@@ -351,8 +356,12 @@ export default function MockTests() {
           ]
         }`;
       } else if (currentSkill === 'listening') {
-        prompt = `Generate a FULL IELTS Listening section (4 parts, 40 questions total).
-        Difficulty: Band 9.0 level. Mimic the complexity of Cambridge IELTS 15-19.
+        prompt = `Generate a FULL IELTS Listening section (4 parts, 40 questions total) tailored for ${difficulty} level.
+        
+        Difficulty Focus:
+        - Beginner: Clear articulation, standard pacing.
+        - Intermediate: Natural conversational speed.
+        - Advanced: Highly varied accents, rapid speech, and significant academic terminology.
         
         Structure:
         - Part 1: Social context, 2 speakers (10 questions). Focus on Note Completion (names, dates, numbers).
@@ -377,8 +386,12 @@ export default function MockTests() {
           ]
         }`;
       } else if (currentSkill === 'writing') {
-        prompt = `Generate a FULL Academic IELTS Writing section (Task 1 and Task 2).
-        Difficulty: Band 9.0 level.
+        prompt = `Generate a FULL Academic IELTS Writing section (Task 1 and Task 2) for a ${difficulty} level student.
+        
+        Task Guidance:
+        - Beginner: Direct data in T1, familiar social prompts in T2.
+        - Intermediate: Standard Academic prompts.
+        - Advanced: Complex multi-source data in T1, abstract/philosophical prompts in T2.
         
         Task 1: MUST be either a Map, Process Diagram, or complex Chart.
         Task 2: Academic Essay.
@@ -392,8 +405,12 @@ export default function MockTests() {
           "modelAnswer": "### Task 1 Model Answer\\n[Band 9.0 Answer]\\n\\n### Task 2 Model Answer\\n[Band 9.0 Answer]"
         }`;
       } else if (currentSkill === 'speaking') {
-        prompt = `Generate a FULL IELTS Speaking test (Parts 1, 2, and 3).
-        Difficulty: Band 9.0 level.
+        prompt = `Generate a FULL IELTS Speaking test (Parts 1, 2, and 3) for a ${difficulty} level student.
+        
+        Focus:
+        - Beginner: Personal interest questions in P1, descriptive P2.
+        - Intermediate: Standard Academic discussion.
+        - Advanced: Complex conceptual depth and idiomatic expectation.
         
         Return as JSON:
         {
@@ -470,14 +487,15 @@ export default function MockTests() {
       band = isListening ? calculateListeningBand(correct) : calculateReadingBand(correct);
       result = `### Section Results\n\nRaw Score: ${correct} / ${allQuestions.length}\nEstimated Band: ${band}\n\n#### Detailed Feedback\n\n${allQuestions.map(q => `**Q${q.id}:** ${q.text}\n- Your Answer: ${userAnswers[q.id] || "No Answer"}\n- Correct Answer: ${q.answer}\n`).join('\n')}`;
     } else {
-      const systemPrompt = `You are a strict, world-class IELTS examiner. Analyze the student's performance.
+      const difficulty = progress?.difficulty || "intermediate";
+      const systemPrompt = `You are a strict, world-class IELTS examiner. Analyze the student's performance at ${difficulty} level.
       Task was: ${JSON.stringify(testTask)}
       Student Submission: ${submission}
       
       If Writing: Evaluate based on Task Response, Coherence/Cohesion, Lexical Resource, Grammatical Range/Accuracy.
       If Speaking: Evaluate based on Fluency/Coherence, Lexical Resource, Grammatical Range/Accuracy, Pronunciation.
       
-      Provide a detailed breakdown, an Overall Band (0-9), and a "Path to 9.0" section with specific, actionable steps to reach Band 9.0 from the current level.
+      Provide a detailed breakdown, an Overall Band (0-9), and a "Path to 9.0" section with specific, actionable steps to reach Band 9.0 from the current ${difficulty} level.
       Format as Markdown. End with "Overall Band: X.X"`;
 
       result = await callGroq(`Evaluate this IELTS ${activeTest.skill} submission.`, systemPrompt);
@@ -601,6 +619,9 @@ export default function MockTests() {
           </div>
 
           <div className="flex items-center gap-8">
+            <div className="flex items-center gap-2 px-3 py-1 bg-blue-dim/20 text-blue-secondary rounded-full text-[10px] font-bold uppercase tracking-widest border border-blue-secondary/20">
+              Level: {progress.difficulty}
+            </div>
             {testStage && testStage !== "result" && (
               <div className="flex items-center gap-2 px-3 py-1 bg-blue-dim/20 text-blue-secondary rounded-full text-[10px] font-bold uppercase tracking-widest border border-blue-secondary/20">
                 Stage: {testStage}

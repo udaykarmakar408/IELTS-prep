@@ -74,16 +74,22 @@ export default function Vocabulary() {
 
   const generateDailyWord = async (p: UserProgress) => {
     const today = new Date().toISOString().split("T")[0];
+    const difficulty = p.difficulty || "intermediate";
     try {
-      const systemPrompt = `You are an IELTS expert. Generate a high-level academic word suitable for IELTS Band 7-9.
+      const systemPrompt = `You are an IELTS expert. Generate a high-level academic word suitable for an IELTS student at the ${difficulty} level.
       Return ONLY a JSON object in this format:
       {
         "word": "...",
         "type": "noun | verb | adj | adv",
-        "band": "7+ | 8+ | 9",
+        "band": "target band (e.g., 6.5, 7.5, 8.5)",
         "def": "...",
         "example": "..."
-      }`;
+      }
+      
+      Target Level Requirements:
+      - Beginner: B1-B2 level, essential academic words (e.g., 'Significant', 'Conclude').
+      - Intermediate: C1 level, nuanced academic vocabulary (e.g., 'Detrimental', 'Inherent').
+      - Advanced: C2 level, sophisticated collocations and precise terminology (e.g., 'Pervasive', 'Mitigate').`;
       
       const result = await callGroq("Generate a random IELTS academic word.", systemPrompt);
       const cleaned = result.replace(/```json|```/g, "").trim();

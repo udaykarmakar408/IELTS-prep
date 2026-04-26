@@ -71,7 +71,12 @@ export default function Reading() {
       }
     };
 
-    const prompt = `Generate 3 new unique IELTS Academic Reading passages. 
+    const difficulty = progress?.difficulty || "intermediate";
+    const prompt = `Generate 3 new unique IELTS Academic Reading passages tailored for a ${difficulty} level student. 
+    (Beginner: Simpler academic texts, clearer logical structure.
+     Intermediate: Standard academic depth.
+     Advanced: Highly abstract topics, sophisticated vocabulary, and subtle reasoning).
+    
     Ensure high academic quality and varied topics (e.g., science, history, sociology). 
     Each passage should have 13-14 questions.`;
 
@@ -151,17 +156,18 @@ export default function Reading() {
       required: ["title", "difficulty", "mins", "passages"]
     };
 
-    const prompt = `Generate a full-length, Band 9.0 standard IELTS Academic Reading test with 3 passages (40 questions total).
-    The content must be highly academic and professional, mimicking the complexity of Cambridge IELTS 15-19.
+    const difficulty = progress?.difficulty || "intermediate";
+    const prompt = `Generate a full-length IELTS Academic Reading test with 3 passages (40 questions total) for a ${difficulty} level student.
+    
+    Difficulty Level Details:
+    - Beginner: Focus on identifying facts and basic opinions. Passages around 800-900 words.
+    - Intermediate: Standard Cambridge IELTS difficulty. Passages around 1000-1100 words.
+    - Advanced: Extreme academic depth, complex information density, and subtle logical traps. Passages around 1100-1300 words.
     
     Structure:
-    - Passage 1: Descriptive/factual (13 questions). Mix multiple-choice and tfng.
-    - Passage 2: Discursive/analytical (13 questions). Mix matching-headings and matching-info.
-    - Passage 3: Complex argument (14 questions). Mix completion and multiple-choice.
-    
-    Each passage should be approx 1000-1200 words on a complex academic subject (science, history, environment, sociology).
-    
-    The passage should use sophisticated vocabulary, complex sentence structures, and subtle arguments to challenge even advanced learners.`;
+    - Passage 1: Descriptive/factual (13 questions).
+    - Passage 2: Discursive/analytical (13 questions).
+    - Passage 3: Complex argument (14 questions).`;
 
     try {
       const result = await callGroqJSON(prompt, schema, "You are an IELTS Reading content creator.");
@@ -212,14 +218,15 @@ export default function Reading() {
       saveProgress(updated);
     }
 
+    const difficulty = progress?.difficulty || "intermediate";
     // AI Assessment
-    const prompt = `You are an IELTS Reading tutor. A student has completed a reading task.
+    const prompt = `You are an IELTS Reading tutor. A student has completed a reading task at ${difficulty} level.
     Passage Title: ${activePassage.title}
     Passage Text: ${activePassage.text}
     Questions and Correct Answers: ${JSON.stringify(activePassage.questions)}
     Student's Answers: ${JSON.stringify(userAnswers)}
     
-    Provide a detailed assessment. Explain why the correct answers are correct and where the student might have gone wrong. Give tips for improving their reading score.
+    Provide a detailed assessment for a ${difficulty} level student. Explain why the correct answers are correct and where the student might have gone wrong. Give tips for improving their reading score.
     Use markdown for formatting.`;
 
     try {
@@ -377,10 +384,17 @@ export default function Reading() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="recipe-editorial-h1 mb-8"
+              className="recipe-editorial-h1 mb-2"
             >
               Reading <span className="text-emerald-500">Academy</span>
             </motion.h2>
+
+            <div className="flex items-center gap-2 mb-8 px-4 py-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full w-fit">
+              <Sparkles size={14} className="text-emerald-500" />
+              <span className="text-[10px] font-bold text-emerald-500 uppercase tracking-[0.2em]">
+                Level: {progress.difficulty} {progress.adaptiveDifficulty && "(Adaptive)"}
+              </span>
+            </div>
             
             <motion.p 
               initial={{ opacity: 0, y: 20 }}

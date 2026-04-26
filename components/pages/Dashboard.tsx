@@ -142,18 +142,19 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
 
   const generateDailyWord = async (p: UserProgress) => {
     const today = new Date().toISOString().split("T")[0];
+    const difficulty = p.difficulty || "intermediate";
     try {
-      const systemPrompt = `You are an IELTS expert. Generate a high-level academic word suitable for IELTS Band 7-9.
+      const systemPrompt = `You are an IELTS expert. Generate a high-level academic word suitable for an student at the ${difficulty} level.
       Return ONLY a JSON object in this format:
       {
         "word": "...",
         "type": "noun | verb | adj | adv",
-        "band": "7+ | 8+ | 9",
+        "band": "target band score",
         "def": "...",
         "example": "..."
       }`;
       
-      const result = await callGroq("Generate a random IELTS academic word.", systemPrompt);
+      const result = await callGroq(`Generate a random ${difficulty} level IELTS academic word.`, systemPrompt);
       const cleaned = result.replace(/```json|```/g, "").trim();
       const word = JSON.parse(cleaned);
       
@@ -167,17 +168,23 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
 
   const generateDailyGrammar = async (p: UserProgress) => {
     const today = new Date().toISOString().split("T")[0];
+    const difficulty = p.difficulty || "intermediate";
     try {
-      const systemPrompt = `You are an IELTS expert. Generate a high-impact grammar tip for IELTS students.
-      Return ONLY a JSON object in this format:
+      const systemPrompt = `You are an IELTS expert. Generate a high-impact grammar tip for a ${difficulty} level IELTS student.
+      Return ONLY a JSON object:
       {
         "title": "...",
         "tip": "...",
-        "bad": "Incorrect example sentence",
-        "good": "Corrected example sentence"
-      }`;
+        "bad": "...",
+        "good": "..."
+      }
       
-      const result = await callGroq("Generate a random IELTS grammar tip.", systemPrompt);
+      Target Focus:
+      - Beginner: Basic subject-verb agreement, tenses, common errors.
+      - Intermediate: Complex sentences, passive voice, conditionals.
+      - Advanced: Inversion, reduced relative clauses, emphatic structures.`;
+      
+      const result = await callGroq(`Generate a ${difficulty} level IELTS grammar tip.`, systemPrompt);
       const cleaned = result.replace(/```json|```/g, "").trim();
       const tip = JSON.parse(cleaned);
       
@@ -421,45 +428,51 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
       {/* Hero Card */}
       <motion.div 
         id="dashboard-hero" 
-        className="card-blue overflow-hidden relative p-8 md:p-14 group min-h-[450px] flex flex-col justify-center rounded-3xl"
+        className="card-blue overflow-hidden relative p-8 md:p-10 group min-h-[380px] flex flex-col justify-center rounded-3xl"
         variants={{
           hidden: { opacity: 0, scale: 0.95 },
           visible: { opacity: 1, scale: 1 }
         }}
       >
         <div className="absolute inset-0 recipe-atmospheric-bg opacity-40" />
-        <div id="hero-logo-bg" className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none group-hover:scale-110 transition-transform duration-1000">
-          <Logo className="w-48 h-48 md:w-96 md:h-96" />
+        <div id="hero-logo-bg" className="absolute top-0 right-0 p-8 md:p-12 opacity-5 pointer-events-none group-hover:scale-110 transition-transform duration-1000">
+          <Logo className="w-48 h-48 md:w-80 md:h-80" />
         </div>
         
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          <div className="space-y-10">
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+          <div className="space-y-6 md:space-y-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
             >
-              <div className="recipe-editorial-label mb-6 flex items-center gap-3">
+              <div className="recipe-editorial-label mb-4 flex flex-wrap items-center gap-3">
                 <div className="w-8 h-px bg-blue-secondary/30" />
-                <Sparkles size={14} className="text-blue-secondary animate-pulse" />
-                <span>{motivation || "Personalized Learning"}</span>
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-secondary/10 border border-blue-secondary/20 text-blue-secondary">
+                  <Sparkles size={12} className="animate-pulse" />
+                  <span className="capitalize">{progress.difficulty} Level</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-accent/10 border border-amber-accent/20 text-amber-accent">
+                  <Flame size={12} />
+                  <span>{progress.streak} Day Streak</span>
+                </div>
               </div>
-              <h3 className="recipe-editorial-h1 mb-8">
+              <h3 className="recipe-editorial-h1 !text-4xl md:!text-6xl xl:!text-7xl mb-6">
                 Hello, <br/>
                 <span className="text-blue-secondary">{progress.name}</span>
               </h3>
-              <p className="text-xl text-text-secondary max-w-md leading-relaxed font-medium">
+              <p className="text-lg text-text-secondary max-w-md leading-relaxed font-medium">
                 {progress.streak >= 3 
                   ? `You're on a ${progress.streak}-day winning streak! Your consistency is the key to mastering the IELTS.` 
                   : "Your journey to Band 9.0 starts with a single step. Let's practice today."}
               </p>
             </motion.div>
             
-            <div className="flex flex-wrap gap-6">
-              <button onClick={() => setActivePage("course")} className="btn btn-primary px-10 py-5 text-sm shadow-2xl shadow-blue-primary/40">
+            <div className="flex flex-wrap gap-4">
+              <button onClick={() => setActivePage("course")} className="btn btn-primary px-8 py-4 text-xs shadow-2xl shadow-blue-primary/40">
                 Continue Learning
               </button>
-              <button onClick={startRandomPractice} className="btn btn-ghost px-10 py-5 text-sm border border-white/10">
+              <button onClick={startRandomPractice} className="btn btn-ghost px-8 py-4 text-xs border border-white/10">
                 Quick Practice
               </button>
             </div>
@@ -467,15 +480,15 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
 
           <div className="flex flex-col items-center lg:items-end">
             <motion.div 
-              className="recipe-hardware-widget w-full max-w-[300px] aspect-square flex flex-col items-center justify-center relative group/band rounded-3xl border-white/10"
+              className="recipe-hardware-widget w-full max-w-[260px] aspect-square flex flex-col items-center justify-center relative group/band rounded-3xl border-white/10 shadow-black/50"
               whileHover={{ scale: 1.05, rotate: 1 }}
             >
               <div className="absolute inset-0 bg-blue-primary/5 opacity-0 group-hover/band:opacity-100 transition-opacity rounded-3xl" />
-              <div className="recipe-hardware-label mb-6">Predicted Band</div>
-              <div className="font-serif text-9xl font-black text-blue-secondary leading-none tracking-tighter drop-shadow-[0_0_20px_rgba(59,130,246,0.4)]">
+              <div className="recipe-hardware-label mb-4">Predicted Band</div>
+              <div className="font-serif text-7xl md:text-8xl font-black text-blue-secondary leading-none tracking-tighter drop-shadow-[0_0_20px_rgba(59,130,246,0.3)]">
                 {avgBand === "0.0" ? "—" : avgBand}
               </div>
-              <div className="recipe-hardware-label mt-8 flex items-center gap-3">
+              <div className="recipe-hardware-label mt-6 flex items-center gap-3">
                 <span>Target</span>
                 <span className="text-text-primary font-black text-lg">{progress.target}</span>
               </div>
@@ -489,12 +502,12 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
           </div>
         </div>
 
-        <div className="mt-20 space-y-6">
+        <div className="mt-12 space-y-4">
           <div className="flex justify-between items-end">
             <div className="recipe-hardware-label">Overall course progress</div>
             <div className="font-mono text-sm font-black text-blue-secondary">{progressPct}%</div>
           </div>
-          <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
             <motion.div 
               initial={{ width: 0 }}
               animate={{ width: `${progressPct}%` }}
@@ -555,7 +568,7 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
       <div id="dashboard-main-grid" className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <motion.div 
           id="daily-progress-card" 
-          className="lg:col-span-2 card bg-gradient-to-br from-blue-primary to-blue-secondary text-white border-none p-8 relative overflow-hidden group"
+          className="lg:col-span-2 card bg-gradient-to-br from-blue-primary to-blue-secondary text-white border-none p-6 md:p-8 relative overflow-hidden group"
           variants={{
             hidden: { opacity: 0, y: 20 },
             visible: { opacity: 1, y: 0 }
@@ -564,44 +577,41 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:scale-110 transition-transform duration-700" />
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-dim/20 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
           
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
-            <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-bold uppercase tracking-widest border border-white/10">
-                <Trophy size={12} /> Daily Study Goal
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8">
+            <div className="space-y-3 md:space-y-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[9px] font-bold uppercase tracking-widest border border-white/10">
+                <Trophy size={11} /> Daily Study Goal
               </div>
-              <h3 className="text-3xl md:text-5xl font-serif font-black tracking-tight leading-none">
+              <h3 className="text-3xl md:text-4xl font-serif font-black tracking-tight leading-none">
                 {dailyGoalPct}% Complete
               </h3>
-              <p className="text-blue-dim text-sm max-w-xs leading-relaxed">
-                You&apos;ve studied for <span className="text-white font-bold">{progress.studyMinutes || 0} mins</span> today. Only <span className="text-white font-bold">{Math.max(0, (progress.dailyGoalMin || 60) - (progress.studyMinutes || 0))} mins</span> left to reach your goal!
+              <p className="text-blue-dim text-[13px] md:text-sm max-w-xs leading-relaxed">
+                You&apos;ve studied for <span className="text-white font-bold">{progress.studyMinutes || 0} mins</span> today. Only <span className="text-white font-bold">{Math.max(0, (progress.dailyGoalMin || 60) - (progress.studyMinutes || 0))} mins</span> left!
               </p>
-              <div className="flex items-center gap-4 pt-2">
+              <div className="flex items-center gap-4 pt-1 md:pt-2">
                 <button 
                   onClick={() => setActivePage("course")}
-                  className="px-6 py-2.5 bg-white text-blue-primary font-bold text-xs rounded-xl shadow-lg shadow-black/10 hover:scale-105 active:scale-95 transition-all"
+                  className="px-5 py-2 bg-white text-blue-primary font-bold text-[10px] uppercase tracking-wider rounded-xl shadow-lg shadow-black/10 hover:scale-105 active:scale-95 transition-all"
                 >
-                  Continue Learning
+                  Continue
                 </button>
                 <div className="flex -space-x-2">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="w-8 h-8 rounded-full border-2 border-blue-primary bg-blue-dim/30 flex items-center justify-center overflow-hidden">
+                  {[1, 2].map(i => (
+                    <div key={i} className="w-7 h-7 rounded-full border-2 border-blue-primary bg-blue-dim/30 flex items-center justify-center overflow-hidden">
                       <img 
-                        src={`https://picsum.photos/seed/user${i}/32/32`} 
+                        src={`https://picsum.photos/seed/user${i}/28/28`} 
                         alt="User" 
                         className="w-full h-full object-cover"
                         referrerPolicy="no-referrer"
                       />
                     </div>
                   ))}
-                  <div className="w-8 h-8 rounded-full border-2 border-blue-primary bg-white/20 backdrop-blur-md flex items-center justify-center text-[10px] font-bold">
-                    +12
-                  </div>
                 </div>
-                <span className="text-[10px] font-bold text-blue-dim uppercase tracking-widest">Studying now</span>
+                <span className="text-[9px] font-bold text-blue-dim uppercase tracking-widest hidden sm:inline">Studying now</span>
               </div>
             </div>
 
-            <div className="relative w-40 h-40 md:w-48 md:h-48 flex-shrink-0">
+            <div className="relative w-32 h-32 md:w-40 md:h-40 flex-shrink-0">
               <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                 <circle
                   cx="50" cy="50" r="45"
@@ -621,8 +631,8 @@ export default function Dashboard({ setActivePage }: DashboardProps) {
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-4xl font-black leading-none">{progress.studyMinutes || 0}</span>
-                <span className="text-[10px] font-bold opacity-60 uppercase tracking-widest">Mins</span>
+                <span className="text-3xl font-black leading-none">{progress.studyMinutes || 0}</span>
+                <span className="text-[9px] font-bold opacity-60 uppercase tracking-widest">Mins</span>
               </div>
             </div>
           </div>

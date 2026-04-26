@@ -39,6 +39,8 @@ export interface UserProgress {
   dailyGrammar: { date: string; title: string; tip: string; bad: string; good: string } | null;
   achievements: { id: string; title: string; description: string; unlocked: boolean; date?: string }[];
   theme?: "dark" | "light";
+  difficulty: "beginner" | "intermediate" | "advanced";
+  adaptiveDifficulty: boolean;
   completedPracticeIds: string[];
   practiceHistory: {
     id: string;
@@ -96,6 +98,8 @@ export const defaultProgress: UserProgress = {
     { id: "mock_test", title: "Test Ready", description: "Complete your first full mock test", unlocked: false }
   ],
   theme: "dark",
+  difficulty: "intermediate",
+  adaptiveDifficulty: true,
   completedPracticeIds: [],
   practiceHistory: [],
 };
@@ -202,5 +206,24 @@ export function updateStreak(progress: UserProgress): UserProgress {
     streak,
     bestStreak: Math.max(streak, progress.bestStreak),
     lastSeen: today,
+  };
+}
+
+/**
+ * Calculates and updates the recommended difficulty based on user's current band scores.
+ */
+export function syncAdaptiveDifficulty(progress: UserProgress): UserProgress {
+  if (!progress.adaptiveDifficulty) return progress;
+
+  const bands = Object.values(progress.bands);
+  const avg = bands.reduce((a, b) => a + b, 0) / bands.length;
+
+  let newDifficulty: "beginner" | "intermediate" | "advanced" = "beginner";
+  if (avg >= 7.0) newDifficulty = "advanced";
+  else if (avg >= 5.5) newDifficulty = "intermediate";
+
+  return {
+    ...progress,
+    difficulty: newDifficulty
   };
 }

@@ -135,12 +135,17 @@ export default function Writing() {
     };
 
     const prompt = type === "Task 2" 
-      ? `Generate a high-quality, Band 9.0 standard IELTS Writing Task 2 prompt. 
-         The topic should be a complex societal, environmental, or technological issue that requires critical thinking and nuanced argumentation.
-         The prompt should be phrased in the standard IELTS Task 2 format (e.g., "To what extent do you agree or disagree?", "Discuss both views and give your opinion.").`
-      : `Generate a high-quality, Band 9.0 standard IELTS Writing Task 1 prompt (Academic).
-         Include a complex data set (Chart, Table, or Process) for the user to describe.
-         Return the data in the 'chartData' field.`;
+      ? `Generate a high-quality IELTS Writing Task 2 prompt tailored for ${progress?.difficulty || "intermediate"} level users. 
+         (Beginner: Simple social topics, clear questions.
+          Intermediate: Contemporary issues with some complexity.
+          Advanced: Abstract, philosophical, or highly technical societal problems).
+         
+         The topic should be a complex societal, environmental, or technological issue...`
+      : `Generate a high-quality IELTS Writing Task 1 prompt (Academic) for a ${progress?.difficulty || "intermediate"} level student.
+         (Beginner: Clear data with obvious trends.
+          Intermediate: Comparison with more data points.
+          Advanced: Complex process or multiple data sources to synthesize).
+         Include a complex data set...`;
 
     try {
       const result = await callGroqJSON(prompt, schema, "You are an IELTS Writing expert.");

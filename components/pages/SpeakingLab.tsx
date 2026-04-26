@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "motion/react";
-import { 
-  Mic, 
+import { Mic, 
   Play, 
   Square, 
   RefreshCw, 
@@ -19,6 +18,7 @@ import {
   CheckCircle2,
   Volume2
 } from "lucide-react";
+import { getProgress, UserProgress } from "@/lib/store";
 import { callGroq } from "@/lib/groq";
 import { cn } from "@/lib/utils";
 import { GoogleGenAI } from "@google/genai";
@@ -42,6 +42,7 @@ const CUE_CARDS = [
 ];
 
 export default function SpeakingLab() {
+  const [progress, setProgress] = useState<UserProgress | null>(null);
   const [activeCard, setActiveCard] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [testData, setTestData] = useState<any>(null);
@@ -56,8 +57,17 @@ export default function SpeakingLab() {
   const [recognition, setRecognition] = useState<any>(null);
   const [pronunciationFeedback, setPronunciationFeedback] = useState<any>(null);
   const [isAnalyzingPronunciation, setIsAnalyzingPronunciation] = useState(false);
+  const [markedTranscript, setMarkedTranscript] = useState<string | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isAudioLoading, setIsAudioLoading] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      const p = await getProgress();
+      setProgress(p);
+    };
+    load();
+  }, []);
 
   const generateAudio = async (text: string) => {
     setIsAudioLoading(true);
@@ -166,8 +176,15 @@ export default function SpeakingLab() {
     setFullTranscript([]);
     setCurrentPart(1);
     
+    const difficulty = progress?.difficulty || "intermediate";
     try {
-      const prompt = `Generate a FULL IELTS Speaking Test (Parts 1, 2, and 3) for the theme: "${topic || "A random interesting theme"}".
+      const prompt = `Generate a FULL IELTS Speaking Test (Parts 1, 2, and 3) for a ${difficulty} level student.
+      Theme: "${topic || "A random interesting theme"}".
+      
+      Difficulty Focus:
+      - Beginner: Familiar personal topics, simpler Part 3 questions.
+      - Intermediate: Mix of personal and general social topics.
+      - Advanced: Complex conceptual depth, philosophical Part 3 questions.
       
       Structure:
       - Part 1: 3-5 introductory questions about the theme.
@@ -257,6 +274,11 @@ export default function SpeakingLab() {
 
       const prompt = `You are a Senior IELTS Speaking Examiner. Evaluate the following FULL TEST response based on the 4 official Band 9.0 criteria.
       
+      User's Current Level: ${progress?.difficulty || "intermediate"}
+      (Beginner: focus on basic coherence and sentence structure.
+       Intermediate: focus on vocabulary range and complex grammar.
+       Advanced: focus on idiomatic expression and abstract nuance).
+
       Theme: "${testData.theme}"
       Student Transcript:
       ${finalTranscriptText}
@@ -285,6 +307,20 @@ export default function SpeakingLab() {
         console.error("Failed to parse feedback JSON", e);
         setFeedback(result); // Fallback
       }
+
+      // Generate Marked-up Transcript
+      const markupPrompt = `Analyze this student transcript for an IELTS Speaking test. 
+      Identify:
+      1. Advanced/High-Band Vocabulary (Mark with <span class="text-blue-secondary font-bold">word</span>)
+      2. Grammatical errors or awkward phrasing (Mark with <span class="text-red-accent underline decoration-dotted">phrase</span>)
+      3. Good linkers/connectives (Mark with <span class="text-green-accent italic">phrase</span>)
+      
+      Transcript: "${finalTranscriptText}"
+      
+      Return the full transcript punctuated and marked with these HTML spans. Wrap in <div>.`;
+      
+      const markupResult = await callGroq(markupPrompt, "You are a professional IELTS editor.");
+      setMarkedTranscript(markupResult);
       
       // Separate Pronunciation Analysis (Clarify it's text-based)
       const pronPrompt = `Analyze the following transcript for potential pronunciation challenges. 
@@ -319,6 +355,12 @@ export default function SpeakingLab() {
           <h2 className="font-serif text-3xl md:text-5xl font-black text-text-primary leading-tight tracking-tight">
             Cue Card <span className="text-blue-secondary">Mastery</span>
           </h2>
+          <div className="flex items-center gap-2 mt-2 px-3 py-1 bg-blue-secondary/10 border border-blue-secondary/20 rounded-full w-fit">
+            <Sparkles size={12} className="text-blue-secondary" />
+            <span className="text-[9px] font-bold text-blue-secondary uppercase tracking-[0.1em]">
+              Level: {progress?.difficulty || "intermediate"}
+            </span>
+          </div>
           <p className="text-xs md:text-base text-text-secondary max-w-md leading-relaxed">
             Practice IELTS Speaking Part 2 with AI-generated cue cards, timed sessions, and expert feedback.
           </p>
@@ -595,14 +637,41 @@ export default function SpeakingLab() {
                 </ul>
               </div>
 
-              {feedback && (
-                <div className="space-y-6">
-                  {pronunciationFeedback && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="card p-8 bg-gradient-to-br from-blue-primary/10 to-bg-1 border-blue-primary/30 shadow-xl shadow-blue-primary/5"
-                    >
+                  {feedback && (
+                    <div className="space-y-6">
+                      {markedTranscript && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="card p-8 bg-bg-2 border-white/5 shadow-inner"
+                        >
+                          <div className="flex items-center gap-2 text-blue-secondary font-bold text-[10px] uppercase tracking-[0.25em] mb-6">
+                            <Sparkles size={16} /> Analysis Transcript
+                          </div>
+                          <div 
+                            className="text-sm text-text-secondary leading-relaxed bg-bg-1 p-6 rounded-2xl border border-white/5"
+                            dangerouslySetInnerHTML={{ __html: markedTranscript }}
+                          />
+                          <div className="mt-6 flex flex-wrap gap-4">
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-blue-secondary">
+                              <div className="w-2 h-2 rounded-full bg-blue-secondary" /> Advanced Vocabulary
+                            </div>
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-red-accent">
+                              <div className="w-2 h-2 rounded-full bg-red-accent" /> Opportunity for correction
+                            </div>
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-green-accent">
+                              <div className="w-2 h-2 rounded-full bg-green-accent" /> Cohesive Linker
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {pronunciationFeedback && (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="card p-8 bg-gradient-to-br from-blue-primary/10 to-bg-1 border-blue-primary/30 shadow-xl shadow-blue-primary/5"
+                        >
                       <div className="flex items-center justify-between mb-8">
                         <div className="flex items-center gap-2 text-blue-secondary font-bold text-[10px] uppercase tracking-[0.25em]">
                           <Mic size={16} /> Pronunciation Analysis

@@ -74,7 +74,10 @@ export default function Drills() {
     }
 
     // AI Feedback
-    const systemPrompt = `You are an IELTS study coach. Analyze the student&apos;s performance on a ${activeDrill.type} drill titled "${activeDrill.title}".
+    const systemPrompt = `You are an IELTS study coach. Analyze the student's performance on a ${activeDrill.type} drill titled "${activeDrill.title}".
+    User's Current Level: ${progress?.difficulty || "intermediate"}
+    Drill Difficulty: ${activeDrill.difficulty}
+    
     Score: ${correctCount}/${activeDrill.questions.length} (${score.toFixed(1)} band).
     Provide a brief, encouraging analysis of their performance and 2-3 specific tips to improve in this area.
     Use markdown for formatting. Keep it concise.`;
@@ -122,6 +125,14 @@ export default function Drills() {
   };
 
   if (!progress) return null;
+
+  const filteredDrills = DRILLS.filter(d => {
+    if (!progress) return true;
+    const diff = progress.difficulty;
+    if (diff === "beginner") return d.difficulty === "Easy" || d.difficulty === "Medium";
+    if (diff === "advanced") return d.difficulty === "Hard" || d.difficulty === "Medium";
+    return true; // intermediate sees all
+  });
 
   if (activeDrill) {
     const formatTime = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
@@ -222,13 +233,21 @@ export default function Drills() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h2 className="font-serif text-2xl font-bold mb-1">🎯 Skill Drills</h2>
-        <p className="text-sm text-text-muted">Timed exercises to sharpen your exam techniques</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 className="font-serif text-2xl font-bold mb-1">🎯 Skill Drills</h2>
+          <p className="text-sm text-text-muted">Timed exercises to sharpen your exam techniques</p>
+        </div>
+        <div className="flex items-center gap-2 px-4 py-2 bg-blue-dim/20 rounded-xl border border-blue-primary/20 self-start">
+          <Sparkles size={16} className="text-blue-secondary" />
+          <span className="text-[10px] font-bold text-blue-secondary uppercase tracking-widest">
+            Level: {progress.difficulty} {progress.adaptiveDifficulty && "(Adaptive)"}
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4">
-        {DRILLS.map((drill) => (
+        {filteredDrills.map((drill) => (
           <button
             key={drill.id}
             onClick={() => startDrill(drill)}

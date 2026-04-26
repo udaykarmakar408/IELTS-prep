@@ -25,6 +25,8 @@ interface SettingsProps {
 export default function Settings({ progress: initialProgress, onUpdate }: SettingsProps) {
   const [name, setName] = useState(initialProgress?.name || "");
   const [target, setTarget] = useState(initialProgress?.target || 9.0);
+  const [difficulty, setDifficulty] = useState(initialProgress?.difficulty || "intermediate");
+  const [adaptiveDifficulty, setAdaptiveDifficulty] = useState(initialProgress?.adaptiveDifficulty ?? true);
   const [isSaved, setIsSaved] = useState(false);
 
   // Sync local state if initialProgress changes (e.g., from another update)
@@ -37,7 +39,13 @@ export default function Settings({ progress: initialProgress, onUpdate }: Settin
 
   const handleSave = async () => {
     if (!initialProgress || !name.trim()) return;
-    const updated = { ...initialProgress, name: name.trim(), target };
+    const updated: UserProgress = { 
+      ...initialProgress, 
+      name: name.trim(), 
+      target,
+      difficulty: difficulty as any,
+      adaptiveDifficulty
+    };
     await saveProgress(updated);
     setIsSaved(true);
     onUpdate();
@@ -124,6 +132,46 @@ export default function Settings({ progress: initialProgress, onUpdate }: Settin
                     {b.toFixed(1)}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-text-muted uppercase tracking-widest mb-3">Preparation Intensity (Difficulty)</label>
+              <div className="flex flex-wrap gap-3">
+                {[
+                  { id: "beginner", label: "Beginner", desc: "Focus on basics (Band < 5.5)" },
+                  { id: "intermediate", label: "Intermediate", desc: "Standard Practice (Band 5.5-7.0)" },
+                  { id: "advanced", label: "Advanced", desc: "High Stakes (Band 7.0+)" }
+                ].map((level) => (
+                  <button
+                    key={level.id}
+                    onClick={() => {
+                      setDifficulty(level.id as any);
+                      setAdaptiveDifficulty(false);
+                    }}
+                    className={cn(
+                      "flex-1 min-w-[140px] p-4 rounded-xl border-2 text-left transition-all",
+                      difficulty === level.id && !adaptiveDifficulty
+                        ? "bg-blue-primary/10 border-blue-primary text-blue-primary"
+                        : "bg-bg-2 border-white/5 hover:border-white/10"
+                    )}
+                  >
+                    <div className="text-xs font-bold mb-1">{level.label}</div>
+                    <div className="text-[10px] opacity-70 leading-tight">{level.desc}</div>
+                  </button>
+                ))}
+                <button
+                  onClick={() => setAdaptiveDifficulty(true)}
+                  className={cn(
+                    "flex-1 min-w-[140px] p-4 rounded-xl border-2 text-left transition-all",
+                    adaptiveDifficulty
+                      ? "bg-amber-accent/10 border-amber-accent text-amber-accent"
+                      : "bg-bg-2 border-white/5 hover:border-white/10"
+                  )}
+                >
+                  <div className="text-xs font-bold mb-1">Adaptive AI</div>
+                  <div className="text-[10px] opacity-70 leading-tight">Syncs level with your band score automatically</div>
+                </button>
               </div>
             </div>
           </div>
